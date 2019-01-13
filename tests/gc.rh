@@ -1,0 +1,70 @@
+function g() {
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    x;
+}
+
+function h() {
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    let x = { x = 1, y = 2, z = 3 };
+    x;
+}
+
+function f() {
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    let x = { g = g(), h = h() };
+    x;
+}
+
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+let y = { x = f() };
+print("asd");

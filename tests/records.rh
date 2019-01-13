@@ -1,0 +1,3 @@
+function f() { 42; }
+let x = { x = f };
+x.x()
