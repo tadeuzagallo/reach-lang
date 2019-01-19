@@ -26,6 +26,11 @@ int main(int argc, const char** argv)
     Lexer lexer { sourceFile };
     Parser parser { lexer };
     auto program = parser.parse();
+    if (!program) {
+        parser.reportErrors(std::cerr);
+        return EXIT_FAILURE;
+    }
+
     VM vm;
     auto bytecode = program->generate(vm);
     vm.globalBlock = bytecode.get();

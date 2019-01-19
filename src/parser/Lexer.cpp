@@ -63,13 +63,14 @@ Token::Type Lexer::nextTokenType()
 {
 #define SIMPLE_CASE(__char, __type) \
     case __char: \
-                 nextChar(); \
-    return Token::__type
+        nextChar(); \
+        return Token::__type
 
     switch (m_nextChar) {
         SIMPLE_CASE('\0', END_OF_FILE);
         SIMPLE_CASE('.', DOT);
         SIMPLE_CASE(',', COMMA);
+        SIMPLE_CASE(':', COLON);
         SIMPLE_CASE(';', SEMICOLON);
 
         SIMPLE_CASE('+', PLUS);

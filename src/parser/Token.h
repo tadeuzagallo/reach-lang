@@ -28,6 +28,7 @@ public:
     END_OF_FILE,
     DOT,
     COMMA,
+    COLON,
     SEMICOLON,
 
     MOD,

@@ -2,6 +2,26 @@
 
 #include "Assert.h"
 #include "Lexer.h"
+#include <sstream>
+
+#define CHECK(__token, __type) \
+    do { \
+        auto __t = (__token); \
+        if (__t.type != __type) { \
+            unexpectedToken(__t, __type); \
+            return nullptr; \
+        } \
+    } while (false)
+
+#define CONSUME(__type) CHECK(m_lexer.next(), __type)
+
+template<typename T, typename U>
+static std::unique_ptr<T> wrap(std::unique_ptr<U> wrapped)
+{
+    if (!wrapped)
+        return nullptr;
+    return std::make_unique<T>(std::move(wrapped));
+}
 
 Parser::Parser(Lexer& lexer)
     : m_lexer(lexer)
@@ -16,6 +36,10 @@ std::unique_ptr<Program> Parser::parse()
         program->declarations.emplace_back(parseDeclaration(t));
         t = m_lexer.next();
     }
+    CHECK(t, Token::END_OF_FILE);
+
+    if (m_errors.size())
+        return nullptr;
 
     return program;
 }
@@ -29,7 +53,7 @@ std::unique_ptr<Declaration> Parser::parseDeclaration(const Token& t)
     case Token::FUNCTION:
         return parseFunctionDeclaration(t);
     default:
-        return std::make_unique<StatementDeclaration>(parseStatement(t));
+        return wrap<StatementDeclaration>(parseStatement(t));
     };
 }
 
@@ -51,20 +75,20 @@ std::unique_ptr<LexicalDeclaration> Parser::parseLexicalDeclaration(const Token&
 
 std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Token& t)
 {
-    ASSERT(t.type == Token::FUNCTION, "Function declaration must begin with `function`");
+    CHECK(t, Token::FUNCTION);
 
     auto fn = std::make_unique<FunctionDeclaration>(t);
     fn->name = parseIdentifier(m_lexer.next());
 
-    ASSERT(m_lexer.next().type == Token::L_PAREN, "Expected opening parenthesis for formal parameters list");
+    CONSUME(Token::L_PAREN);
     while (m_lexer.peek().type != Token::R_PAREN) {
         fn->parameters.emplace_back(parseIdentifier(m_lexer.next()));
         if (m_lexer.peek().type == Token::COMMA) m_lexer.next();
         else
             break;
     }
-    ASSERT(m_lexer.next().type == Token::R_PAREN, "Expected closing parenthesis after formal parameters list");
-
+    CONSUME(Token::R_PAREN);
+    CONSUME(Token::ARROW);
     fn->body = parseBlockStatement(m_lexer.next());
 
     return fn;
@@ -86,42 +110,38 @@ std::unique_ptr<Statement> Parser::parseStatement(const Token& t)
     case Token::SEMICOLON:
         return std::make_unique<EmptyStatement>(t);
     default:
-        auto expr = std::make_unique<ExpressionStatement>(parseExpression(t));
+        auto expr = wrap<ExpressionStatement>(parseExpression(t));
         //ASSERT(m_lexer.peek().type == Token::SEMICOLON, "Expected semicolon after lexical expression");
-        m_lexer.next();
+        //m_lexer.next();
         return expr;
     }
 }
 
 std::unique_ptr<BlockStatement> Parser::parseBlockStatement(const Token& t)
 {
-    ASSERT(t.type == Token::L_BRACE, "Block must begin with `{` (R_BRACE)");
-
     auto block = std::make_unique<BlockStatement>(t);
 
-    while (m_lexer.peek().type != Token::R_BRACE) {
+    CHECK(t, Token::L_BRACE);
+    while (m_lexer.peek().type != Token::R_BRACE)
         block->declarations.emplace_back(parseDeclaration(m_lexer.next()));
-    }
-
-    ASSERT(m_lexer.next().type == Token::R_BRACE, "Block must end with `}` (R_BRACE)");
+    CONSUME(Token::R_BRACE);
 
     return block;
 }
 
 std::unique_ptr<IfStatement> Parser::parseIfStatement(const Token& t)
 {
-    ASSERT(t.type == Token::IF, "If statement must start from the `if` keyword");
-
     auto ifStmt = std::make_unique<IfStatement>(t);
 
-    ASSERT(m_lexer.next().type == Token::L_PAREN, "Expected opening parenthesis after `if`");
+    CHECK(t, Token::IF);
+    CONSUME(Token::L_PAREN);
     ifStmt->condition = parseExpression(m_lexer.next());
-    ASSERT(m_lexer.next().type == Token::R_PAREN, "Expected closing parenthesis after if condition");
+    CONSUME(Token::R_PAREN);
 
     ifStmt->consequent = parseStatement(m_lexer.next());
 
     if (m_lexer.peek().type == Token::ELSE) {
-        m_lexer.next();
+        CONSUME(Token::ELSE);
         ifStmt->alternate = parseStatement(m_lexer.next());
     }
 
@@ -130,17 +150,19 @@ std::unique_ptr<IfStatement> Parser::parseIfStatement(const Token& t)
 
 std::unique_ptr<ForStatement> Parser::parseForStatement(const Token& t)
 {
-    ASSERT(t.type == Token::FOR, "ForStatement should begin with Token::FOR");
+    CHECK(t, Token::FOR);
     return nullptr;
 }
 
 std::unique_ptr<WhileStatement> Parser::parseWhileStatement(const Token& t)
 {
+    CHECK(t, Token::WHILE);
     return nullptr;
 }
 
 std::unique_ptr<ReturnStatement> Parser::parseReturnStatement(const Token& t)
 {
+    CHECK(t, Token::RETURN);
     auto ret = std::make_unique<ReturnStatement>(t);
     auto next = m_lexer.next();
     //if (next.type == Token::SEMICOLON)
@@ -179,7 +201,7 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
 
 std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expression> callee)
 {
-    ASSERT(m_lexer.next().type == Token::L_PAREN, "CallExpression must begin with L_PAREN");
+    CONSUME(Token::L_PAREN);
     auto call = std::make_unique<CallExpression>(std::move(callee));
     while (m_lexer.peek().type != Token::R_PAREN) {
         call->arguments.emplace_back(parseExpression(m_lexer.next()));
@@ -188,24 +210,24 @@ std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expr
         else
             break;
     }
-    ASSERT(m_lexer.next().type == Token::R_PAREN, "Expected R_PAREN after function call arguments");
+    CONSUME(Token::R_PAREN);
 
     return call;
 }
 
 std::unique_ptr<SubscriptExpression> Parser::parseSubscriptExpression(std::unique_ptr<Expression> target)
 {
-    ASSERT(m_lexer.next().type == Token::L_SQUARE, "SubscriptExpression must begin with L_SQUARE");
+    CONSUME(Token::L_SQUARE);
     auto subscript = std::make_unique<SubscriptExpression>(std::move(target));
     subscript->index = parseExpression(m_lexer.next());
-    ASSERT(m_lexer.next().type == Token::R_SQUARE, "Expected R_SQUARE after subscript index");
+    CONSUME(Token::R_SQUARE);
 
     return subscript;
 }
 
 std::unique_ptr<MemberExpression> Parser::parseMemberExpression(std::unique_ptr<Expression> object)
 {
-    ASSERT(m_lexer.next().type == Token::DOT, "MemberExpression must begin with DOT");
+    CONSUME(Token::DOT);
     auto expr = std::make_unique<MemberExpression>(std::move(object));
     expr->property = parseIdentifier(m_lexer.next());
     return expr;
@@ -213,7 +235,7 @@ std::unique_ptr<MemberExpression> Parser::parseMemberExpression(std::unique_ptr<
 
 std::unique_ptr<MethodCallExpression> Parser::parseMethodCallExpression(std::unique_ptr<Expression> object)
 {
-    ASSERT(m_lexer.next().type == Token::ARROW, "MethodCallExpression must begin with ARROW");
+    CONSUME(Token::ARROW);
     auto expr = std::make_unique<MethodCallExpression>(std::move(object));
     std::unique_ptr<Identifier> callee = parseIdentifier(m_lexer.next());
     expr->call = parseCallExpression(std::move(callee));
@@ -231,18 +253,16 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
         //return parseParenthesizedExpression(t);
     //case Token::FUNCTION:
         //return parseFunctionExpression(t);
-    case Token::THIS:
-        return parseThisExpression(t);
     case Token::IDENTIFIER:
         return parseIdentifier(t);
     default:
-        return std::make_unique<LiteralExpression>(parseLiteral(t));
+        return wrap<LiteralExpression>(parseLiteral(t));
     }
 }
 
 std::unique_ptr<ArrayLiteralExpression> Parser::parseArrayLiteralExpression(const Token& t)
 {
-    ASSERT(t.type == Token::L_SQUARE, "ArrayLiteralExpression must begin with `[`");
+    CHECK(t, Token::L_SQUARE);
     auto array = std::make_unique<ArrayLiteralExpression>(t);
     Token tok = m_lexer.next();
     while (tok.type != Token::R_SQUARE) {
@@ -253,18 +273,18 @@ std::unique_ptr<ArrayLiteralExpression> Parser::parseArrayLiteralExpression(cons
         else
             break;
     }
-    ASSERT(tok.type == Token::R_SQUARE, "Unterminated array literal");
+    CHECK(tok, Token::R_SQUARE);
     return array;
 }
 
 std::unique_ptr<ObjectLiteralExpression> Parser::parseObjectLiteralExpression(const Token& t)
 {
-    ASSERT(t.type == Token::L_BRACE, "ObjectLiteralExpression must begin with `{`");
+    CHECK(t, Token::L_BRACE);
     auto record = std::make_unique<ObjectLiteralExpression>(t);
     Token tok = m_lexer.next();
     while (tok.type != Token::R_BRACE) {
         auto name = parseIdentifier(tok);
-        ASSERT(m_lexer.next().type == Token::EQUAL, "Expected = (EQUAL sign) between record field name and value");
+        CONSUME(Token::EQUAL);
         auto value = parseExpression(m_lexer.next());
         record->fields[std::move(name)] = std::move(value);
         tok = m_lexer.next();
@@ -273,19 +293,13 @@ std::unique_ptr<ObjectLiteralExpression> Parser::parseObjectLiteralExpression(co
         else
             break;
     }
-    ASSERT(tok.type == Token::R_BRACE, "Unterminated object literal");
+    CHECK(tok, Token::R_BRACE);
     return record;
-}
-
-std::unique_ptr<ThisExpression> Parser::parseThisExpression(const Token& t)
-{
-    ASSERT(t.type == Token::THIS, "ThisExpression must begin with `this`");
-    return std::make_unique<ThisExpression>(t);
 }
 
 std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)
 {
-    ASSERT(t.type == Token::IDENTIFIER, "Expected an identifier");
+    CHECK(t, Token::IDENTIFIER);
     return std::make_unique<Identifier>(t);
 }
 
@@ -301,7 +315,7 @@ std::unique_ptr<Literal> Parser::parseLiteral(const Token& t)
     case Token::FALSE:
         return parseBooleanLiteral(t, false);
     default:
-        ASSERT(false, "Unexpected token: `%d`", t.type);
+        unexpectedToken(t);
         return nullptr;
     }
 }
@@ -326,4 +340,44 @@ std::unique_ptr<BooleanLiteral> Parser::parseBooleanLiteral(const Token& t, bool
     auto boolean = std::make_unique<BooleanLiteral>(t);
     boolean->value = value;
     return boolean;
+}
+
+// Error handling
+Parser::Error::Error(const SourceLocation& location, const std::string& message)
+    : m_location(location)
+    , m_message(message)
+{
+}
+
+const SourceLocation& Parser::Error::location() const
+{
+    return m_location;
+}
+
+const std::string& Parser::Error::message() const
+{
+    return m_message;
+}
+
+void Parser::unexpectedToken(const Token& t)
+{
+    std::stringstream message;
+    message << "Unexpected token: " << t.lexeme();
+    m_errors.emplace_back(Error {
+        t.location,
+        message.str(),
+    });
+}
+
+void Parser::unexpectedToken(const Token& t, Token::Type)
+{
+    // TODO: better message
+    unexpectedToken(t);
+}
+
+void Parser::reportErrors(std::ostream& out)
+{
+    for (const auto& error : m_errors) {
+        out << error.location() << ": " << error.message() << std::endl;
+    }
 }

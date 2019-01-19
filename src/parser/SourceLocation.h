@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <stddef.h>
 
 struct SourceFile {
@@ -18,4 +19,7 @@ struct SourceLocation {
     SourceFile file;
     SourcePosition start;
     SourcePosition end;
+
+    void dump(std::ostream&) const;
+    friend std::ostream& operator<<(std::ostream&, const SourceLocation&);
 };
