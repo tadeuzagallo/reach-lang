@@ -1,0 +1,6 @@
+// RUN: %not %reach | %check
+function f(x: Number) -> Number {
+    x
+}
+f(42);
+x // CHECK: Unknown type: `x`

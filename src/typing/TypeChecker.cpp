@@ -1,7 +1,6 @@
 #include "TypeChecker.h"
 
 #include "AST.h"
-#include "Type.h"
 #include <sstream>
 
 const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
@@ -17,49 +16,70 @@ const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
 
 TypeChecker::TypeChecker()
 {
-    m_environment["Void"] = Type::named("Void");
-    m_environment["Bool"] = Type::named("Bool");
-    m_environment["Number"] = Type::named("Number");
-    m_environment["String"] = Type::named("String");
-
-    m_environment["print"] = Type::function({ numericType() }, unitType());
+    insert("Void", newNameType("Void"));
+    insert("Bool", newNameType("Bool"));
+    insert("Number", newNameType("Number"));
+    insert("String", newNameType("String"));
+    insert("print", newFunctionType({ numericType() }, unitType()));
 }
 
 const Type& TypeChecker::unitType()
 {
-    return *m_environment["Void"];
+    return *m_types[0];
 }
 
 const Type& TypeChecker::booleanType()
 {
-    return *m_environment["Bool"];
+    return *m_types[1];
 }
 
 const Type& TypeChecker::numericType()
 {
-    return *m_environment["Number"];
+    return *m_types[2];
 }
 
 const Type& TypeChecker::stringType()
 {
-    return *m_environment["String"];
+    return *m_types[3];
+}
+
+const TypeName& TypeChecker::newNameType(const std::string& name)
+{
+    TypeName* nameType = new TypeName(m_types.size(), name);
+    m_types.emplace_back(nameType);
+    return *nameType;
+}
+
+const TypeFunction& TypeChecker::newFunctionType(Types params, const Type& returnType)
+{
+    TypeFunction* fnType = new TypeFunction(m_types.size(), params, returnType);
+    m_types.emplace_back(fnType);
+    return *fnType;
+}
+
+const TypeArray& TypeChecker::newArrayType(const Type& itemType)
+{
+    TypeArray* arrayType = new TypeArray(m_types.size(), itemType);
+    m_types.emplace_back(arrayType);
+    return *arrayType;
 }
 
 const Type& TypeChecker::lookup(const SourceLocation& location, const std::string& name)
 {
-    auto it = m_environment.find(name);
-    if (it == m_environment.end()) {
-        std::stringstream msg;
-        msg << "Unknown type: `" << name << "`";
-        typeError(location, msg.str());
-        return unitType();
+    for (uint32_t i = m_environment.size(); i--;) {
+        const auto& pair = m_environment[i];
+        if (pair.first == name)
+            return *m_types[pair.second];
     }
-    return *it->second;
+    std::stringstream msg;
+    msg << "Unknown type: `" << name << "`";
+    typeError(location, msg.str());
+    return unitType();
 }
 
-void TypeChecker::insert(const std::string& name, const Type* type)
+void TypeChecker::insert(const std::string& name, const Type& type)
 {
-    m_environment[name] = type;
+    m_environment.emplace_back(name, type.m_offset);
 }
 
 // Error handling
@@ -107,3 +127,18 @@ void TypeChecker::reportErrors(std::ostream& out) const
     }
 }
 
+
+TypeChecker::Scope::Scope(TypeChecker& tc)
+    : m_typeChecker(tc)
+    , m_environmentSize(tc.m_environment.size())
+    , m_typesSize(tc.m_types.size())
+{
+}
+
+TypeChecker::Scope::~Scope()
+{
+    m_typeChecker.m_environment.resize(m_environmentSize);
+    for (uint32_t i = m_typesSize; i < m_typeChecker.m_types.size(); i++)
+        delete m_typeChecker.m_types[i];
+    m_typeChecker.m_types.resize(m_typesSize);
+}

@@ -1,12 +1,89 @@
 #include "Type.h"
 
-Type::Type(Tag tag)
+Type::Type(Tag tag, uint32_t offset)
     : m_tag(tag)
+    , m_offset(offset)
 {
 }
 
-TypeName::TypeName(const std::string& name)
-    : Type(Tag::Name)
+bool Type::operator==(const Type& other) const
+{
+    if (m_tag != other.m_tag)
+        return false;
+    switch (m_tag) {
+    case Tag::Name:
+        return asName() == other.asName();
+    case Tag::Function:
+        return asFunction() == other.asFunction();
+    case Tag::Array:
+        return asArray() == other.asArray();
+    }
+}
+
+bool Type::operator!=(const Type& other) const
+{
+    return !(*this == other);
+}
+
+bool Type::isName() const
+{
+    return m_tag == Tag::Name;
+}
+
+bool Type::isFunction() const
+{
+    return m_tag == Tag::Function;
+}
+
+bool Type::isArray() const
+{
+    return m_tag == Tag::Array;
+}
+
+const TypeName& Type::asName() const
+{
+    ASSERT(m_tag == Tag::Name, "Invalid conversion: type is not a name");
+    return static_cast<const TypeName&>(*this);
+
+}
+
+const TypeFunction& Type::asFunction() const
+{
+    ASSERT(m_tag == Tag::Function, "Invalid conversion: type is not a function");
+    return static_cast<const TypeFunction&>(*this);
+
+}
+
+const TypeArray& Type::asArray() const
+{
+    ASSERT(m_tag == Tag::Array, "Invalid conversion: type is not a array");
+    return static_cast<const TypeArray&>(*this);
+
+}
+
+void Type::dump(std::ostream& out) const
+{
+    switch (m_tag) {
+    case Tag::Name:
+        asName().dump(out);
+        break;
+    case Tag::Function:
+        asFunction().dump(out);
+        break;
+    case Tag::Array:
+        asArray().dump(out);
+        break;
+    }
+}
+
+std::ostream& operator<<(std::ostream& out, const Type& type)
+{
+    type.dump(out);
+    return out;
+}
+
+TypeName::TypeName(uint32_t offset, const std::string& name)
+    : Type(Tag::Name, offset)
     , m_name(name)
 {
 }
@@ -21,8 +98,8 @@ void TypeName::dump(std::ostream& out) const
     out << m_name;
 }
 
-TypeFunction::TypeFunction(Types params, const Type& returnType)
-    : Type(Tag::Function)
+TypeFunction::TypeFunction(uint32_t offset, Types params, const Type& returnType)
+    : Type(Tag::Function, offset)
     , m_params(params)
     , m_returnType(returnType)
 {
@@ -69,71 +146,23 @@ void TypeFunction::dump(std::ostream& out) const
     out << ") -> " << m_returnType;
 }
 
-Type* Type::named(const std::string& name)
+TypeArray::TypeArray(uint32_t offset, const Type& itemType)
+    : Type(Tag::Array, offset)
+    , m_itemType(itemType)
 {
-    return new TypeName(name);
 }
 
-Type* Type::function(Types params, const Type& returnType)
+const Type& TypeArray::itemType() const
 {
-    return new TypeFunction(params, returnType);
+    return m_itemType;
 }
 
-bool Type::operator==(const Type& other) const
+bool TypeArray::operator==(const TypeArray& other) const
 {
-    if (m_tag != other.m_tag)
-        return false;
-    switch (m_tag) {
-    case Tag::Name:
-        return asName() == other.asName();
-    case Tag::Function:
-        return asFunction() == other.asFunction();
-    }
+    return m_itemType == other.m_itemType;
 }
 
-bool Type::operator!=(const Type& other) const
+void TypeArray::dump(std::ostream& out) const
 {
-    return !(*this == other);
-}
-
-bool Type::isName() const
-{
-    return m_tag == Tag::Name;
-}
-
-bool Type::isFunction() const
-{
-    return m_tag == Tag::Function;
-}
-
-const TypeName& Type::asName() const
-{
-    ASSERT(m_tag == Tag::Name, "Invalid conversion: type is not a name");
-    return static_cast<const TypeName&>(*this);
-
-}
-
-const TypeFunction& Type::asFunction() const
-{
-    ASSERT(m_tag == Tag::Function, "Invalid conversion: type is not a function");
-    return static_cast<const TypeFunction&>(*this);
-
-}
-
-void Type::dump(std::ostream& out) const
-{
-    switch (m_tag) {
-    case Tag::Name:
-        asName().dump(out);
-        break;
-    case Tag::Function:
-        asFunction().dump(out);
-        break;
-    }
-}
-
-std::ostream& operator<<(std::ostream& out, const Type& type)
-{
-    type.dump(out);
-    return out;
+    out << m_itemType << "[]";
 }

@@ -10,9 +10,11 @@ const Type& Declaration::infer(TypeChecker& tc)
     return tc.unitType();
 }
 
-void LexicalDeclaration::check(TypeChecker&, const Type&)
+void LexicalDeclaration::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    const Type& initializerType = (*initializer)->infer(tc);
+    tc.insert(name->name, initializerType);
+    tc.checkEquals(location, tc.unitType(), type);
 }
 
 void FunctionDeclaration::check(TypeChecker& tc, const Type& result)
@@ -21,8 +23,14 @@ void FunctionDeclaration::check(TypeChecker& tc, const Type& result)
     for (uint32_t i = 0; i < parameters.size(); i++)
         params.emplace_back(parameters[i]->type->normalize(tc));
     const Type& retType = returnType->normalize(tc);
-    body->check(tc, retType);
-    tc.insert(name->name, Type::function(params, retType));
+    tc.insert(name->name, tc.newFunctionType(params, retType));
+
+    {
+        TypeChecker::Scope bodyScope(tc);
+        for (uint32_t i = 0; i < params.size(); i++)
+            tc.insert(parameters[i]->name->name, params[i]);
+        body->check(tc, retType);
+    }
     tc.checkEquals(location, result, tc.unitType());
 }
 
@@ -66,13 +74,20 @@ void ReturnStatement::check(TypeChecker&, const Type&)
 
 const Type& IfStatement::infer(TypeChecker& tc)
 {
-    // TODO
-    return tc.unitType();
+    condition->check(tc, tc.booleanType());
+    const Type& result = consequent->infer(tc);
+    if (!alternate)
+        return tc.unitType();
+    (*alternate)->check(tc, result);
+    return result;
 }
 
-void IfStatement::check(TypeChecker&, const Type&)
+void IfStatement::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    condition->check(tc, tc.booleanType());
+    consequent->check(tc, type);
+    if (alternate)
+        (*alternate)->check(tc, type);
 }
 
 void BreakStatement::check(TypeChecker&, const Type&)
@@ -113,9 +128,10 @@ const Type& Identifier::infer(TypeChecker& tc)
     return tc.lookup(location, name);
 }
 
-void Identifier::check(TypeChecker&, const Type&)
+void Identifier::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    // TODO: proper checking
+    tc.checkEquals(location, infer(tc), type);
 }
 
 const Type& BinaryExpression::infer(TypeChecker& tc)
@@ -131,13 +147,12 @@ void BinaryExpression::check(TypeChecker&, const Type&)
 
 const Type& ParenthesizedExpression::infer(TypeChecker& tc)
 {
-    // TODO
-    return tc.unitType();
+    return expression->infer(tc);
 }
 
-void ParenthesizedExpression::check(TypeChecker&, const Type&)
+void ParenthesizedExpression::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    expression->check(tc, type);
 }
 
 const Type& ObjectLiteralExpression::infer(TypeChecker& tc)
@@ -153,18 +168,30 @@ void ObjectLiteralExpression::check(TypeChecker&, const Type&)
 
 const Type& ArrayLiteralExpression::infer(TypeChecker& tc)
 {
-    // TODO
-    return tc.unitType();
+    const Type& itemType = items.size()
+        ? items[0]->infer(tc)
+        : tc.unitType();
+
+    for (uint32_t i = 1; i < items.size(); i++)
+        items[i]->check(tc, itemType);
+
+    return tc.newArrayType(itemType);
 }
 
-void ArrayLiteralExpression::check(TypeChecker&, const Type&)
+void ArrayLiteralExpression::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    if (!type.isArray()) {
+        tc.typeError(location, "Unexpected array");
+        return;
+    }
+
+    const Type& itemType = type.asArray().itemType();
+    for (const auto& item : items)
+        item->check(tc, itemType);
 }
 
 const Type& CallExpression::infer(TypeChecker& tc)
 {
-    // TODO
     const Type& calleeType = callee->infer(tc);
     if (!calleeType.isFunction()) {
         tc.typeError(location, "Callee is not a function");
@@ -180,20 +207,29 @@ const Type& CallExpression::infer(TypeChecker& tc)
     return calleeTypeFunction.returnType();
 }
 
-void CallExpression::check(TypeChecker&, const Type&)
+void CallExpression::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    // TODO: proper checking
+    tc.checkEquals(location, infer(tc), type);
 }
 
 const Type& SubscriptExpression::infer(TypeChecker& tc)
 {
-    // TODO
-    return tc.unitType();
+    const Type& targetType = target->infer(tc);
+    if (!targetType.isArray()) {
+        tc.typeError(location, "Trying to subscript non-array");
+        return tc.unitType();
+    }
+
+    const TypeArray& targetArrayType = targetType.asArray();
+    index->check(tc, tc.numericType());
+    return targetArrayType.itemType();
 }
 
-void SubscriptExpression::check(TypeChecker&, const Type&)
+void SubscriptExpression::check(TypeChecker& tc, const Type& itemType)
 {
-    // TODO
+    target->check(tc, tc.newArrayType(itemType));
+    index->check(tc, tc.numericType());
 }
 
 const Type& MemberExpression::infer(TypeChecker& tc)
