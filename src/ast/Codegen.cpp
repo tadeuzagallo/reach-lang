@@ -27,7 +27,7 @@ void FunctionDeclaration::generate(BytecodeGenerator& generator, Register result
 {
     BytecodeGenerator functionGenerator { generator.vm(), name->name };
     for (unsigned i = 0; i < parameters.size(); i++)
-        functionGenerator.setLocal(*parameters[i], Register::forParameter(i));
+        functionGenerator.setLocal(*parameters[i]->name, Register::forParameter(i));
     Register functionResult = functionGenerator.newLocal();
     body->generate(functionGenerator, functionResult);
     auto block = functionGenerator.finalize(functionResult);
@@ -112,10 +112,6 @@ void Identifier::generate(BytecodeGenerator& generator, Register dst)
 }
 
 void BinaryExpression::generate(BytecodeGenerator&, Register)
-{
-}
-
-void ThisExpression::generate(BytecodeGenerator&, Register)
 {
 }
 

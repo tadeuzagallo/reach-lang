@@ -3,7 +3,8 @@ import :typeinfo
 
 ast_node :Literal < :Node,
   extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register) = 0"
+    "virtual void generate(BytecodeGenerator&, Register) = 0",
+    "virtual const Type& infer(TypeChecker&) = 0",
   ]
 
 ast_node :BooleanLiteral < :Literal,
@@ -11,7 +12,8 @@ ast_node :BooleanLiteral < :Literal,
     value: "bool"
   },
   extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)"
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual const Type& infer(TypeChecker&)",
   ]
 
 ast_node :NumericLiteral < :Literal,
@@ -19,7 +21,8 @@ ast_node :NumericLiteral < :Literal,
     value: "double",
   },
   extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)"
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual const Type& infer(TypeChecker&)",
   ]
 
 ast_node :StringLiteral < :Literal,
@@ -27,5 +30,6 @@ ast_node :StringLiteral < :Literal,
     value: "std::string",
   },
   extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)"
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual const Type& infer(TypeChecker&)",
   ]

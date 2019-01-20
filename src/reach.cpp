@@ -2,6 +2,8 @@
 #include "Interpreter.h"
 #include "Lexer.h"
 #include "Parser.h"
+#include "Type.h"
+#include "TypeChecker.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,12 +33,19 @@ int main(int argc, const char** argv)
         return EXIT_FAILURE;
     }
 
+    TypeChecker tc;
+    const Type* type = tc.check(program);
+    if (!type) {
+        tc.reportErrors(std::cerr);
+        return EXIT_FAILURE;
+    }
+
     VM vm;
     auto bytecode = program->generate(vm);
     vm.globalBlock = bytecode.get();
     Interpreter interpreter { vm, *bytecode, &vm.globalEnvironment };
     auto result = interpreter.run();
-    std::cout << "End: " << result << std::endl;
+    std::cout << "End: " << result << " : " << *type << std::endl;
 
     return EXIT_SUCCESS;
 }

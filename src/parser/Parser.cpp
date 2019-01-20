@@ -82,13 +82,14 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
 
     CONSUME(Token::L_PAREN);
     while (m_lexer.peek().type != Token::R_PAREN) {
-        fn->parameters.emplace_back(parseIdentifier(m_lexer.next()));
+        fn->parameters.emplace_back(parseTypedIdentifier(m_lexer.next()));
         if (m_lexer.peek().type == Token::COMMA) m_lexer.next();
         else
             break;
     }
     CONSUME(Token::R_PAREN);
     CONSUME(Token::ARROW);
+    fn->returnType = parseType(m_lexer.next());
     fn->body = parseBlockStatement(m_lexer.next());
 
     return fn;
@@ -303,6 +304,15 @@ std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)
     return std::make_unique<Identifier>(t);
 }
 
+std::unique_ptr<TypedIdentifier> Parser::parseTypedIdentifier(const Token& t)
+{
+    auto typedIdentifier = std::make_unique<TypedIdentifier>(t);
+    typedIdentifier->name = parseIdentifier(t);
+    CONSUME(Token::COLON);
+    typedIdentifier->type = parseType(m_lexer.next());
+    return typedIdentifier;
+}
+
 std::unique_ptr<Literal> Parser::parseLiteral(const Token& t)
 {
     switch (t.type) {
@@ -340,6 +350,25 @@ std::unique_ptr<BooleanLiteral> Parser::parseBooleanLiteral(const Token& t, bool
     auto boolean = std::make_unique<BooleanLiteral>(t);
     boolean->value = value;
     return boolean;
+}
+
+// Types
+std::unique_ptr<ASTType> Parser::parseType(const Token& t)
+{
+    switch (t.type) {
+    case Token::IDENTIFIER:
+        return parseTypeName(t);
+    default:
+        unexpectedToken(t);
+        return nullptr;
+    };
+}
+
+std::unique_ptr<ASTTypeName> Parser::parseTypeName(const Token& t)
+{
+    auto typeName = std::make_unique<ASTTypeName>(t);
+    typeName->name = parseIdentifier(t);
+    return typeName;
 }
 
 // Error handling

@@ -2,12 +2,7 @@
 
 #include <memory>
 
-#include "ast/declarations.h"
-#include "ast/expressions.h"
-#include "ast/literals.h"
-#include "ast/program.h"
-#include "ast/statements.h"
-#include "ast/types.h"
+#include "AST.h"
 
 class Lexer;
 
@@ -16,6 +11,8 @@ public:
     Parser(Lexer&);
 
     std::unique_ptr<Program> parse();
+
+    std::unique_ptr<TypedIdentifier> parseTypedIdentifier(const Token&);
 
     std::unique_ptr<Declaration> parseDeclaration(const Token&);
     std::unique_ptr<LexicalDeclaration> parseLexicalDeclaration(const Token&);
@@ -46,6 +43,9 @@ public:
     std::unique_ptr<NumericLiteral> parseNumericLiteral(const Token&);
     std::unique_ptr<StringLiteral> parseStringLiteral(const Token&);
     std::unique_ptr<BooleanLiteral> parseBooleanLiteral(const Token&, bool);
+
+    std::unique_ptr<ASTType> parseType(const Token&);
+    std::unique_ptr<ASTTypeName> parseTypeName(const Token&);
 
     void unexpectedToken(const Token&);
     void unexpectedToken(const Token&, Token::Type);

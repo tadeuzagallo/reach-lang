@@ -11,6 +11,9 @@
 #include <vector>
 #include <stdlib.h>
 
+class Type;
+class TypeChecker;
+
 static std::string indent(unsigned size)
 {
   return std::string(size * 2, ' ');

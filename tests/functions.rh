@@ -1,0 +1,4 @@
+function f(x: Number) -> Number {
+    x
+}
+f(42)
