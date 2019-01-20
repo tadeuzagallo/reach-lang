@@ -45,11 +45,6 @@ MemberExpression::MemberExpression(std::unique_ptr<Expression> expr)
   , object(std::move(expr))
 { }
 
-MethodCallExpression::MethodCallExpression(std::unique_ptr<Expression> expr)
-  : Expression(expr->location)
-  , target(std::move(expr))
-{ }
-
 SubscriptExpression::SubscriptExpression(std::unique_ptr<Expression> expr)
   : Expression(expr->location)
   , target(std::move(expr))

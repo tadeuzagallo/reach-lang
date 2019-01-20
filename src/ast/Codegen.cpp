@@ -167,12 +167,6 @@ void MemberExpression::generate(BytecodeGenerator& generator, Register dst)
     generator.getField(dst, dst, *property);
 }
 
-void MethodCallExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    call->arguments.insert(call->arguments.begin(), std::move(target));
-    call->generate(generator, dst);
-}
-
 void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     return literal->generate(generator, dst);

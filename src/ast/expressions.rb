@@ -101,18 +101,6 @@ ast_node :MemberExpression < :Expression,
     "virtual void check(TypeChecker&, const Type&)",
   ]
 
-ast_node :MethodCallExpression < :Expression,
-  fields: {
-    target: "std::unique_ptr<Expression>",
-    call: "std::unique_ptr<CallExpression>",
-  },
-  extra_methods: [
-    "MethodCallExpression(std::unique_ptr<Expression>)",
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
-  ]
-
 ast_node :LiteralExpression < :Expression,
   fields: {
     literal: "std::unique_ptr<Literal>",

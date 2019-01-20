@@ -130,7 +130,7 @@ const Type& Identifier::infer(TypeChecker& tc)
 
 void Identifier::check(TypeChecker& tc, const Type& type)
 {
-    // TODO: proper checking
+    // TODO: we'll eventually need something custom here
     tc.checkEquals(location, infer(tc), type);
 }
 
@@ -268,17 +268,6 @@ void MemberExpression::check(TypeChecker& tc, const Type& type)
 {
     // TODO: do we need something custom here?
     tc.checkEquals(location, infer(tc), type);
-}
-
-const Type& MethodCallExpression::infer(TypeChecker& tc)
-{
-    // TODO
-    return tc.unitType();
-}
-
-void MethodCallExpression::check(TypeChecker&, const Type&)
-{
-    // TODO
 }
 
 const Type& LiteralExpression::infer(TypeChecker& tc)

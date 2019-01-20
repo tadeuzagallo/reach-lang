@@ -239,13 +239,13 @@ std::unique_ptr<MemberExpression> Parser::parseMemberExpression(std::unique_ptr<
     return expr;
 }
 
-std::unique_ptr<MethodCallExpression> Parser::parseMethodCallExpression(std::unique_ptr<Expression> object)
+std::unique_ptr<CallExpression> Parser::parseMethodCallExpression(std::unique_ptr<Expression> object)
 {
     CONSUME(Token::ARROW);
-    auto expr = std::make_unique<MethodCallExpression>(std::move(object));
     std::unique_ptr<Identifier> callee = parseIdentifier(m_lexer.next());
-    expr->call = parseCallExpression(std::move(callee));
-    return expr;
+    std::unique_ptr<CallExpression> call = parseCallExpression(std::move(callee));
+    call->arguments.emplace(call->arguments.begin(), std::move(object));
+    return call;
 }
 
 std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)

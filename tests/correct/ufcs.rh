@@ -1,7 +1,8 @@
 // RUN: %reach
 
 function id(x: Number) -> Number { x }
-// TODO: print(42->id());
+42->id();
+print(42->id());
 
 let x = { y = 42 }
-// TODO: print(x.y->id());
+print(x.y->id())
