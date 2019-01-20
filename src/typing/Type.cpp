@@ -10,6 +10,7 @@ bool Type::operator==(const Type& other) const
 {
     if (m_tag != other.m_tag)
         return false;
+
     switch (m_tag) {
     case Tag::Name:
         return asName() == other.asName();
@@ -17,6 +18,8 @@ bool Type::operator==(const Type& other) const
         return asFunction() == other.asFunction();
     case Tag::Array:
         return asArray() == other.asArray();
+    case Tag::Record:
+        return asRecord() == other.asRecord();
     }
 }
 
@@ -40,6 +43,11 @@ bool Type::isArray() const
     return m_tag == Tag::Array;
 }
 
+bool Type::isRecord() const
+{
+    return m_tag == Tag::Record;
+}
+
 const TypeName& Type::asName() const
 {
     ASSERT(m_tag == Tag::Name, "Invalid conversion: type is not a name");
@@ -61,6 +69,13 @@ const TypeArray& Type::asArray() const
 
 }
 
+const TypeRecord& Type::asRecord() const
+{
+    ASSERT(m_tag == Tag::Record, "Invalid conversion: type is not a record");
+    return static_cast<const TypeRecord&>(*this);
+
+}
+
 void Type::dump(std::ostream& out) const
 {
     switch (m_tag) {
@@ -72,6 +87,9 @@ void Type::dump(std::ostream& out) const
         break;
     case Tag::Array:
         asArray().dump(out);
+        break;
+    case Tag::Record:
+        asRecord().dump(out);
         break;
     }
 }
@@ -165,4 +183,43 @@ bool TypeArray::operator==(const TypeArray& other) const
 void TypeArray::dump(std::ostream& out) const
 {
     out << m_itemType << "[]";
+}
+
+TypeRecord::TypeRecord(uint32_t offset, const Fields& fields)
+    : Type(Tag::Record, offset)
+    , m_fields(fields)
+{
+}
+
+std::optional<std::reference_wrapper<const Type>> TypeRecord::field(const std::string& name) const
+{
+    const auto it = m_fields.find(name);
+    if (it == m_fields.end())
+        return std::nullopt;
+    return { it->second };
+}
+
+bool TypeRecord::operator==(const TypeRecord& other) const
+{
+    if (m_fields.size() != other.m_fields.size())
+        return false;
+    for (const auto& pair : m_fields) {
+        auto otherField = other.field(pair.first);
+        if (!otherField || pair.second != otherField)
+            return false;
+    }
+    return true;
+}
+
+void TypeRecord::dump(std::ostream& out) const
+{
+    out << "{";
+    bool isFirst = true;
+    for (const auto& pair : m_fields) {
+        if (!isFirst)
+            out << ", ";
+        out << pair.first << ": " << pair.second;
+        isFirst = false;
+    }
+    out << "}";
 }

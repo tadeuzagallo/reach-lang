@@ -26,6 +26,7 @@ public:
     const TypeName& newNameType(const std::string&);
     const TypeFunction& newFunctionType(Types, const Type&);
     const TypeArray& newArrayType(const Type&);
+    const TypeRecord& newRecordType(const Fields&);
 
     const Type& lookup(const SourceLocation&, const std::string&);
     void insert(const std::string&, const Type&);

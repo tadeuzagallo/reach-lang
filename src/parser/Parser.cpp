@@ -56,7 +56,7 @@ std::unique_ptr<Declaration> Parser::parseDeclaration(const Token& t)
     case Token::FUNCTION:
         return parseFunctionDeclaration(t);
     default:
-        return wrap<StatementDeclaration>(parseStatement(t));
+        return wrap<StatementDeclaration>(parseStatement(t, IsTopLevel::Yes));
     };
 }
 
@@ -98,11 +98,9 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
     return fn;
 }
 
-std::unique_ptr<Statement> Parser::parseStatement(const Token& t)
+std::unique_ptr<Statement> Parser::parseStatement(const Token& t, IsTopLevel isTopLevel)
 {
     switch (t.type) {
-    case Token::L_BRACE:
-        return parseBlockStatement(t);
     case Token::IF:
         return parseIfStatement(t);
     case Token::FOR:
@@ -113,6 +111,10 @@ std::unique_ptr<Statement> Parser::parseStatement(const Token& t)
         return parseReturnStatement(t);
     case Token::SEMICOLON:
         return std::make_unique<EmptyStatement>(t);
+    case Token::L_BRACE:
+        if (isTopLevel == IsTopLevel::No)
+            return parseBlockStatement(t);
+        // fallthrough;
     default:
         auto expr = wrap<ExpressionStatement>(parseExpression(t));
         //ASSERT(m_lexer.peek().type == Token::SEMICOLON, "Expected semicolon after lexical expression");
@@ -253,8 +255,8 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
         return parseArrayLiteralExpression(t);
     case Token::L_BRACE:
         return parseObjectLiteralExpression(t);
-    //case Token::L_PAREN:
-        //return parseParenthesizedExpression(t);
+    case Token::L_PAREN:
+        return parseParenthesizedExpression(t);
     //case Token::FUNCTION:
         //return parseFunctionExpression(t);
     case Token::IDENTIFIER:
@@ -299,6 +301,15 @@ std::unique_ptr<ObjectLiteralExpression> Parser::parseObjectLiteralExpression(co
     }
     CHECK(tok, Token::R_BRACE);
     return record;
+}
+
+std::unique_ptr<ParenthesizedExpression> Parser::parseParenthesizedExpression(const Token& t)
+{
+    CHECK(t, Token::L_PAREN);
+    auto expr = std::make_unique<ParenthesizedExpression>(t);
+    expr->expression = parseExpression(m_lexer.next());
+    CONSUME(Token::R_PAREN);
+    return expr;
 }
 
 std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)

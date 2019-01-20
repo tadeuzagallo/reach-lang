@@ -7,6 +7,8 @@
 class Lexer;
 
 class Parser {
+    enum class IsTopLevel { No, Yes };
+
 public:
     Parser(Lexer&);
 
@@ -18,7 +20,7 @@ public:
     std::unique_ptr<LexicalDeclaration> parseLexicalDeclaration(const Token&);
     std::unique_ptr<FunctionDeclaration> parseFunctionDeclaration(const Token&);
 
-    std::unique_ptr<Statement> parseStatement(const Token&);
+    std::unique_ptr<Statement> parseStatement(const Token&, IsTopLevel = IsTopLevel::No);
     std::unique_ptr<BlockStatement> parseBlockStatement(const Token&);
     std::unique_ptr<IfStatement> parseIfStatement(const Token& t);
     std::unique_ptr<ForStatement> parseForStatement(const Token& t);
@@ -37,7 +39,7 @@ public:
     std::unique_ptr<Identifier> parseIdentifier(const Token&);
     std::unique_ptr<ArrayLiteralExpression> parseArrayLiteralExpression(const Token&);
     std::unique_ptr<ObjectLiteralExpression> parseObjectLiteralExpression(const Token&);
-    std::unique_ptr<Expression> parseParenthesizedExpression(const Token&);
+    std::unique_ptr<ParenthesizedExpression> parseParenthesizedExpression(const Token&);
 
     std::unique_ptr<Literal> parseLiteral(const Token&);
     std::unique_ptr<NumericLiteral> parseNumericLiteral(const Token&);

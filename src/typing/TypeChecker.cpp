@@ -64,6 +64,13 @@ const TypeArray& TypeChecker::newArrayType(const Type& itemType)
     return *arrayType;
 }
 
+const TypeRecord& TypeChecker::newRecordType(const Fields& fields)
+{
+    TypeRecord* recordType = new TypeRecord(m_types.size(), fields);
+    m_types.emplace_back(recordType);
+    return *recordType;
+}
+
 const Type& TypeChecker::lookup(const SourceLocation& location, const std::string& name)
 {
     for (uint32_t i = m_environment.size(); i--;) {

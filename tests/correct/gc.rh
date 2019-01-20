@@ -1,20 +1,5 @@
 // RUN: %reach
 
-function g() -> Number {
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x = 42;
-    x
-}
-
 function h() -> Number {
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
@@ -26,6 +11,21 @@ function h() -> Number {
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
+    let x = 42;
+    x
+}
+
+function g() -> Number {
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
+    let x =  { i = h(), j = h() };
     let x = 42;
     x
 }

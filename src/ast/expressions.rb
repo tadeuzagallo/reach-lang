@@ -34,7 +34,7 @@ ast_node :BinaryExpression < :Expression,
     "virtual const Type& infer(TypeChecker&)",
     "virtual void check(TypeChecker&, const Type&)",
   ]
-  
+
 ast_node :ParenthesizedExpression < :Expression,
   fields: {
     expression: "std::unique_ptr<Expression>",

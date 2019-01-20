@@ -157,13 +157,20 @@ void ParenthesizedExpression::check(TypeChecker& tc, const Type& type)
 
 const Type& ObjectLiteralExpression::infer(TypeChecker& tc)
 {
-    // TODO
-    return tc.unitType();
+    Fields typeFields;
+    for (auto& pair : fields) {
+        typeFields.emplace(pair.first->name, pair.second->infer(tc));
+    }
+    return tc.newRecordType(typeFields);
 }
 
-void ObjectLiteralExpression::check(TypeChecker&, const Type&)
+void ObjectLiteralExpression::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    if (!type.isRecord()) {
+        tc.typeError(location, "Unexpected record type");
+        infer(tc); // check for errors in the record anyhow
+        return;
+    }
 }
 
 const Type& ArrayLiteralExpression::infer(TypeChecker& tc)
@@ -182,6 +189,7 @@ void ArrayLiteralExpression::check(TypeChecker& tc, const Type& type)
 {
     if (!type.isArray()) {
         tc.typeError(location, "Unexpected array");
+        infer(tc); // check for error in the array anyhow
         return;
     }
 
@@ -234,13 +242,26 @@ void SubscriptExpression::check(TypeChecker& tc, const Type& itemType)
 
 const Type& MemberExpression::infer(TypeChecker& tc)
 {
-    // TODO
-    return tc.unitType();
+    const Type& targetType = object->infer(tc);
+    if (!targetType.isRecord()) {
+        tc.typeError(location, "Trying to access field of non-record");
+        return tc.unitType();
+    }
+
+    const TypeRecord& recordType = targetType.asRecord();
+    auto optionalFieldType = recordType.field(property->name);
+    if (!optionalFieldType) {
+        tc.typeError(location, "Unknown field");
+        return tc.unitType();
+    }
+
+    return *optionalFieldType;
 }
 
-void MemberExpression::check(TypeChecker&, const Type&)
+void MemberExpression::check(TypeChecker& tc, const Type& type)
 {
-    // TODO
+    // TODO: do we need something custom here?
+    tc.checkEquals(location, infer(tc), type);
 }
 
 const Type& MethodCallExpression::infer(TypeChecker& tc)

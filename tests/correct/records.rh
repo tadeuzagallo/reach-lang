@@ -1,5 +1,9 @@
 // RUN: %reach
 
-function f() -> Number { 42 }
-let x = { x = f }
-// TODO: x.x()
+let x = { y = 42 };
+x;
+x.y;
+
+function f() -> Number { 13 }
+let x = { x = f };
+x.x()

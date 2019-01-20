@@ -1,15 +1,19 @@
 #pragma once
 
+#include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
-#include <iostream>
+#include <unordered_map>
 
 class Type;
 class TypeArray;
 class TypeFunction;
 class TypeName;
+class TypeRecord;
 
 using Types = std::vector<std::reference_wrapper<const Type>>;
+using Fields = std::unordered_map<std::string, const Type&>;
 
 class Type {
     friend class TypeChecker;
@@ -21,10 +25,12 @@ public:
     bool isName() const;
     bool isFunction() const;
     bool isArray() const;
+    bool isRecord() const;
 
     const TypeName& asName() const;
     const TypeFunction& asFunction() const;
     const TypeArray& asArray() const;
+    const TypeRecord& asRecord() const;
 
     void dump(std::ostream&) const;
     friend std::ostream& operator<<(std::ostream&, const Type&);
@@ -34,6 +40,7 @@ protected:
         Name,
         Function,
         Array,
+        Record,
     };
 
     Type(Tag, uint32_t);
@@ -87,4 +94,19 @@ private:
     TypeArray(uint32_t, const Type&);
 
     const Type& m_itemType;
+};
+
+class TypeRecord : public Type {
+    friend class TypeChecker;
+
+public:
+    std::optional<std::reference_wrapper<const Type>> field(const std::string&) const;
+
+    bool operator==(const TypeRecord&) const;
+    void dump(std::ostream&) const;
+
+private:
+    TypeRecord(uint32_t, const Fields&);
+
+    Fields m_fields;
 };
