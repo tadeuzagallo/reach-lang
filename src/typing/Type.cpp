@@ -12,6 +12,8 @@ bool Type::operator==(const Type& other) const
         return false;
 
     switch (m_tag) {
+    case Tag::Bottom:
+        return true;
     case Tag::Name:
         return asName() == other.asName();
     case Tag::Function:
@@ -46,6 +48,11 @@ bool Type::isArray() const
 bool Type::isRecord() const
 {
     return m_tag == Tag::Record;
+}
+
+bool Type::isBottom() const
+{
+    return m_tag == Tag::Bottom;
 }
 
 const TypeName& Type::asName() const
@@ -90,6 +97,9 @@ void Type::dump(std::ostream& out) const
         break;
     case Tag::Record:
         asRecord().dump(out);
+        break;
+    case Tag::Bottom:
+        out << "⊥";
         break;
     }
 }

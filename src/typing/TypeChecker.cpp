@@ -2,25 +2,30 @@
 
 #include "AST.h"
 #include <sstream>
+#include <limits>
 
 const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
 {
     const Type* result = &unitType();
-    for (const auto& decl : program->declarations) {
+    for (const auto& decl : program->declarations)
         result = &decl->infer(*this);
-    }
     if (m_errors.size())
         return nullptr;
     return result;
 }
 
 TypeChecker::TypeChecker()
+    : m_topScope(*this)
 {
     insert("Void", newNameType("Void"));
     insert("Bool", newNameType("Bool"));
     insert("Number", newNameType("Number"));
     insert("String", newNameType("String"));
-    insert("print", newFunctionType({ numericType() }, unitType()));
+
+    Type* bottom = new Type(Type::Tag::Bottom, m_types.size());
+    m_types.emplace_back(bottom);
+
+    insert("print", bottomType());
 }
 
 const Type& TypeChecker::unitType()
@@ -41,6 +46,11 @@ const Type& TypeChecker::numericType()
 const Type& TypeChecker::stringType()
 {
     return *m_types[3];
+}
+
+const Type& TypeChecker::bottomType()
+{
+    return *m_types[4];
 }
 
 const TypeName& TypeChecker::newNameType(const std::string& name)

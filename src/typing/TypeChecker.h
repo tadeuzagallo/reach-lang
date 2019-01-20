@@ -22,6 +22,7 @@ public:
     const Type& booleanType();
     const Type& numericType();
     const Type& stringType();
+    const Type& bottomType();
 
     const TypeName& newNameType(const std::string&);
     const TypeFunction& newFunctionType(Types, const Type&);
@@ -59,6 +60,7 @@ private:
         std::string m_message;
     };
 
+    Scope m_topScope;
     std::vector<Error> m_errors;
     std::vector<std::pair<std::string, uint32_t>> m_environment;
     std::vector<Type*> m_types;

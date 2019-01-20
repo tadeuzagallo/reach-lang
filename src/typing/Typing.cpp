@@ -201,6 +201,12 @@ void ArrayLiteralExpression::check(TypeChecker& tc, const Type& type)
 const Type& CallExpression::infer(TypeChecker& tc)
 {
     const Type& calleeType = callee->infer(tc);
+    if (calleeType.isBottom()) {
+        for (const auto& arg : arguments)
+            arg->infer(tc); // check arguments are well-formed
+        return tc.bottomType();
+    }
+
     if (!calleeType.isFunction()) {
         tc.typeError(location, "Callee is not a function");
         return tc.unitType();

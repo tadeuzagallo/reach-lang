@@ -26,6 +26,7 @@ public:
     bool isFunction() const;
     bool isArray() const;
     bool isRecord() const;
+    bool isBottom() const;
 
     const TypeName& asName() const;
     const TypeFunction& asFunction() const;
@@ -41,6 +42,7 @@ protected:
         Function,
         Array,
         Record,
+        Bottom,
     };
 
     Type(Tag, uint32_t);
