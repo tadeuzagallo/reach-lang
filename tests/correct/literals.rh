@@ -1,0 +1,8 @@
+// RUN: %reach
+
+1;
+2;
+"asd";
+true;
+false;
+[1,2, { x = 1 }]

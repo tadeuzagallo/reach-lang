@@ -1,0 +1,5 @@
+// RUN: %reach
+
+function f() -> Number { 42 }
+let x = { x = f }
+// TODO: x.x()

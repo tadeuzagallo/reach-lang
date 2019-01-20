@@ -41,6 +41,9 @@ std::unique_ptr<Program> Parser::parse()
     if (m_errors.size())
         return nullptr;
 
+    if (std::getenv("DUMP_AST"))
+        program->dump(std::cout);
+
     return program;
 }
 
@@ -178,7 +181,7 @@ std::unique_ptr<Expression> Parser::parseExpression(const Token& t)
 {
     auto expr = parsePrimaryExpression(t);
     bool stop = false;
-    while (!stop)
+    while (expr && !stop)
         expr = parseSuffixExpression(std::move(expr), &stop);
     return expr;
 }

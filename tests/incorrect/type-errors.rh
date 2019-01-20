@@ -1,0 +1,11 @@
+// RUN: %not %reach | %check
+
+function f(x: Number) -> Number {
+    "asd" // CHECK: expected `Number` but found `String`
+}
+g; // CHECK: Unknown type: `g`
+f(1,2); // CHECK: Argument count mismatch
+f("asd"); // CHECK: expected `Number` but found `String`
+
+let x = 1;
+x(); // CHECK: Callee is not a function

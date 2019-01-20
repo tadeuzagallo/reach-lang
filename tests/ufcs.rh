@@ -1,5 +1,0 @@
-function id(x) { x; }
-print(42->id());
-
-let x = { y = 42 };
-print(x.y->id());

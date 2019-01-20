@@ -1,3 +1,5 @@
+// RUN: %reach
+
 function f(x: Number) -> Number {
     x
 }

@@ -21,7 +21,7 @@ public:
     const Type& numericType();
     const Type& stringType();
 
-    const Type& lookup(const std::string&);
+    const Type& lookup(const SourceLocation&, const std::string&);
     void insert(const std::string&, const Type*);
 
     void checkEquals(const SourceLocation&, const Type&, const Type&);

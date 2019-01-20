@@ -1,0 +1,12 @@
+// RUN: %reach
+
+function f(x: Bool) -> Number {
+    if (x) {
+        42
+    } else {
+        13
+    }
+}
+
+f(true);
+f(false)

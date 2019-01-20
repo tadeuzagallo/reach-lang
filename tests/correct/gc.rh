@@ -1,4 +1,6 @@
-function g() {
+// RUN: %reach
+
+function g() -> Number {
     let x =  { i = h(), j = h() };
     let x =  { i = h(), j = h() };
     let x =  { i = h(), j = h() };
@@ -9,10 +11,11 @@ function g() {
     let x =  { i = h(), j = h() };
     let x =  { i = h(), j = h() };
     let x =  { i = h(), j = h() };
-    x;
+    let x = 42;
+    x
 }
 
-function h() {
+function h() -> Number {
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
@@ -23,10 +26,11 @@ function h() {
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
     let x = { x = 1, y = 2, z = 3 };
-    x;
+    let x = 42;
+    x
 }
 
-function f() {
+function f() -> Number {
     let x = { g = g(), h = h() };
     let x = { g = g(), h = h() };
     let x = { g = g(), h = h() };
@@ -37,7 +41,8 @@ function f() {
     let x = { g = g(), h = h() };
     let x = { g = g(), h = h() };
     let x = { g = g(), h = h() };
-    x;
+    let x = 42;
+    x
 }
 
 let y = { x = f() };
@@ -67,4 +72,4 @@ let y = { x = f() };
 let y = { x = f() };
 let y = { x = f() };
 let y = { x = f() };
-print("asd");
+print(42)

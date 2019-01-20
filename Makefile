@@ -26,6 +26,9 @@ build/bytecode/Instructions%h buid/bytecode/InstructionMacros%h: src/bytecode/in
 	@mkdir -p $(@D)
 	ruby src/generate_instructions.rb $< build/bytecode/Instructions.h build/bytecode/InstructionMacros.h
 
+test:
+	lit -v tests
+
 clean:
 	rm -rf build
 

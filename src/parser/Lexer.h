@@ -15,6 +15,8 @@ private:
 
   void nextChar();
   void nextToken();
+  void skipWhitespaces();
+  void resetPosition();
   Token::Type nextTokenType();
 
   char m_nextChar;

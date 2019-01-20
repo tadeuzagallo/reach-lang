@@ -8,10 +8,7 @@ const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
 {
     const Type* result = &unitType();
     for (const auto& decl : program->declarations) {
-        if (decl == program->declarations.back())
-            result = &decl->infer(*this);
-        else
-            decl->check(*this, unitType());
+        result = &decl->infer(*this);
     }
     if (m_errors.size())
         return nullptr;
@@ -24,32 +21,39 @@ TypeChecker::TypeChecker()
     m_environment["Bool"] = Type::named("Bool");
     m_environment["Number"] = Type::named("Number");
     m_environment["String"] = Type::named("String");
+
+    m_environment["print"] = Type::function({ numericType() }, unitType());
 }
 
 const Type& TypeChecker::unitType()
 {
-    return lookup("Void");
+    return *m_environment["Void"];
 }
 
 const Type& TypeChecker::booleanType()
 {
-    return lookup("Bool");
+    return *m_environment["Bool"];
 }
 
 const Type& TypeChecker::numericType()
 {
-    return lookup("Number");
+    return *m_environment["Number"];
 }
 
 const Type& TypeChecker::stringType()
 {
-    return lookup("String");
+    return *m_environment["String"];
 }
 
-const Type& TypeChecker::lookup(const std::string& name)
+const Type& TypeChecker::lookup(const SourceLocation& location, const std::string& name)
 {
     auto it = m_environment.find(name);
-    ASSERT(it != m_environment.end(), "Unknown type: %s", name.c_str());
+    if (it == m_environment.end()) {
+        std::stringstream msg;
+        msg << "Unknown type: `" << name << "`";
+        typeError(location, msg.str());
+        return unitType();
+    }
     return *it->second;
 }
 

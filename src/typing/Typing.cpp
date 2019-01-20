@@ -41,7 +41,6 @@ void StatementDeclaration::check(TypeChecker& tc, const Type& result)
 
 const Type& Statement::infer(TypeChecker& tc)
 {
-    check(tc, tc.unitType());
     return tc.unitType();
 }
 
@@ -56,7 +55,7 @@ void BlockStatement::check(TypeChecker& tc, const Type& result)
         if (decl == declarations.back())
             decl->check(tc, result);
         else
-            decl->check(tc, tc.unitType());
+            decl->infer(tc);
     }
 }
 
@@ -111,7 +110,7 @@ void ExpressionStatement::check(TypeChecker& tc, const Type& result)
 
 const Type& Identifier::infer(TypeChecker& tc)
 {
-    return tc.lookup(name);
+    return tc.lookup(location, name);
 }
 
 void Identifier::check(TypeChecker&, const Type&)
@@ -167,13 +166,17 @@ const Type& CallExpression::infer(TypeChecker& tc)
 {
     // TODO
     const Type& calleeType = callee->infer(tc);
-    if (!calleeType.isFunction())
+    if (!calleeType.isFunction()) {
         tc.typeError(location, "Callee is not a function");
+        return tc.unitType();
+    }
+
     const TypeFunction& calleeTypeFunction = calleeType.asFunction();
     if (calleeTypeFunction.paramCount() != arguments.size())
         tc.typeError(location, "Argument count mismatch");
-    for (unsigned i = 0; i < arguments.size(); i++)
-        arguments[i]->check(tc, calleeTypeFunction.param(i));
+    else
+        for (unsigned i = 0; i < arguments.size(); i++)
+            arguments[i]->check(tc, calleeTypeFunction.param(i));
     return calleeTypeFunction.returnType();
 }
 
@@ -246,5 +249,5 @@ const Type& StringLiteral::infer(TypeChecker& tc)
 // Types
 const Type& ASTTypeName::normalize(TypeChecker& tc)
 {
-    return tc.lookup(name->name);
+    return tc.lookup(location, name->name);
 }

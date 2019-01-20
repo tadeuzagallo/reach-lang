@@ -30,16 +30,25 @@ Token Lexer::next()
 
 void Lexer::nextToken()
 {
-    while (isspace(m_nextChar))
-        nextChar();
-
-    m_token.location.file = m_sourceFile;
-    m_token.location.start = m_lastPosition;
+    skipWhitespaces();
+    resetPosition();
     m_token.type = nextTokenType();
     m_token.location.end = m_lastPosition;
 
     if (m_token.type == Token::IDENTIFIER)
         checkKeyword();
+}
+
+void Lexer::skipWhitespaces()
+{
+    while (isspace(m_nextChar))
+        nextChar();
+}
+
+void Lexer::resetPosition()
+{
+    m_token.location.file = m_sourceFile;
+    m_token.location.start = m_lastPosition;
 }
 
 void Lexer::nextChar()
@@ -75,7 +84,6 @@ Token::Type Lexer::nextTokenType()
 
         SIMPLE_CASE('+', PLUS);
         SIMPLE_CASE('%', MOD);
-        SIMPLE_CASE('/', DIVIDE);
 
         SIMPLE_CASE('(', L_PAREN);
         SIMPLE_CASE(')', R_PAREN);
@@ -85,17 +93,30 @@ Token::Type Lexer::nextTokenType()
         SIMPLE_CASE(']', R_SQUARE);
 
         default:
+        if (m_nextChar == '/') {
+            nextChar();
+            switch (m_nextChar) {
+            case '/':
+                do nextChar();
+                while (m_nextChar != '\n');
+                skipWhitespaces();
+                resetPosition();
+                return nextTokenType();
+            // TODO: multiline comments
+            default:
+                return Token::DIVIDE;
+            }
+        }
+
         if (isdigit(m_nextChar)) {
-            do {
-                nextChar();
-            } while (isdigit(m_nextChar));
+            do nextChar();
+            while (isdigit(m_nextChar));
             return Token::NUMBER;
         }
 
         if (isalpha(m_nextChar) || m_nextChar == '_' || m_nextChar == '$') {
-            do {
-                nextChar();
-            } while (isalpha(m_nextChar) || m_nextChar == '_' || m_nextChar == '$');
+            do nextChar();
+            while (isalpha(m_nextChar) || m_nextChar == '_' || m_nextChar == '$');
             return Token::IDENTIFIER;
         }
 

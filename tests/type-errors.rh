@@ -1,9 +1,0 @@
-function f(x: Number) -> Number {
-    "asd" // CHECK: expected `Number` but found `String`
-}
-g; // Unknown `g`
-f(1,2); // Argument count mismatch
-f("asd"); // Expected `Number` but found `String`
-
-let x = 1;
-x(); // CHECK: Callee is not a function

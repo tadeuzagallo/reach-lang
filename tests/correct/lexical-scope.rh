@@ -1,0 +1,10 @@
+// RUN: %reach
+
+let x = 42;
+function g() -> Number {
+    x // WAT
+}
+function f() -> Number {
+    g()
+}
+f()
