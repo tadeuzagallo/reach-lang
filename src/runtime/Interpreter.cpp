@@ -150,8 +150,9 @@ OP(Call)
 {
     auto* function = m_cfr[ip.callee.offset()].asCell<Function>();
     std::vector<Value> args(ip.argc);
+    uint32_t lastArgOffset = ip.firstArg.offset() + ip.argc;
     for (uint32_t i = 0; i < ip.argc; i++)
-        args[i] = m_cfr[ip.firstArg.offset() + i];
+        args[i] = m_cfr[lastArgOffset - i - 1];
     auto result = call(function, args);
     m_cfr[ip.dst.offset()] = result;
     DISPATCH();

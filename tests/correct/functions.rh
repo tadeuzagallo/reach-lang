@@ -1,6 +1,9 @@
-// RUN: %reach
+// RUN: %reach || %check
 
 function f(x: Number) -> Number {
     x
 }
-f(42)
+f(42);
+
+function g(x: Number, y: Number) -> Number { y }
+g(1, 2) // CHECK: 2 : Number
