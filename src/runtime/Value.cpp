@@ -33,7 +33,7 @@ Value::Value(double d)
     m_bits = u.i + DoubleEncodeOffset;
 }
 
-Value::Value(Cell* cell)
+Value::Value(const Cell* cell)
 {
     m_bits = reinterpret_cast<intptr_t>(cell);
 }
@@ -46,6 +46,19 @@ Value::Value(CrashTag)
 Value::Value(UnitTag)
     : m_bits(TagTypeUnit)
 {
+}
+
+bool Value::operator!=(const Value& other) const
+{
+    return !(*this == other);
+}
+
+bool Value::operator==(const Value& other) const
+{
+    if (m_bits == other.m_bits)
+        return true;
+    // TODO: proper equalify for cells
+    return false;
 }
 
 void Value::dump(std::ostream& out) const

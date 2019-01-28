@@ -3,7 +3,7 @@
 function f(x: Number) -> Number {
     "asd" // CHECK: expected `Number` but found `String`
 }
-g; // CHECK: Unknown type: `g`
+g; // CHECK: Unknown variable: `g`
 f(1,2); // CHECK: Argument count mismatch
 f("asd"); // CHECK: expected `Number` but found `String`
 

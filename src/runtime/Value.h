@@ -13,7 +13,7 @@ public:
     Value(); // defaults to Value(Crash)
     explicit Value(bool);
     explicit Value(double);
-    explicit Value(Cell*);
+    explicit Value(const Cell*);
 
     bool isUnit() const;
     bool isNumber() const;
@@ -27,6 +27,8 @@ public:
     template<typename T>
     T* asCell() { return asCell()->cast<T>(); }
 
+    bool operator!=(const Value&) const;
+    bool operator==(const Value&) const;
     void dump(std::ostream&) const;
 
     friend std::ostream& operator<<(std::ostream& out, const Value& value)

@@ -22,7 +22,7 @@ public:
     RETURN,
     TRUE,
     FALSE,
-    THIS,
+    TYPE,
 
     // simple tokens
     END_OF_FILE,

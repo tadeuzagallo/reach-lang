@@ -1,0 +1,5 @@
+//RUN: %reach | %check
+
+function idd(T: Type, x: T) -> T { x }
+function id(U: Type, x: U) -> U { idd(U, x) }
+id(Number, 42) // CHECK: 42 : Number

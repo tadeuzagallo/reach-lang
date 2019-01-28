@@ -33,14 +33,14 @@ int main(int argc, const char** argv)
         return EXIT_FAILURE;
     }
 
-    TypeChecker tc;
+    VM vm;
+    TypeChecker tc(vm);
     const Type* type = tc.check(program);
     if (!type) {
         tc.reportErrors(std::cerr);
         return EXIT_FAILURE;
     }
 
-    VM vm;
     auto bytecode = program->generate(vm);
     vm.globalBlock = bytecode.get();
     Interpreter interpreter { vm, *bytecode, &vm.globalEnvironment };

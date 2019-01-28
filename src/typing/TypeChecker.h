@@ -2,37 +2,53 @@
 
 #include "SourceLocation.h"
 #include "Type.h"
+#include <deque>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
-#include <map>
 #include <vector>
 
+class Binding;
 class Program;
+class VM;
 
 class TypeChecker {
     friend class Scope;
+    friend class UnificationScope;
 
 public:
-    TypeChecker();
+    TypeChecker(VM&);
+    VM& vm() const;
 
     const Type* check(const std::unique_ptr<Program>&);
+    void visit(const std::function<void(Value)>&) const;
 
-    const Type& unitType();
-    const Type& booleanType();
-    const Type& numericType();
-    const Type& stringType();
-    const Type& bottomType();
+    const Binding& typeType();
 
-    const TypeName& newNameType(const std::string&);
-    const TypeFunction& newFunctionType(Types, const Type&);
-    const TypeArray& newArrayType(const Type&);
-    const TypeRecord& newRecordType(const Fields&);
+    const Binding& unitValue();
+    const Binding& booleanValue();
+    const Binding& numericValue();
+    const Binding& stringValue();
+    const Binding& bottomValue();
 
-    const Type& lookup(const SourceLocation&, const std::string&);
-    void insert(const std::string&, const Type&);
+    const Binding& newValue(const Type&);
+    const Binding& newValue(const Binding&);
+    const Binding& newFunctionValue(const Types&, const Type&);
+    const Binding& newArrayValue(const Type&);
+    const Binding& newRecordValue(const Fields&);
 
-    void checkEquals(const SourceLocation&, const Type&, const Type&);
+    const Binding& newNameType(const std::string&);
+    const Binding& newVarType(const std::string&);
+
+    const Binding& lookup(const SourceLocation&, const std::string&);
+
+    void bindValue(const Type&);
+    void bindType(const Type&);
+
+    void insert(const std::string&, const Binding&);
+
+    void unify(const SourceLocation&, const Binding&, const Binding&);
     void typeError(const SourceLocation&, const std::string&);
     void reportErrors(std::ostream&) const;
 
@@ -44,7 +60,33 @@ public:
     private:
         TypeChecker& m_typeChecker;
         size_t m_environmentSize;
-        size_t m_typesSize;
+        size_t m_bindingsSize;
+    };
+
+    class UnificationScope {
+    public:
+        UnificationScope(TypeChecker&);
+        ~UnificationScope();
+
+        void unify(const SourceLocation&, const Binding&, const Binding&);
+        const Type& result(const Type&);
+
+    private:
+        struct Constraint {
+            SourceLocation location;
+            const Binding& lhs;
+            const Binding& rhs;
+        };
+
+        void solveConstraints();
+        void unifies(const SourceLocation&, const Type&, const Type&);
+        void bind(const TypeVar&, const Type&);
+
+        bool m_finalized { false };
+        TypeChecker& m_typeChecker;
+        UnificationScope* m_parentScope;
+        std::deque<Constraint> m_constraints;
+        Substitutions m_substitutions;
     };
 
 private:
@@ -60,8 +102,11 @@ private:
         std::string m_message;
     };
 
+    VM& m_vm;
     Scope m_topScope;
+    UnificationScope m_topUnificationScope;
+    UnificationScope* m_unificationScope;
     std::vector<Error> m_errors;
-    std::vector<std::pair<std::string, uint32_t>> m_environment;
-    std::vector<Type*> m_types;
+    std::vector<std::pair<std::string, const Binding*>> m_environment;
+    std::vector<Binding*> m_bindings;
 };

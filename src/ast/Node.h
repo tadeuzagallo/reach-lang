@@ -11,7 +11,7 @@
 #include <vector>
 #include <stdlib.h>
 
-class Type;
+class Binding;
 class TypeChecker;
 
 static std::string indent(unsigned size)

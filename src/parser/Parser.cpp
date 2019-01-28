@@ -372,10 +372,18 @@ std::unique_ptr<ASTType> Parser::parseType(const Token& t)
     switch (t.type) {
     case Token::IDENTIFIER:
         return parseTypeName(t);
+    case Token::TYPE:
+        return parseTypeType(t);
     default:
         unexpectedToken(t);
         return nullptr;
     };
+}
+
+std::unique_ptr<ASTTypeType> Parser::parseTypeType(const Token& t)
+{
+    CHECK(t, Token::TYPE);
+    return std::make_unique<ASTTypeType>(t);
 }
 
 std::unique_ptr<ASTTypeName> Parser::parseTypeName(const Token& t)

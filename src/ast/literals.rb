@@ -4,7 +4,7 @@ import :typeinfo
 ast_node :Literal < :Node,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
-    "virtual const Type& infer(TypeChecker&) = 0",
+    "virtual const Binding& infer(TypeChecker&) = 0",
   ]
 
 ast_node :BooleanLiteral < :Literal,
@@ -13,7 +13,7 @@ ast_node :BooleanLiteral < :Literal,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
+    "virtual const Binding& infer(TypeChecker&)",
   ]
 
 ast_node :NumericLiteral < :Literal,
@@ -22,7 +22,7 @@ ast_node :NumericLiteral < :Literal,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
+    "virtual const Binding& infer(TypeChecker&)",
   ]
 
 ast_node :StringLiteral < :Literal,
@@ -31,5 +31,5 @@ ast_node :StringLiteral < :Literal,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
+    "virtual const Binding& infer(TypeChecker&)",
   ]

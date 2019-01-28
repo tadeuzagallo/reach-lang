@@ -10,8 +10,8 @@ import :vector
 ast_node :Declaration < :Node,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&) = 0",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&) = 0",
   ]
 
 ast_node :LexicalDeclaration < :Declaration,
@@ -22,7 +22,7 @@ ast_node :LexicalDeclaration < :Declaration,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :FunctionDeclaration < :Declaration,
@@ -34,7 +34,7 @@ ast_node :FunctionDeclaration < :Declaration,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :StatementDeclaration < :Declaration,
@@ -44,6 +44,6 @@ ast_node :StatementDeclaration < :Declaration,
   extra_methods: [
     "StatementDeclaration(std::unique_ptr<Statement>)",
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]

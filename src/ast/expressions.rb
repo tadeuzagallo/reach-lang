@@ -6,8 +6,8 @@ import :memory
 ast_node :Expression < :Node,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
-    "virtual const Type& infer(TypeChecker&) = 0",
-    "virtual void check(TypeChecker&, const Type&) = 0",
+    "virtual const Binding& infer(TypeChecker&) = 0",
+    "virtual void check(TypeChecker&, const Binding&) = 0",
   ]
 
 ast_node :Identifier < :Expression,
@@ -19,8 +19,8 @@ ast_node :Identifier < :Expression,
     "virtual void generate(BytecodeGenerator&, Register)",
     "bool operator<(const Identifier&) const",
     "friend std::ostream& operator<<(std::ostream&, const Identifier&)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :BinaryExpression < :Expression,
@@ -31,8 +31,8 @@ ast_node :BinaryExpression < :Expression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :ParenthesizedExpression < :Expression,
@@ -41,8 +41,8 @@ ast_node :ParenthesizedExpression < :Expression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :ObjectLiteralExpression < :Expression,
@@ -51,8 +51,8 @@ ast_node :ObjectLiteralExpression < :Expression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :ArrayLiteralExpression < :Expression,
@@ -61,8 +61,8 @@ ast_node :ArrayLiteralExpression < :Expression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :CallExpression < :Expression,
@@ -73,8 +73,8 @@ ast_node :CallExpression < :Expression,
   extra_methods: [
     "CallExpression(std::unique_ptr<Expression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :SubscriptExpression < :Expression,
@@ -85,8 +85,8 @@ ast_node :SubscriptExpression < :Expression,
   extra_methods: [
     "SubscriptExpression(std::unique_ptr<Expression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :MemberExpression < :Expression,
@@ -97,8 +97,8 @@ ast_node :MemberExpression < :Expression,
   extra_methods: [
     "MemberExpression(std::unique_ptr<Expression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]
 
 ast_node :LiteralExpression < :Expression,
@@ -108,6 +108,6 @@ ast_node :LiteralExpression < :Expression,
   extra_methods: [
     "LiteralExpression(std::unique_ptr<Literal>)",
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Type& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Type&)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
   ]

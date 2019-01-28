@@ -2,6 +2,7 @@
 
 #include "BytecodeBlock.h"
 #include "Cell.h"
+#include "TypeChecker.h"
 #include "VM.h"
 
 Heap::Heap(VM* vm)
@@ -33,8 +34,11 @@ void Heap::markFromRoots()
         mark();
     };
 
-    m_vm->globalBlock->visit(markRoot);
     m_vm->globalEnvironment.visit(markRoot);
+    if (m_vm->globalBlock)
+        m_vm->globalBlock->visit(markRoot);
+    if (m_vm->typeChecker)
+        m_vm->typeChecker->visit(markRoot);
 
     for (auto value : m_vm->stack) {
         markRoot(value);

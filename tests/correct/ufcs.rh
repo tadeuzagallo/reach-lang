@@ -1,6 +1,7 @@
 // RUN: %reach
 
 function id(x: Number) -> Number { x }
+
 42->id();
 print(42->id());
 

@@ -195,7 +195,7 @@ void Lexer::checkKeyword()
         KEYWORD(return, RETURN)
         KEYWORD(true, TRUE)
         KEYWORD(false, FALSE)
-        KEYWORD(this, THIS)
+        KEYWORD(Type, TYPE)
 
 #undef KEYWORD
 }

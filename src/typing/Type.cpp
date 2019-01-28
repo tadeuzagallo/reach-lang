@@ -1,107 +1,16 @@
 #include "Type.h"
 
-Type::Type(Tag tag, uint32_t offset)
-    : m_tag(tag)
-    , m_offset(offset)
-{
-}
-
-bool Type::operator==(const Type& other) const
-{
-    if (m_tag != other.m_tag)
-        return false;
-
-    switch (m_tag) {
-    case Tag::Bottom:
-        return true;
-    case Tag::Name:
-        return asName() == other.asName();
-    case Tag::Function:
-        return asFunction() == other.asFunction();
-    case Tag::Array:
-        return asArray() == other.asArray();
-    case Tag::Record:
-        return asRecord() == other.asRecord();
-    }
-}
+#include "Binding.h"
+#include "TypeChecker.h"
 
 bool Type::operator!=(const Type& other) const
 {
     return !(*this == other);
 }
 
-bool Type::isName() const
+const Type& Type::instantiate(TypeChecker& tc) const
 {
-    return m_tag == Tag::Name;
-}
-
-bool Type::isFunction() const
-{
-    return m_tag == Tag::Function;
-}
-
-bool Type::isArray() const
-{
-    return m_tag == Tag::Array;
-}
-
-bool Type::isRecord() const
-{
-    return m_tag == Tag::Record;
-}
-
-bool Type::isBottom() const
-{
-    return m_tag == Tag::Bottom;
-}
-
-const TypeName& Type::asName() const
-{
-    ASSERT(m_tag == Tag::Name, "Invalid conversion: type is not a name");
-    return static_cast<const TypeName&>(*this);
-
-}
-
-const TypeFunction& Type::asFunction() const
-{
-    ASSERT(m_tag == Tag::Function, "Invalid conversion: type is not a function");
-    return static_cast<const TypeFunction&>(*this);
-
-}
-
-const TypeArray& Type::asArray() const
-{
-    ASSERT(m_tag == Tag::Array, "Invalid conversion: type is not a array");
-    return static_cast<const TypeArray&>(*this);
-
-}
-
-const TypeRecord& Type::asRecord() const
-{
-    ASSERT(m_tag == Tag::Record, "Invalid conversion: type is not a record");
-    return static_cast<const TypeRecord&>(*this);
-
-}
-
-void Type::dump(std::ostream& out) const
-{
-    switch (m_tag) {
-    case Tag::Name:
-        asName().dump(out);
-        break;
-    case Tag::Function:
-        asFunction().dump(out);
-        break;
-    case Tag::Array:
-        asArray().dump(out);
-        break;
-    case Tag::Record:
-        asRecord().dump(out);
-        break;
-    case Tag::Bottom:
-        out << "⊥";
-        break;
-    }
+    return *this;
 }
 
 std::ostream& operator<<(std::ostream& out, const Type& type)
@@ -110,15 +19,57 @@ std::ostream& operator<<(std::ostream& out, const Type& type)
     return out;
 }
 
-TypeName::TypeName(uint32_t offset, const std::string& name)
-    : Type(Tag::Name, offset)
-    , m_name(name)
+void TypeType::visit(std::function<void(Value)>) const { };
+
+const Type& TypeType::substitute(TypeChecker&, Substitutions&) const
+{
+    return *this;
+}
+
+bool TypeType::operator==(const Type& other) const
+{
+    return other.is<TypeType>();
+}
+
+void TypeType::dump(std::ostream& out) const
+{
+    out << "Type";
+}
+
+void TypeBottom::visit(std::function<void(Value)>) const { };
+
+const Type& TypeBottom::substitute(TypeChecker&, Substitutions&) const
+{
+    return *this;
+}
+
+bool TypeBottom::operator==(const Type& other) const
+{
+    return other.is<TypeBottom>();
+}
+
+void TypeBottom::dump(std::ostream& out) const
+{
+    out << "⊥";
+}
+
+TypeName::TypeName(const std::string& name)
+    : m_name(name)
 {
 }
 
-bool TypeName::operator==(const TypeName& other) const
+void TypeName::visit(std::function<void(Value)>) const { }
+
+const Type& TypeName::substitute(TypeChecker&, Substitutions&) const
 {
-    return m_name == other.m_name;
+    return *this;
+}
+
+bool TypeName::operator==(const Type& other) const
+{
+    if (!other.is<TypeName>())
+        return false;
+    return m_name == other.as<TypeName>().m_name;
 }
 
 void TypeName::dump(std::ostream& out) const
@@ -126,9 +77,8 @@ void TypeName::dump(std::ostream& out) const
     out << m_name;
 }
 
-TypeFunction::TypeFunction(uint32_t offset, Types params, const Type& returnType)
-    : Type(Tag::Function, offset)
-    , m_params(params)
+TypeFunction::TypeFunction(const Types& params, const Type& returnType)
+    : m_params(params)
     , m_returnType(returnType)
 {
 }
@@ -138,7 +88,7 @@ size_t TypeFunction::paramCount() const
     return m_params.size();
 }
 
-const Type& TypeFunction::param(uint32_t index) const
+const Binding& TypeFunction::param(uint32_t index) const
 {
     ASSERT(index < paramCount(), "Out of bounds access to TypeFunction::param");
     return m_params[index];
@@ -149,12 +99,42 @@ const Type& TypeFunction::returnType() const
     return m_returnType;
 }
 
-bool TypeFunction::operator==(const TypeFunction& other) const
+const Type& TypeFunction::instantiate(TypeChecker& tc) const
 {
+    Substitutions subst;
+    for (const Binding& param : m_params) {
+        if (param.type().is<TypeType>()) {
+            param.valueAsType().as<TypeVar>().fresh(tc, subst);
+        }
+    }
+    return substitute(tc, subst);
+}
+
+void TypeFunction::visit(std::function<void(Value)> visitor) const
+{
+    for (const Binding& param : m_params)
+        param.visit(visitor);
+    visitor(Value { &m_returnType });
+}
+
+const Type& TypeFunction::substitute(TypeChecker& tc, Substitutions& subst) const
+{
+    Types params;
+    for (const Binding& param : m_params)
+        params.emplace_back(param.substitute(tc, subst));
+    const Type& returnType = m_returnType.substitute(tc, subst);
+    return *TypeFunction::create(tc.vm(), params, returnType);
+}
+
+bool TypeFunction::operator==(const Type& otherT) const
+{
+    if (!otherT.is<TypeFunction>())
+        return false;
+    const TypeFunction& other = otherT.as<TypeFunction>();
     if (m_params.size() != other.m_params.size())
         return false;
     for (unsigned i = 0; i < m_params.size(); i++)
-        if (m_params[i].get() != other.m_params[i].get())
+        if (m_params[i] != other.m_params[i])
             return false;
     if (m_returnType != other.m_returnType)
         return false;
@@ -165,18 +145,17 @@ void TypeFunction::dump(std::ostream& out) const
 {
     out << "(";
     bool isFirst = true;
-    for (const Type& param : m_params) {
+    for (const Binding& param : m_params) {
         if (!isFirst)
             out << ", ";
-        out << param;
+        out << param.type();
         isFirst = false;
     }
     out << ") -> " << m_returnType;
 }
 
-TypeArray::TypeArray(uint32_t offset, const Type& itemType)
-    : Type(Tag::Array, offset)
-    , m_itemType(itemType)
+TypeArray::TypeArray(const Type& itemType)
+    : m_itemType(itemType)
 {
 }
 
@@ -185,9 +164,22 @@ const Type& TypeArray::itemType() const
     return m_itemType;
 }
 
-bool TypeArray::operator==(const TypeArray& other) const
+void TypeArray::visit(std::function<void(Value)> visitor) const
 {
-    return m_itemType == other.m_itemType;
+    visitor(Value { &m_itemType });
+}
+
+const Type& TypeArray::substitute(TypeChecker& tc, Substitutions& subst) const
+{
+    const Type& itemType = m_itemType.substitute(tc, subst);
+    return *TypeArray::create(tc.vm(), itemType);
+}
+
+bool TypeArray::operator==(const Type& other) const
+{
+    if (!other.is<TypeArray>())
+        return false;
+    return m_itemType == other.as<TypeArray>().m_itemType;
 }
 
 void TypeArray::dump(std::ostream& out) const
@@ -195,13 +187,12 @@ void TypeArray::dump(std::ostream& out) const
     out << m_itemType << "[]";
 }
 
-TypeRecord::TypeRecord(uint32_t offset, const Fields& fields)
-    : Type(Tag::Record, offset)
-    , m_fields(fields)
+TypeRecord::TypeRecord(const Fields& fields)
+    : m_fields(fields)
 {
 }
 
-std::optional<std::reference_wrapper<const Type>> TypeRecord::field(const std::string& name) const
+std::optional<std::reference_wrapper<const Binding>> TypeRecord::field(const std::string& name) const
 {
     const auto it = m_fields.find(name);
     if (it == m_fields.end())
@@ -209,8 +200,25 @@ std::optional<std::reference_wrapper<const Type>> TypeRecord::field(const std::s
     return { it->second };
 }
 
-bool TypeRecord::operator==(const TypeRecord& other) const
+void TypeRecord::visit(std::function<void(Value)> visitor) const
 {
+    for (const auto& field : m_fields)
+        field.second.visit(visitor);
+}
+
+const Type& TypeRecord::substitute(TypeChecker& tc, Substitutions& subst) const
+{
+    Fields fields;
+    for (const auto& field : m_fields)
+        fields.emplace(field.first, field.second.substitute(tc, subst));
+    return *TypeRecord::create(tc.vm(), fields);
+}
+
+bool TypeRecord::operator==(const Type& otherT) const
+{
+    if (!otherT.is<TypeRecord>())
+        return false;
+    const TypeRecord& other = otherT.as<TypeRecord>();
     if (m_fields.size() != other.m_fields.size())
         return false;
     for (const auto& pair : m_fields) {
@@ -228,8 +236,49 @@ void TypeRecord::dump(std::ostream& out) const
     for (const auto& pair : m_fields) {
         if (!isFirst)
             out << ", ";
-        out << pair.first << ": " << pair.second;
+        out << pair.first << ": " << pair.second.type();
         isFirst = false;
     }
     out << "}";
+}
+
+uint32_t TypeVar::s_uid = 0;
+
+TypeVar::TypeVar(const std::string& name)
+    : m_uid(++s_uid)
+    , m_name(name)
+{
+}
+
+uint32_t TypeVar::uid() const
+{
+    return m_uid;
+}
+
+void TypeVar::fresh(TypeChecker& tc, Substitutions& subst) const
+{
+    const TypeVar& newVar = *TypeVar::create(tc.vm(), m_name);
+    subst.emplace(m_uid, newVar);
+}
+
+void TypeVar::visit(std::function<void(Value)>) const { }
+
+const Type& TypeVar::substitute(TypeChecker& tc, Substitutions& subst) const
+{
+    const auto it = subst.find(m_uid);
+    if (it != subst.end())
+        return it->second;
+    return *this;
+}
+
+bool TypeVar::operator==(const Type& other) const
+{
+    if (!other.is<TypeVar>())
+        return false;
+    return m_uid == other.as<TypeVar>().m_uid;
+}
+
+void TypeVar::dump(std::ostream& out) const
+{
+    out << m_name << m_uid;
 }

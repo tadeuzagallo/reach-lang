@@ -2,6 +2,7 @@
 
 #include "Environment.h"
 #include "Function.h"
+#include "Type.h"
 #include <iostream>
 
 static void addFunction(VM* vm, const char* name, NativeFunction fn)
@@ -26,9 +27,16 @@ static Value functionPrint(VM& vm, std::vector<Value> args)
 VM::VM()
     : globalEnvironment(nullptr)
     , heap(this)
+    , typeChecker(nullptr)
 {
     // so we don't crash when calling stack.back()
     stack.push_back(Value::crash());
 
     addFunction(this, "print", functionPrint);
 }
+
+void VM::addType(const std::string& name, const Type& type)
+{
+    globalEnvironment.set(name, Value { &type });
+}
+
