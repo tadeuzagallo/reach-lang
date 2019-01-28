@@ -24,6 +24,20 @@ static Value functionPrint(VM& vm, std::vector<Value> args)
     return Value::unit();
 }
 
+static Value functionInspect(VM& vm, std::vector<Value> args)
+{
+    ASSERT(args.size() % 2 == 0, "");
+    bool isFirst = true;
+    for (uint32_t i = 0; i < args.size(); i += 2) {
+        if (!isFirst)
+            std::cout << ", ";
+        std::cout << args[i] << " : " << args[i + 1];
+        isFirst = false;
+    }
+    std::cout << std::endl;
+    return Value::unit();
+}
+
 VM::VM()
     : globalEnvironment(nullptr)
     , heap(this)
@@ -33,6 +47,7 @@ VM::VM()
     stack.push_back(Value::crash());
 
     addFunction(this, "print", functionPrint);
+    addFunction(this, "inspect", functionInspect);
 }
 
 void VM::addType(const std::string& name, const Type& type)

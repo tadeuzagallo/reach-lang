@@ -143,6 +143,17 @@ void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst
 
 void CallExpression::generate(BytecodeGenerator& generator, Register dst)
 {
+    if (Identifier* ident = dynamic_cast<Identifier*>(callee.get()))
+        if (ident->name == "inspect") {
+            for (auto it = arguments.begin(); it != arguments.end(); it++) {
+                std::unique_ptr<Expression>& argument = *it++;
+                auto type = std::make_unique<SynthesizedTypeExpression>(argument->location);
+                ASSERT(argument->binding, "");
+                type->binding = argument->binding;
+                it = arguments.emplace(it, std::move(type));
+            }
+        }
+
     Register calleeReg = generator.newLocal();
     callee->generate(generator, calleeReg);
     std::vector<Register> args;

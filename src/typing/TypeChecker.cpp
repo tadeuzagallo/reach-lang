@@ -23,15 +23,17 @@ TypeChecker::TypeChecker(VM& vm)
     insert("Number", newNameType("Number"));
     insert("String", newNameType("String"));
 
-    m_bindings.emplace_back(const_cast<Binding*>(&bottomValue()));
-    insert("print", *m_bindings.back());
+    insert("inspect", bottomValue());
+    insert("print", bottomValue());
 }
 
 const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
 {
     const Binding* binding = &unitValue();
-    for (const auto& decl : program->declarations)
+    for (const auto& decl : program->declarations) {
         binding = &decl->infer(*this);
+        decl->binding = &newType(*binding);
+    }
     const Type& result = m_topUnificationScope.resolve(binding->type());
     if (m_errors.size())
         return nullptr;
@@ -65,6 +67,11 @@ const Binding& TypeChecker::newType(const Type& type)
     // introduce a binding for a new value of the given type
     m_bindings.emplace_back(new Binding { Value { &type }, typeType().type() });
     return *m_bindings.back();
+}
+
+const Binding& TypeChecker::newType(const Binding& binding)
+{
+    return newType(binding.type());
 }
 
 // New value bindings - for constructs that introduces new values, e.g.

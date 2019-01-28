@@ -45,7 +45,9 @@ void FunctionDeclaration::check(TypeChecker& tc, const Binding& result)
 
 const Binding& StatementDeclaration::infer(TypeChecker& tc)
 {
-    return statement->infer(tc);
+    const Binding& result = statement->infer(tc);
+    binding = statement->binding = &tc.newType(result);
+    return result;
 }
 
 void StatementDeclaration::check(TypeChecker& tc, const Binding& result)
@@ -129,7 +131,9 @@ void ForStatement::check(TypeChecker&, const Binding&)
 
 const Binding& ExpressionStatement::infer(TypeChecker& tc)
 {
-    return expression->infer(tc);
+    const Binding& result = expression->infer(tc);
+    binding = expression->binding = &tc.newType(result);
+    return result;
 }
 
 void ExpressionStatement::check(TypeChecker& tc, const Binding& result)
@@ -235,7 +239,8 @@ const Binding& CallExpression::infer(TypeChecker& tc)
     }
 
     const TypeFunction& calleeTypeFunction = calleeType.as<TypeFunction>();
-    if (calleeTypeFunction.explicitParamCount() != arguments.size())
+    bool argumentMismatch = calleeTypeFunction.explicitParamCount() != arguments.size();
+    if (argumentMismatch)
         tc.typeError(location, "Argument count mismatch");
     else {
         uint32_t argIndex = 0;
@@ -249,19 +254,23 @@ const Binding& CallExpression::infer(TypeChecker& tc)
         ASSERT(argIndex == arguments.size(), "");
     }
     const Type& result = scope.resolve(calleeTypeFunction.returnType());
-    auto it = arguments.begin();
-    for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
-        const Binding& param = calleeTypeFunction.param(i);
-        if (!param.inferred()) {
-            ++it;
-            continue;
-        }
+    if (!argumentMismatch) {
+        auto it = arguments.begin();
+        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
+            const Binding& param = calleeTypeFunction.param(i);
+            if (!param.inferred()) {
+                ++it;
+                continue;
+            }
 
-        const Type& inferredType = scope.resolve(param.valueAsType());
-        auto argument = std::make_unique<SynthesizedTypeExpression>(location);
-        argument->binding = &tc.newType(inferredType);
-        it = arguments.emplace(it, std::move(argument));
+            const Type& inferredType = scope.resolve(param.valueAsType());
+            auto argument = std::make_unique<SynthesizedTypeExpression>(location);
+            argument->binding = &tc.newType(inferredType);
+            it = ++arguments.emplace(it, std::move(argument));
+        }
+        ASSERT(it == arguments.end(), "");
     }
+    binding = &tc.newType(result);
     return tc.newValue(result);
 }
 
@@ -337,7 +346,9 @@ void MemberExpression::check(TypeChecker& tc, const Binding& type)
 
 const Binding& LiteralExpression::infer(TypeChecker& tc)
 {
-    return literal->infer(tc);
+    const Binding& result = literal->infer(tc);
+    binding = literal->binding = &tc.newType(result);
+    return result;
 }
 
 void LiteralExpression::check(TypeChecker& tc, const Binding& result)

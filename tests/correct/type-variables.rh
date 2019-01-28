@@ -2,7 +2,7 @@
 
 function id_explicit(T: Type, x: T) -> T { x }
 function id(%U: Type, x: U) -> U { id_explicit(U, x) }
-print(id(42)) // CHECK: 42
+inspect(id(42)); // CHECK: 42 : Number
 
 function infer(%I: Type, x: I) -> Type { I }
-infer(4) // CHECK: Number : Type
+inspect(infer(4)) // CHECK: Number : Type

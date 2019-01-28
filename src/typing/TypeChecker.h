@@ -34,6 +34,7 @@ public:
     const Binding& bottomValue();
 
     const Binding& newType(const Type&);
+    const Binding& newType(const Binding&);
     const Binding& newValue(const Type&);
     const Binding& newValue(const Binding&);
 

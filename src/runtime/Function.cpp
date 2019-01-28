@@ -12,6 +12,7 @@ void Function::visit(std::function<void(Value)> visitor) const
 Value Function::call(VM& vm, std::vector<Value> args)
 {
     if (m_isNativeFunction) {
+        std::reverse(args.begin(), args.end());
         return m_nativeFunction(vm, args);
     }
 

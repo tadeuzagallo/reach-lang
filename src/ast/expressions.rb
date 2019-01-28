@@ -114,9 +114,6 @@ ast_node :LiteralExpression < :Expression,
 
 
 ast_node :SynthesizedTypeExpression < :Expression,
-  fields: {
-    binding: "const Binding*",
-  },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual const Binding& infer(TypeChecker&)",

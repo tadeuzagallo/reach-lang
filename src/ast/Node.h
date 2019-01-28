@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 class Binding;
+class Type;
 class TypeChecker;
 
 static std::string indent(unsigned size)
@@ -122,6 +123,7 @@ struct Node {
   }
 
   SourceLocation location;
+  const Binding* binding;
 
 protected:
   Node(SourceLocation& loc)
