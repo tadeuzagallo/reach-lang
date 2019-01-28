@@ -81,6 +81,7 @@ public:
     CELL_CREATE(TypeFunction);
 
     size_t paramCount() const;
+    size_t explicitParamCount() const;
     const Binding& param(uint32_t) const;
     const Type& returnType() const;
 
@@ -143,6 +144,7 @@ public:
     CELL_CREATE(TypeVar);
 
     uint32_t uid() const;
+    bool inferred() const;
 
     void fresh(TypeChecker&, Substitutions&) const;
 
@@ -152,11 +154,12 @@ public:
     void dump(std::ostream&) const override;
 
 private:
-    TypeVar(const std::string&);
+    TypeVar(const std::string&, bool);
 
     static uint32_t s_uid;
 
     uint32_t m_uid;
+    bool m_inferred;
     std::string m_name;
 };
 

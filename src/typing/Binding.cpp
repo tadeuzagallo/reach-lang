@@ -21,6 +21,19 @@ Binding Binding::substitute(TypeChecker& tc, Substitutions& subst) const
     return Binding { value, m_type.substitute(tc, subst) };
 }
 
+bool Binding::inferred() const
+{
+    if (!m_value.isCell())
+        return false;
+    Cell* cell = m_value.asCell();
+    if (!cell->is<Type>())
+        return false;
+    const Type& type = *cell->cast<Type>();
+    if (!type.is<TypeVar>())
+        return false;
+    return type.as<TypeVar>().inferred();
+}
+
 bool Binding::operator!=(const Binding& other) const
 {
     return !(*this == other);

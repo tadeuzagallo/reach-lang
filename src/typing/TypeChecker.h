@@ -25,6 +25,7 @@ public:
     void visit(const std::function<void(Value)>&) const;
 
     const Binding& typeType();
+    const Binding& unitType();
 
     const Binding& unitValue();
     const Binding& booleanValue();
@@ -32,16 +33,18 @@ public:
     const Binding& stringValue();
     const Binding& bottomValue();
 
+    const Binding& newType(const Type&);
     const Binding& newValue(const Type&);
     const Binding& newValue(const Binding&);
+
     const Binding& newFunctionValue(const Types&, const Type&);
     const Binding& newArrayValue(const Type&);
     const Binding& newRecordValue(const Fields&);
 
     const Binding& newNameType(const std::string&);
-    const Binding& newVarType(const std::string&);
+    const Binding& newVarType(const std::string&, bool);
 
-    const Binding& lookup(const SourceLocation&, const std::string&);
+    const Binding& lookup(const SourceLocation&, const std::string&, const Binding&);
 
     void bindValue(const Type&);
     void bindType(const Type&);
@@ -69,7 +72,8 @@ public:
         ~UnificationScope();
 
         void unify(const SourceLocation&, const Binding&, const Binding&);
-        const Type& result(const Type&);
+        const Type& resolve(const Type&);
+        void infer(const SourceLocation&, const Binding&);
 
     private:
         struct Constraint {
@@ -78,7 +82,14 @@ public:
             const Binding& rhs;
         };
 
+        struct InferredBinding {
+            SourceLocation location;
+            const TypeVar& var;
+        };
+
+        void finalize();
         void solveConstraints();
+        void checkInferredVariables();
         void unifies(const SourceLocation&, const Type&, const Type&);
         void bind(const TypeVar&, const Type&);
 
@@ -86,7 +97,9 @@ public:
         TypeChecker& m_typeChecker;
         UnificationScope* m_parentScope;
         std::deque<Constraint> m_constraints;
+        std::deque<InferredBinding> m_inferredBindings;
         Substitutions m_substitutions;
+        // jokeing 
     };
 
 private:

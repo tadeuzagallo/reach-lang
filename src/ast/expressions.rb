@@ -111,3 +111,14 @@ ast_node :LiteralExpression < :Expression,
     "virtual const Binding& infer(TypeChecker&)",
     "virtual void check(TypeChecker&, const Binding&)",
   ]
+
+
+ast_node :SynthesizedTypeExpression < :Expression,
+  fields: {
+    binding: "const Binding*",
+  },
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual const Binding& infer(TypeChecker&)",
+    "virtual void check(TypeChecker&, const Binding&)",
+  ]

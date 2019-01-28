@@ -172,6 +172,12 @@ void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
     return literal->generate(generator, dst);
 }
 
+void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    return generator.loadConstant(dst, binding->value());
+}
+
+
 // Literals
 
 void BooleanLiteral::generate(BytecodeGenerator& generator, Register dst)

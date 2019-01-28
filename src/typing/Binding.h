@@ -15,6 +15,7 @@ public:
 
     const Type& valueAsType() const;
     Binding substitute(TypeChecker&, Substitutions&) const;
+    bool inferred() const;
 
     bool operator!=(const Binding&) const;
     bool operator==(const Binding&) const;

@@ -88,6 +88,15 @@ size_t TypeFunction::paramCount() const
     return m_params.size();
 }
 
+size_t TypeFunction::explicitParamCount() const
+{
+    uint32_t count = 0;
+    for (const Binding& param : m_params)
+        if (!param.inferred())
+            ++count;
+    return count;
+}
+
 const Binding& TypeFunction::param(uint32_t index) const
 {
     ASSERT(index < paramCount(), "Out of bounds access to TypeFunction::param");
@@ -244,8 +253,9 @@ void TypeRecord::dump(std::ostream& out) const
 
 uint32_t TypeVar::s_uid = 0;
 
-TypeVar::TypeVar(const std::string& name)
+TypeVar::TypeVar(const std::string& name, bool inferred)
     : m_uid(++s_uid)
+    , m_inferred(inferred)
     , m_name(name)
 {
 }
@@ -255,9 +265,14 @@ uint32_t TypeVar::uid() const
     return m_uid;
 }
 
+bool TypeVar::inferred() const
+{
+    return m_inferred;
+}
+
 void TypeVar::fresh(TypeChecker& tc, Substitutions& subst) const
 {
-    const TypeVar& newVar = *TypeVar::create(tc.vm(), m_name);
+    const TypeVar& newVar = *TypeVar::create(tc.vm(), m_name, m_inferred);
     subst.emplace(m_uid, newVar);
 }
 
@@ -280,5 +295,5 @@ bool TypeVar::operator==(const Type& other) const
 
 void TypeVar::dump(std::ostream& out) const
 {
-    out << m_name << m_uid;
+    out << m_name;
 }

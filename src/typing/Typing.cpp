@@ -142,7 +142,7 @@ void ExpressionStatement::check(TypeChecker& tc, const Binding& result)
 
 const Binding& Identifier::infer(TypeChecker& tc)
 {
-    return tc.lookup(location, name);
+    return tc.lookup(location, name, tc.unitValue());
 }
 
 void Identifier::check(TypeChecker& tc, const Binding& type)
@@ -235,12 +235,33 @@ const Binding& CallExpression::infer(TypeChecker& tc)
     }
 
     const TypeFunction& calleeTypeFunction = calleeType.as<TypeFunction>();
-    if (calleeTypeFunction.paramCount() != arguments.size())
+    if (calleeTypeFunction.explicitParamCount() != arguments.size())
         tc.typeError(location, "Argument count mismatch");
-    else
-        for (unsigned i = 0; i < arguments.size(); i++)
-            arguments[i]->check(tc, calleeTypeFunction.param(i));
-    const Type& result = scope.result(calleeTypeFunction.returnType());
+    else {
+        uint32_t argIndex = 0;
+        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
+            const Binding& param = calleeTypeFunction.param(i);
+            if (param.inferred())
+                scope.infer(location, param);
+            else
+                arguments[argIndex++]->check(tc, param);
+        }
+        ASSERT(argIndex == arguments.size(), "");
+    }
+    const Type& result = scope.resolve(calleeTypeFunction.returnType());
+    auto it = arguments.begin();
+    for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
+        const Binding& param = calleeTypeFunction.param(i);
+        if (!param.inferred()) {
+            ++it;
+            continue;
+        }
+
+        const Type& inferredType = scope.resolve(param.valueAsType());
+        auto argument = std::make_unique<SynthesizedTypeExpression>(location);
+        argument->binding = &tc.newType(inferredType);
+        it = arguments.emplace(it, std::move(argument));
+    }
     return tc.newValue(result);
 }
 
@@ -324,6 +345,17 @@ void LiteralExpression::check(TypeChecker& tc, const Binding& result)
     tc.unify(location, infer(tc), result);
 }
 
+const Binding& SynthesizedTypeExpression::infer(TypeChecker& tc)
+{
+    ASSERT(false, "Should not infer type for SynthesizedTypeExpression");
+    return tc.unitValue();
+}
+
+void SynthesizedTypeExpression::check(TypeChecker&, const Binding&)
+{
+    ASSERT(false, "Should not type check SynthesizedTypeExpression");
+}
+
 
 // Literals
 
@@ -347,14 +379,17 @@ const Binding& TypedIdentifier::normalize(TypeChecker& tc)
 {
     const Binding& binding = type->normalize(tc);
     if (binding.valueAsType().is<TypeType>())
-        return tc.newVarType(name->name);
-    else
+        return tc.newVarType(name->name, inferred);
+    else {
+        if (inferred)
+            tc.typeError(location, "Only type arguments can be inferred");
         return tc.newValue(binding.valueAsType());
+    }
 }
 
 const Binding& ASTTypeName::normalize(TypeChecker& tc)
 {
-    return tc.lookup(location, name->name);
+    return tc.lookup(location, name->name, tc.unitType());
 }
 
 const Binding& ASTTypeType::normalize(TypeChecker& tc)

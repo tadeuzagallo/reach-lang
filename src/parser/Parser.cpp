@@ -321,7 +321,14 @@ std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)
 std::unique_ptr<TypedIdentifier> Parser::parseTypedIdentifier(const Token& t)
 {
     auto typedIdentifier = std::make_unique<TypedIdentifier>(t);
-    typedIdentifier->name = parseIdentifier(t);
+    Token next;
+    if (t.type == Token::MOD) {
+        typedIdentifier->inferred = true;
+        typedIdentifier->name = parseIdentifier(m_lexer.next());
+    } else {
+        typedIdentifier->inferred = false;
+        typedIdentifier->name = parseIdentifier(t);
+    }
     CONSUME(Token::COLON);
     typedIdentifier->type = parseType(m_lexer.next());
     return typedIdentifier;

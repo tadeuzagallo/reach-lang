@@ -28,6 +28,7 @@ ast_node :TypedIdentifier < :Node,
     fields: {
         name: "std::unique_ptr<Identifier>",
         type: "std::unique_ptr<ASTType>",
+        inferred: "bool",
     },
     extra_methods: [
         "virtual const Binding& normalize(TypeChecker&)",

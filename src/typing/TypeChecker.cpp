@@ -32,7 +32,7 @@ const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
     const Binding* binding = &unitValue();
     for (const auto& decl : program->declarations)
         binding = &decl->infer(*this);
-    const Type& result = m_topUnificationScope.result(binding->type());
+    const Type& result = m_topUnificationScope.resolve(binding->type());
     if (m_errors.size())
         return nullptr;
     return &result;
@@ -50,6 +50,7 @@ VM& TypeChecker::vm() const
 }
 
 const Binding& TypeChecker::typeType() { return *m_bindings[0]; }
+const Binding& TypeChecker::unitType() { return *m_bindings[2]; }
 
 const Binding& TypeChecker::bottomValue() { return newValue(*m_bindings[1]); }
 const Binding& TypeChecker::unitValue() { return newValue(*m_bindings[2]); }
@@ -57,9 +58,17 @@ const Binding& TypeChecker::booleanValue() { return newValue(*m_bindings[3]); }
 const Binding& TypeChecker::numericValue() { return newValue(*m_bindings[4]); }
 const Binding& TypeChecker::stringValue() { return newValue(*m_bindings[5]); }
 
+// New type bindings - for constructs that introduces new types, e.g.
+// T : Type
+const Binding& TypeChecker::newType(const Type& type)
+{
+    // introduce a binding for a new value of the given type
+    m_bindings.emplace_back(new Binding { Value { &type }, typeType().type() });
+    return *m_bindings.back();
+}
+
 // New value bindings - for constructs that introduces new values, e.g.
 // T : Type -> x : T
-
 const Binding& TypeChecker::newValue(const Type& type)
 {
     // introduce a binding for a new value of the given type
@@ -67,9 +76,12 @@ const Binding& TypeChecker::newValue(const Type& type)
     return *m_bindings.back();
 }
 
+// introduce a binding for a new value of the given type
 const Binding& TypeChecker::newValue(const Binding& binding)
 {
-    // introduce a binding for a new value of the given type
+    // typeType is a special case, since it's recursive
+    if (&binding == &typeType())
+        return typeType();
     return newValue(binding.valueAsType());
 }
 
@@ -100,19 +112,19 @@ const Binding& TypeChecker::newRecordValue(const Fields& fields)
 const Binding& TypeChecker::newNameType(const std::string& name)
 {
     TypeName* nameType = TypeName::create(m_vm, name);
-    m_bindings.emplace_back(new Binding { Value { nameType }, typeType().valueAsType() });
+    m_bindings.emplace_back(new Binding { Value { nameType }, typeType().type() });
     m_vm.addType(name, *nameType);
     return *m_bindings.back();
 }
 
-const Binding& TypeChecker::newVarType(const std::string& name)
+const Binding& TypeChecker::newVarType(const std::string& name, bool inferred)
 {
-    TypeVar* varType = TypeVar::create(m_vm, name);
-    m_bindings.emplace_back(new Binding { Value { varType }, typeType().valueAsType() });
+    TypeVar* varType = TypeVar::create(m_vm, name, inferred);
+    m_bindings.emplace_back(new Binding { Value { varType }, typeType().type() });
     return *m_bindings.back();
 }
 
-const Binding& TypeChecker::lookup(const SourceLocation& location, const std::string& name)
+const Binding& TypeChecker::lookup(const SourceLocation& location, const std::string& name, const Binding& defaultValue)
 {
     for (uint32_t i = m_environment.size(); i--;) {
         const auto& pair = m_environment[i];
@@ -123,7 +135,7 @@ const Binding& TypeChecker::lookup(const SourceLocation& location, const std::st
     std::stringstream msg;
     msg << "Unknown variable: `" << name << "`";
     typeError(location, msg.str());
-    return unitValue();
+    return defaultValue;
 }
 
 void TypeChecker::insert(const std::string& name, const Binding& binding)
@@ -195,9 +207,9 @@ TypeChecker::UnificationScope::UnificationScope(TypeChecker& tc)
 
 TypeChecker::UnificationScope::~UnificationScope()
 {
-    LOG(UnificationScope,  "===> ~UnificationScope <===");
-    solveConstraints();
+    finalize();
     m_typeChecker.m_unificationScope = m_parentScope;
+    LOG(UnificationScope,  "===> ~UnificationScope <===");
 }
 
 void TypeChecker::UnificationScope::unify(const SourceLocation& location, const Binding& lhs, const Binding& rhs)
@@ -206,35 +218,57 @@ void TypeChecker::UnificationScope::unify(const SourceLocation& location, const 
     m_constraints.emplace_back(Constraint { location, lhs, rhs });
 }
 
-const Type& TypeChecker::UnificationScope::result(const Type& resultType)
+const Type& TypeChecker::UnificationScope::resolve(const Type& resultType)
 {
-    solveConstraints();
+    finalize();
     return resultType.substitute(m_typeChecker, m_substitutions);
 }
 
-void TypeChecker::UnificationScope::solveConstraints()
+void TypeChecker::UnificationScope::infer(const SourceLocation& location, const Binding& binding)
+{
+    ASSERT(binding.valueAsType().is<TypeVar>(), "");
+    m_inferredBindings.emplace_back(InferredBinding { location, binding.valueAsType().as<TypeVar>() });
+}
+
+void TypeChecker::UnificationScope::finalize()
 {
     if (m_finalized)
         return;
     m_finalized = true;
+    solveConstraints();
+    checkInferredVariables();
+}
 
+void TypeChecker::UnificationScope::solveConstraints()
+{
     while (!m_constraints.empty()) {
         auto constraint = m_constraints.front();
         m_constraints.pop_front();
 
-        LOG(ConstraintSolving, "Solving constraint: " << constraint.location << ": " << constraint.lhs.type() << " U " << constraint.rhs.type());
 
         const Type& lhs_ = constraint.lhs.type().substitute(m_typeChecker, m_substitutions);
         const Type& rhs_ = constraint.rhs.type().substitute(m_typeChecker, m_substitutions);
+
+        LOG(ConstraintSolving, "Solving constraint: " << constraint.location << ": " << constraint.lhs.type() << " => " << lhs_ << " U " << constraint.rhs.type() << " => " << rhs_);
         unifies(constraint.location, lhs_, rhs_);
         if (lhs_.is<TypeType>() && rhs_.is<TypeType>()) {
             const Type& lhsValue = constraint.lhs.valueAsType();
             const Type& rhsValue = constraint.rhs.valueAsType();
             if (rhsValue.is<TypeVar>())
                 bind(rhsValue.as<TypeVar>(), lhsValue);
-            else if (lhsValue.is<TypeVar>())
-                bind(lhsValue.as<TypeVar>(), rhsValue);
         }
+    }
+}
+
+void TypeChecker::UnificationScope::checkInferredVariables()
+{
+    for (const InferredBinding& ib : m_inferredBindings) {
+        auto it = m_substitutions.find(ib.var.uid());
+        if (it != m_substitutions.end())
+            continue;
+        std::stringstream message;
+        message << "Unification failure: failed to infer type variable `" << ib.var << "`";
+        m_typeChecker.typeError(ib.location, message.str());
     }
 }
 
@@ -242,6 +276,14 @@ void TypeChecker::UnificationScope::unifies(const SourceLocation& location, cons
 {
     if (lhs == rhs)
         return;
+    if (rhs.is<TypeVar>()) {
+        const TypeVar& var = rhs.as<TypeVar>();
+        if (var.inferred()) {
+            bind(var, lhs);
+            return;
+        }
+    }
+
     std::stringstream msg;
     msg << "Unification failure: expected `" << rhs << "` but found `" << lhs << "`";
     m_typeChecker.typeError(location, msg.str());
@@ -249,5 +291,6 @@ void TypeChecker::UnificationScope::unifies(const SourceLocation& location, cons
 
 void TypeChecker::UnificationScope::bind(const TypeVar& var, const Type& type)
 {
+    LOG(ConstraintSolving, "Binding " << var << " to " << type);
     m_substitutions.emplace(var.uid(), type);
 }

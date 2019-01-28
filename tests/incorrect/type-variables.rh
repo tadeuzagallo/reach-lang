@@ -1,0 +1,6 @@
+//RUN: %not %reach | %check
+
+function f(%x: Number) -> Number { x } // CHECK: Only type arguments can be inferred
+
+function id(%T: Type, %U: Type, x: U) -> U { x }
+id(42) // CHECK: failed to infer type variable `T`
