@@ -3,7 +3,8 @@
 function f(x: Number) -> Number {
     x
 }
-f(42);
+
+inspect(f(42)) // CHECK: 42 : Number
 
 function g(x: Number, y: Number) -> Number { y }
-g(1, 2) // CHECK: 2 : Number
+inspect(g(1, 2)) // CHECK: 2 : Number

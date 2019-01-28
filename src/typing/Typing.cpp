@@ -146,7 +146,9 @@ void ExpressionStatement::check(TypeChecker& tc, const Binding& result)
 
 const Binding& Identifier::infer(TypeChecker& tc)
 {
-    return tc.lookup(location, name, tc.unitValue());
+    const Binding& result = tc.lookup(location, name, tc.unitValue());
+    binding = &tc.newType(result);
+    return result;
 }
 
 void Identifier::check(TypeChecker& tc, const Binding& type)
@@ -182,6 +184,8 @@ const Binding& ObjectLiteralExpression::infer(TypeChecker& tc)
     for (auto& pair : fields) {
         typeFields.emplace(pair.first->name, pair.second->infer(tc));
     }
+
+    binding = &tc.newRecordType(typeFields);
     return tc.newRecordValue(typeFields);
 }
 
@@ -205,6 +209,7 @@ const Binding& ArrayLiteralExpression::infer(TypeChecker& tc)
     for (uint32_t i = 1; i < items.size(); i++)
         items[i]->check(tc, itemBinding);
 
+    binding = &tc.newArrayType(itemBinding.type());
     return tc.newArrayValue(itemBinding.type());
 }
 
@@ -252,9 +257,7 @@ const Binding& CallExpression::infer(TypeChecker& tc)
                 arguments[argIndex++]->check(tc, param);
         }
         ASSERT(argIndex == arguments.size(), "");
-    }
-    const Type& result = scope.resolve(calleeTypeFunction.returnType());
-    if (!argumentMismatch) {
+
         auto it = arguments.begin();
         for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
             const Binding& param = calleeTypeFunction.param(i);
@@ -270,6 +273,7 @@ const Binding& CallExpression::infer(TypeChecker& tc)
         }
         ASSERT(it == arguments.end(), "");
     }
+    const Type& result = scope.resolve(calleeTypeFunction.returnType());
     binding = &tc.newType(result);
     return tc.newValue(result);
 }
@@ -291,12 +295,37 @@ void CallExpression::check(TypeChecker& tc, const Binding& type)
     }
 
     const TypeFunction& calleeTypeFunction = calleeType.as<TypeFunction>();
-    if (calleeTypeFunction.paramCount() != arguments.size())
-        tc.typeError(location, "Argument count mismatch");
-    else
-        for (unsigned i = 0; i < arguments.size(); i++)
-            arguments[i]->check(tc, calleeTypeFunction.param(i));
     tc.unify(location, tc.newValue(calleeTypeFunction.returnType()), type);
+
+    bool argumentMismatch = calleeTypeFunction.explicitParamCount() != arguments.size();
+    if (argumentMismatch)
+        tc.typeError(location, "Argument count mismatch");
+    else {
+        uint32_t argIndex = 0;
+        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
+            const Binding& param = calleeTypeFunction.param(i);
+            if (param.inferred())
+                scope.infer(location, param);
+            else
+                arguments[argIndex++]->check(tc, param);
+        }
+        ASSERT(argIndex == arguments.size(), "");
+
+        auto it = arguments.begin();
+        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
+            const Binding& param = calleeTypeFunction.param(i);
+            if (!param.inferred()) {
+                ++it;
+                continue;
+            }
+
+            const Type& inferredType = scope.resolve(param.valueAsType());
+            auto argument = std::make_unique<SynthesizedTypeExpression>(location);
+            argument->binding = &tc.newType(inferredType);
+            it = ++arguments.emplace(it, std::move(argument));
+        }
+        ASSERT(it == arguments.end(), "");
+    }
 }
 
 const Binding& SubscriptExpression::infer(TypeChecker& tc)
@@ -310,6 +339,8 @@ const Binding& SubscriptExpression::infer(TypeChecker& tc)
 
     const TypeArray& targetArrayType = targetType.as<TypeArray>();
     index->check(tc, tc.numericValue());
+
+    binding = &tc.newType(targetArrayType.itemType());
     return tc.newValue(targetArrayType.itemType());
 }
 
@@ -335,6 +366,7 @@ const Binding& MemberExpression::infer(TypeChecker& tc)
         return tc.unitValue();
     }
 
+    binding = &tc.newType(*optionalFieldType);
     return *optionalFieldType;
 }
 

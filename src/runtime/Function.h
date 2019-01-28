@@ -16,7 +16,10 @@ public:
 
     void dump(std::ostream& out) const override
     {
-        out << "<function " << m_block->name() << ">";
+        if (m_isNativeFunction)
+            out << "<native function>";
+        else
+            out << "<function " << m_block->name() << ">";
     }
 
     Value call(VM&, std::vector<Value>);

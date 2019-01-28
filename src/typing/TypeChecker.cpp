@@ -95,22 +95,19 @@ const Binding& TypeChecker::newValue(const Binding& binding)
 const Binding& TypeChecker::newFunctionValue(const Types& params, const Type& returnType)
 {
     TypeFunction* fnType = TypeFunction::create(m_vm, params, returnType);
-    m_bindings.emplace_back(new Binding { *fnType });
-    return *m_bindings.back();
+    return newValue(*fnType);
 }
 
 const Binding& TypeChecker::newArrayValue(const Type& itemType)
 {
     TypeArray* arrayType = TypeArray::create(m_vm, itemType);
-    m_bindings.emplace_back(new Binding { *arrayType });
-    return *m_bindings.back();
+    return newValue(*arrayType);
 }
 
 const Binding& TypeChecker::newRecordValue(const Fields& fields)
 {
     TypeRecord* recordType = TypeRecord::create(m_vm, fields);
-    m_bindings.emplace_back(new Binding { *recordType });
-    return *m_bindings.back();
+    return newValue(*recordType);
 }
 
 // New type bindings - for constructs that introduces new types, e.g.
@@ -119,16 +116,26 @@ const Binding& TypeChecker::newRecordValue(const Fields& fields)
 const Binding& TypeChecker::newNameType(const std::string& name)
 {
     TypeName* nameType = TypeName::create(m_vm, name);
-    m_bindings.emplace_back(new Binding { Value { nameType }, typeType().type() });
     m_vm.addType(name, *nameType);
-    return *m_bindings.back();
+    return newType(*nameType);
 }
 
 const Binding& TypeChecker::newVarType(const std::string& name, bool inferred)
 {
     TypeVar* varType = TypeVar::create(m_vm, name, inferred);
-    m_bindings.emplace_back(new Binding { Value { varType }, typeType().type() });
-    return *m_bindings.back();
+    return newType(*varType);
+}
+
+const Binding& TypeChecker::newArrayType(const Type& itemType)
+{
+    TypeArray* arrayType = TypeArray::create(m_vm, itemType);
+    return newType(*arrayType);
+}
+
+const Binding& TypeChecker::newRecordType(const Fields& fields)
+{
+    TypeRecord* recordType = TypeRecord::create(m_vm, fields);
+    return newType(*recordType);
 }
 
 const Binding& TypeChecker::lookup(const SourceLocation& location, const std::string& name, const Binding& defaultValue)

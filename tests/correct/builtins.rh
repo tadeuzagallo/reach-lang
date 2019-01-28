@@ -1,3 +1,5 @@
-// RUN: %reach
+// RUN: %reach | %check
 
-print("test:", 13)
+print("test", 13) // CHECK: "test", 13
+inspect(print) // CHECK: <native function> : ⊥
+inspect(inspect) // CHECK: <native function> : ⊥

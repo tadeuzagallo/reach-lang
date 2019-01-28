@@ -1,4 +1,4 @@
-// RUN: %reach
+// RUN: %reach | %check
 
 function f(x: Bool) -> Number {
     if (x) {
@@ -8,5 +8,5 @@ function f(x: Bool) -> Number {
     }
 }
 
-f(true);
-f(false)
+inspect(f(true)) // CHECK: 42 : Number
+inspect(f(false)) // CHECK: 13 : Number

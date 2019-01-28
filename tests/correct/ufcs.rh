@@ -1,9 +1,9 @@
-// RUN: %reach
+// RUN: %reach | %check
 
 function id(x: Number) -> Number { x }
 
 42->id();
-print(42->id());
+inspect(42->id()) // CHECK: 42 : Number
 
-let x = { y = 42 }
-print(x.y->id())
+let x = { y = 42 };
+inspect(x.y->id()) // CHECK: 42 : Number

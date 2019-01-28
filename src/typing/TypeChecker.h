@@ -44,6 +44,8 @@ public:
 
     const Binding& newNameType(const std::string&);
     const Binding& newVarType(const std::string&, bool);
+    const Binding& newArrayType(const Type&);
+    const Binding& newRecordType(const Fields&);
 
     const Binding& lookup(const SourceLocation&, const std::string&, const Binding&);
 

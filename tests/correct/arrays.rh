@@ -1,4 +1,5 @@
-//RUN: %reach
+//RUN: %reach | %check
 
 let x = [1, 2, 3];
-x[0]
+inspect(x); // CHECK-L: [1, 2, 3] : Number[]
+inspect(x[0]) // CHECK: 1 : Number

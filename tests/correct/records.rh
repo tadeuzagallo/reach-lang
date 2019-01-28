@@ -1,9 +1,9 @@
-// RUN: %reach
+// RUN: %reach | %check
 
 let x = { y = 42 };
-x;
-x.y;
+inspect(x) // CHECK: {y = 42} : {y: Number}
+inspect(x.y) // CHECK: 42 : Number
 
 function f() -> Number { 13 }
 let x = { x = f };
-x.x()
+inspect(x.x()) // CHECK: 13 : Number

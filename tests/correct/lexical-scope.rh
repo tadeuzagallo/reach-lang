@@ -1,4 +1,4 @@
-// RUN: %reach
+// RUN: %reach | %check
 
 let x = 42;
 function g() -> Number {
@@ -7,4 +7,4 @@ function g() -> Number {
 function f() -> Number {
     g()
 }
-f()
+inspect(f()) // CHECK: 42 : Number
