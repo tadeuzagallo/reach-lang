@@ -75,6 +75,8 @@ ast_node :CallExpression < :Expression,
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual const Binding& infer(TypeChecker&)",
     "virtual void check(TypeChecker&, const Binding&)",
+    "const TypeFunction* checkCallee(TypeChecker&, const Binding*&)",
+    "void checkArguments(TypeChecker&, const TypeFunction&, TypeChecker::UnificationScope&)",
   ]
 
 ast_node :SubscriptExpression < :Expression,

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "expressions.h"
 #include <map>
 
+class Identifier;
 class Value;
 
 class Environment {

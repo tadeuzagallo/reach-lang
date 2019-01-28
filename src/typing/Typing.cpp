@@ -227,23 +227,28 @@ void ArrayLiteralExpression::check(TypeChecker& tc, const Binding& type)
         item->check(tc, itemBinding);
 }
 
-const Binding& CallExpression::infer(TypeChecker& tc)
+const TypeFunction* CallExpression::checkCallee(TypeChecker& tc, const Binding*& binding)
 {
-    TypeChecker::UnificationScope scope(tc);
     const Binding& calleeBinding = callee->infer(tc);
     const Type& calleeType = calleeBinding.type();
     if (calleeType.is<TypeBottom>()) {
         for (const auto& arg : arguments)
             arg->infer(tc); // check arguments are well-formed
-        return tc.bottomValue();
+        binding = &tc.bottomValue();
+        return nullptr;
     }
 
     if (!calleeType.is<TypeFunction>()) {
         tc.typeError(location, "Callee is not a function");
-        return tc.unitValue();
+        binding = &tc.unitValue();
+        return nullptr;
     }
 
-    const TypeFunction& calleeTypeFunction = calleeType.as<TypeFunction>();
+    return &calleeType.as<TypeFunction>();
+}
+
+void CallExpression::checkArguments(TypeChecker& tc, const TypeFunction& calleeTypeFunction, TypeChecker::UnificationScope& scope)
+{
     bool argumentMismatch = calleeTypeFunction.explicitParamCount() != arguments.size();
     if (argumentMismatch)
         tc.typeError(location, "Argument count mismatch");
@@ -273,7 +278,17 @@ const Binding& CallExpression::infer(TypeChecker& tc)
         }
         ASSERT(it == arguments.end(), "");
     }
-    const Type& result = scope.resolve(calleeTypeFunction.returnType());
+}
+
+const Binding& CallExpression::infer(TypeChecker& tc)
+{
+    TypeChecker::UnificationScope scope(tc);
+    const Binding* calleeBinding;
+    const TypeFunction* calleeTypeFunction = checkCallee(tc, calleeBinding);
+    if (!calleeTypeFunction)
+        return *calleeBinding;
+    checkArguments(tc, *calleeTypeFunction, scope);
+    const Type& result = scope.resolve(calleeTypeFunction->returnType());
     binding = &tc.newType(result);
     return tc.newValue(result);
 }
@@ -281,51 +296,12 @@ const Binding& CallExpression::infer(TypeChecker& tc)
 void CallExpression::check(TypeChecker& tc, const Binding& type)
 {
     TypeChecker::UnificationScope scope(tc);
-    const Binding& calleeBinding = callee->infer(tc);
-    const Type& calleeType = calleeBinding.type();
-    if (calleeType.is<TypeBottom>()) {
-        for (const auto& arg : arguments)
-            arg->infer(tc); // check arguments are well-formed
+    const Binding* calleeBinding;
+    const TypeFunction* calleeTypeFunction = checkCallee(tc, calleeBinding);
+    if (!calleeTypeFunction)
         return;
-    }
-
-    if (!calleeType.is<TypeFunction>()) {
-        tc.typeError(location, "Callee is not a function");
-        return;
-    }
-
-    const TypeFunction& calleeTypeFunction = calleeType.as<TypeFunction>();
-    tc.unify(location, tc.newValue(calleeTypeFunction.returnType()), type);
-
-    bool argumentMismatch = calleeTypeFunction.explicitParamCount() != arguments.size();
-    if (argumentMismatch)
-        tc.typeError(location, "Argument count mismatch");
-    else {
-        uint32_t argIndex = 0;
-        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
-            const Binding& param = calleeTypeFunction.param(i);
-            if (param.inferred())
-                scope.infer(location, param);
-            else
-                arguments[argIndex++]->check(tc, param);
-        }
-        ASSERT(argIndex == arguments.size(), "");
-
-        auto it = arguments.begin();
-        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
-            const Binding& param = calleeTypeFunction.param(i);
-            if (!param.inferred()) {
-                ++it;
-                continue;
-            }
-
-            const Type& inferredType = scope.resolve(param.valueAsType());
-            auto argument = std::make_unique<SynthesizedTypeExpression>(location);
-            argument->binding = &tc.newType(inferredType);
-            it = ++arguments.emplace(it, std::move(argument));
-        }
-        ASSERT(it == arguments.end(), "");
-    }
+    tc.unify(location, tc.newValue(calleeTypeFunction->returnType()), type);
+    checkArguments(tc, *calleeTypeFunction, scope);
 }
 
 const Binding& SubscriptExpression::infer(TypeChecker& tc)

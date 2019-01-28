@@ -2,6 +2,7 @@
 
 #include "Cell.h"
 #include "VM.h"
+#include "expressions.h"
 
 class Object : public Cell {
 public:

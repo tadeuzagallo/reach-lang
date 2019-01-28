@@ -1,5 +1,6 @@
 #include "Environment.h"
 
+#include "expressions.h"
 #include "Value.h"
 
 Environment::Environment(const Environment* parent)

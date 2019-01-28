@@ -1,6 +1,7 @@
 #pragma once
 #include "SourceLocation.h"
 #include "Token.h"
+#include "TypeChecker.h"
 #include "Assert.h"
 
 #include <iostream>
@@ -13,7 +14,7 @@
 
 class Binding;
 class Type;
-class TypeChecker;
+class TypeFunction;
 
 static std::string indent(unsigned size)
 {
