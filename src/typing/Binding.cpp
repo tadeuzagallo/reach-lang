@@ -3,6 +3,13 @@
 #include "Assert.h"
 #include "Cell.h"
 
+bool Binding::valueIsType() const
+{
+    if (!m_value.isCell())
+        return false;
+    return m_value.asCell()->is<Type>();
+}
+
 const Type& Binding::valueAsType() const
 {
     return *m_value.asCell()->cast<Type>();

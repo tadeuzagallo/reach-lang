@@ -92,7 +92,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
     }
     CONSUME(Token::R_PAREN);
     CONSUME(Token::ARROW);
-    fn->returnType = parseType(m_lexer.next());
+    fn->returnType = parseExpression(m_lexer.next());
     fn->body = parseBlockStatement(m_lexer.next());
 
     return fn;
@@ -262,6 +262,8 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
     case Token::IDENTIFIER:
         return parseIdentifier(t);
     default:
+        if (auto typeExpression = wrap<TypeExpression>(parseType(t)))
+            return typeExpression;
         return wrap<LiteralExpression>(parseLiteral(t));
     }
 }
@@ -330,7 +332,7 @@ std::unique_ptr<TypedIdentifier> Parser::parseTypedIdentifier(const Token& t)
         typedIdentifier->name = parseIdentifier(t);
     }
     CONSUME(Token::COLON);
-    typedIdentifier->type = parseType(m_lexer.next());
+    typedIdentifier->type = parseExpression(m_lexer.next());
     return typedIdentifier;
 }
 
@@ -377,12 +379,9 @@ std::unique_ptr<BooleanLiteral> Parser::parseBooleanLiteral(const Token& t, bool
 std::unique_ptr<ASTType> Parser::parseType(const Token& t)
 {
     switch (t.type) {
-    case Token::IDENTIFIER:
-        return parseTypeName(t);
     case Token::TYPE:
         return parseTypeType(t);
     default:
-        unexpectedToken(t);
         return nullptr;
     };
 }
@@ -391,13 +390,6 @@ std::unique_ptr<ASTTypeType> Parser::parseTypeType(const Token& t)
 {
     CHECK(t, Token::TYPE);
     return std::make_unique<ASTTypeType>(t);
-}
-
-std::unique_ptr<ASTTypeName> Parser::parseTypeName(const Token& t)
-{
-    auto typeName = std::make_unique<ASTTypeName>(t);
-    typeName->name = parseIdentifier(t);
-    return typeName;
 }
 
 // Error handling

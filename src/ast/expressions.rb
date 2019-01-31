@@ -1,3 +1,4 @@
+import "types.h"
 import "literals.h"
 import :vector
 import :map
@@ -121,3 +122,24 @@ ast_node :SynthesizedTypeExpression < :Expression,
     "virtual const Binding& infer(TypeChecker&)",
     "virtual void check(TypeChecker&, const Binding&)",
   ]
+
+ast_node :TypeExpression < :Expression,
+        fields: {
+        type: "std::unique_ptr<ASTType>",
+    },
+    extra_methods: [
+        "TypeExpression(std::unique_ptr<ASTType>)",
+        "virtual void generate(BytecodeGenerator&, Register)",
+        "virtual const Binding& infer(TypeChecker&)",
+        "virtual void check(TypeChecker&, const Binding&)",
+    ]
+
+ast_node :TypedIdentifier < :Node,
+    fields: {
+        name: "std::unique_ptr<Identifier>",
+        type: "std::unique_ptr<Expression>",
+        inferred: "bool",
+    },
+    extra_methods: [
+        "virtual const Binding& infer(TypeChecker&)",
+    ]

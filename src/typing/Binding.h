@@ -13,6 +13,7 @@ public:
     Value value() const { return m_value; }
     const Type& type() const { return m_type; }
 
+    bool valueIsType() const;
     const Type& valueAsType() const;
     Binding substitute(TypeChecker&, Substitutions&) const;
     bool inferred() const;

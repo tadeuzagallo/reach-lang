@@ -58,6 +58,9 @@ public:
     void typeError(const SourceLocation&, const std::string&);
     void reportErrors(std::ostream&) const;
 
+    template<typename T>
+    const Binding& inferAsType(const T&);
+
     class Scope {
     public:
         Scope(TypeChecker&);

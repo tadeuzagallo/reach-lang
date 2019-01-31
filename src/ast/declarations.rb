@@ -29,7 +29,7 @@ ast_node :FunctionDeclaration < :Declaration,
   fields: {
     name: "std::unique_ptr<Identifier>",
     parameters: "std::vector<std::unique_ptr<TypedIdentifier>>",
-    returnType: "std::unique_ptr<ASTType>",
+    returnType: "std::unique_ptr<Expression>",
     body: "std::unique_ptr<BlockStatement>",
   },
   extra_methods: [

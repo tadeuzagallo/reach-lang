@@ -1,0 +1,5 @@
+// RUN: %not %reach | %check
+
+function f(x: 10) -> 10 { // CHECK: expected `Type` but found `Number`
+    x
+}

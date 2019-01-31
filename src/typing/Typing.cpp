@@ -3,6 +3,17 @@
 #include "Type.h"
 #include "TypeChecker.h"
 
+
+template<typename T>
+const Binding& TypeChecker::inferAsType(const T& node)
+{
+    const Binding& result = node->infer(*this);
+    unify(node->location, result, typeType());
+    if (!result.valueIsType())
+        return unitType();
+    return result;
+}
+
 // Declarations
 
 const Binding& Declaration::infer(TypeChecker& tc)
@@ -25,14 +36,14 @@ void FunctionDeclaration::check(TypeChecker& tc, const Binding& result)
     std::function<void(uint32_t)> check = [&](uint32_t i) {
         TypeChecker::Scope scope(tc);
         if (i < parameters.size()) {
-            const Binding& binding = parameters[i]->normalize(tc);
+            const Binding& binding = parameters[i]->infer(tc);
             params.emplace_back(binding);
             tc.insert(parameters[i]->name->name, binding);
             check(i + 1);
             return;
         }
 
-        const Binding& ret = returnType->normalize(tc);
+        const Binding& ret = tc.inferAsType(returnType);
         fnType = &tc.newFunctionValue(params, ret.valueAsType());
         tc.insert(name->name, *fnType);
         body->check(tc, tc.newValue(ret));
@@ -364,6 +375,16 @@ void LiteralExpression::check(TypeChecker& tc, const Binding& result)
     tc.unify(location, infer(tc), result);
 }
 
+const Binding& TypeExpression::infer(TypeChecker& tc)
+{
+    return type->infer(tc);
+}
+void TypeExpression::check(TypeChecker& tc, const Binding& result)
+{
+    tc.unify(location, result, tc.typeType());
+    tc.unify(location, infer(tc), result);
+}
+
 const Binding& SynthesizedTypeExpression::infer(TypeChecker& tc)
 {
     ASSERT(false, "Should not infer type for SynthesizedTypeExpression");
@@ -394,9 +415,9 @@ const Binding& StringLiteral::infer(TypeChecker& tc)
 }
 
 // Types
-const Binding& TypedIdentifier::normalize(TypeChecker& tc)
+const Binding& TypedIdentifier::infer(TypeChecker& tc)
 {
-    const Binding& binding = type->normalize(tc);
+    const Binding& binding = tc.inferAsType(type);
     if (binding.valueAsType().is<TypeType>())
         return tc.newVarType(name->name, inferred);
     else {
@@ -406,12 +427,7 @@ const Binding& TypedIdentifier::normalize(TypeChecker& tc)
     }
 }
 
-const Binding& ASTTypeName::normalize(TypeChecker& tc)
-{
-    return tc.lookup(location, name->name, tc.unitType());
-}
-
-const Binding& ASTTypeType::normalize(TypeChecker& tc)
+const Binding& ASTTypeType::infer(TypeChecker& tc)
 {
     return tc.typeType();
 }

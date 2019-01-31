@@ -188,6 +188,11 @@ void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register 
     return generator.loadConstant(dst, binding->value());
 }
 
+void TypeExpression::generate(BytecodeGenerator&, Register)
+{
+    // TODO
+}
+
 
 // Literals
 
