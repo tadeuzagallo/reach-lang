@@ -3,6 +3,7 @@
 #include "Cell.h"
 #include "VM.h"
 #include "expressions.h"
+#include <map>
 
 class Object : public Cell {
 public:
@@ -10,7 +11,7 @@ public:
 
     void set(const Identifier& field, Value value)
     {
-        m_fields[field] = value;
+        m_fields.emplace(field, value);
     }
 
     Value get(const Identifier& field)
@@ -31,3 +32,5 @@ private:
 
     std::map<Identifier, Value> m_fields;
 };
+
+extern Object* createObject(VM&, uint32_t);

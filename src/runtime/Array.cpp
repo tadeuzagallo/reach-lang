@@ -18,3 +18,8 @@ void Array::dump(std::ostream& out) const
     }
     out << "]";
 }
+
+Array* createArray(VM& vm, uint32_t inlineSize)
+{
+    return Array::create(vm, inlineSize);
+}

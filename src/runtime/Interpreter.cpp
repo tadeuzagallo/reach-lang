@@ -7,8 +7,8 @@
 Interpreter::Interpreter(VM& vm, const BytecodeBlock& block, const Environment* parentEnvironment)
     : m_vm(vm)
     , m_block(block)
-    , m_ip(m_block.instructions().at(0))
     , m_environment(parentEnvironment)
+    , m_ip(m_block.instructions().at(0))
     , m_result(Value::crash())
 {
 }
@@ -132,8 +132,7 @@ OP(SetArrayIndex)
 OP(GetArrayIndex)
 {
     Array* array = m_cfr[ip.array.offset()].asCell<Array>();
-    Value indexValue = m_cfr[ip.index.offset()];
-    uint32_t index = static_cast<uint32_t>(indexValue.asNumber());
+    Value index = m_cfr[ip.index.offset()];
     Value result = array->getIndex(index);
     m_cfr[ip.dst.offset()] = result;
     DISPATCH();

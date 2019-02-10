@@ -18,3 +18,8 @@ void Object::dump(std::ostream& out) const
     }
     out << "}";
 }
+
+Object* createObject(VM& vm, uint32_t inlineSize)
+{
+    return Object::create(vm, inlineSize);
+}

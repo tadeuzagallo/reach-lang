@@ -16,31 +16,31 @@ function h() -> Number {
 }
 
 function g() -> Number {
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
-    let x =  { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
+    let x = { i = h(), j = h() };
     let x = 42;
     x
 }
 
 function f() -> Number {
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
-    let x = { g = g(), h = h() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
+    let x = { g = g(), h = g() };
     let x = 42;
     x
 }

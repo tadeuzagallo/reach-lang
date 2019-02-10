@@ -1,5 +1,12 @@
 #include "BytecodeBlock.h"
 
+#include "JIT.h"
+static uint32_t optimizationThreshold()
+{
+    static uint32_t threshold = std::getenv("JIT_THRESHOLD") ? atoi(std::getenv("JIT_THRESHOLD")) : 10;
+    return threshold;
+}
+
 BytecodeBlock::BytecodeBlock(std::string name)
     : m_name(name)
 {
@@ -46,4 +53,21 @@ void BytecodeBlock::dump(std::ostream& out) const
     for (unsigned i = 0; i < m_functions.size(); i++)
         out << std::setw(8) << i << ": " << function(i).name() << std::endl;
     out << std::endl;
+}
+
+bool BytecodeBlock::optimize(VM& vm, const Environment* parentEnvironment) const
+{
+    if (std::getenv("NO_JIT"))
+        return false;
+
+    if (++m_hitCount > optimizationThreshold()) {
+        m_jitCode = JIT::compile(vm, *this, parentEnvironment);
+        return true;
+    }
+    return false;
+}
+
+void* BytecodeBlock::jitCode() const
+{
+    return m_jitCode;
 }

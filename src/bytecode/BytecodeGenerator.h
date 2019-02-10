@@ -14,6 +14,7 @@ public:
     BytecodeGenerator(VM&, std::string);
 
     VM& vm() { return m_vm; }
+    BytecodeBlock& block() { return *m_block; }
 
     void emitReturn();
 

@@ -5,6 +5,7 @@
 
 class Value {
     friend class Heap;
+    friend class JIT;
 
 public:
     static Value crash();

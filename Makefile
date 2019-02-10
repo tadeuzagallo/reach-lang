@@ -28,6 +28,7 @@ build/bytecode/Instructions%h buid/bytecode/InstructionMacros%h: src/bytecode/in
 
 test:
 	lit -v tests
+	JIT_THRESHOLD=0 lit -v tests
 
 clean:
 	rm -rf build

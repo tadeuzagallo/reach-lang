@@ -15,6 +15,7 @@ public:
 
     Cell* cell();
     void free(Cell*);
+    bool contains(const Cell*);
     void each(std::function<void(Cell*)>);
 
 private:

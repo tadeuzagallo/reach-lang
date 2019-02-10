@@ -28,9 +28,9 @@ private:
 
     VM& m_vm;
     const BytecodeBlock& m_block;
+    Environment m_environment;
     bool m_stop;
     InstructionStream::Ref m_ip;
-    Environment m_environment;
     Value* m_cfr;
     Value m_result;
 };

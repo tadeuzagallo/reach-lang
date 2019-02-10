@@ -25,6 +25,9 @@ public:
     Value constant(uint32_t) const;
     const BytecodeBlock& function(uint32_t) const;
 
+    bool optimize(VM&, const Environment*) const;
+    void* jitCode() const;
+
 private:
     InstructionStream m_instructions;
     std::string m_name;
@@ -32,4 +35,8 @@ private:
     std::vector<Value> m_constants;
     std::vector<Identifier> m_identifiers;
     std::vector<std::unique_ptr<BytecodeBlock>> m_functions;
+
+    // JIT
+    mutable uint32_t m_hitCount = 0;
+    mutable void* m_jitCode = nullptr;
 };

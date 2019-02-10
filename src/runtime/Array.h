@@ -13,8 +13,9 @@ public:
         m_items[index] = item;
     }
 
-    Value getIndex(uint32_t index)
+    Value getIndex(Value indexValue)
     {
+        uint32_t index = static_cast<uint32_t>(indexValue.asNumber());
         ASSERT(index < m_items.size(), "Array ndex out of bounds: %u", index);
         return m_items[index];
     }
@@ -30,3 +31,5 @@ private:
 
     std::vector<Value> m_items;
 };
+
+extern Array* createArray(VM&, uint32_t);

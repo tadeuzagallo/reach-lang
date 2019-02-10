@@ -21,6 +21,8 @@
 class Value;
 
 class Cell {
+    friend class Heap;
+
 public:
     enum class Type : uint8_t {
         String,

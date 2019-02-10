@@ -16,9 +16,8 @@ public:
 
     void addType(const std::string&, const Type&);
 
-public:
-    BytecodeBlock* globalBlock;
     Environment globalEnvironment;
+    BytecodeBlock* globalBlock;
     TypeChecker* typeChecker;
     Heap heap;
     std::vector<Value> stack;

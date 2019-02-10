@@ -40,9 +40,28 @@ void Heap::markFromRoots()
     if (m_vm->typeChecker)
         m_vm->typeChecker->visit(markRoot);
 
-    for (auto value : m_vm->stack) {
-        markRoot(value);
+    volatile void** rsp;
+    asm("movq %%rsp, %0" : "=r"(rsp));
+    pthread_t self = pthread_self();
+    Value* stackBottom = reinterpret_cast<Value*>(pthread_get_stackaddr_np(self));
+    for (Value* root = reinterpret_cast<Value*>(rsp); root != stackBottom; ++root)  {
+        if (root->isCrash() || !root->isCell())
+            continue;
+
+        Cell* cell = reinterpret_cast<Cell*>(root->m_bits);
+        bool isValid = false;
+        Allocator::each([&](Allocator& allocator) {
+            if (allocator.contains(cell)) {
+                isValid = true;
+            }
+        });
+
+        if (isValid && cell->m_type < Cell::Type::InvalidCell)
+            markRoot(*root);
     }
+
+    for (auto value : m_vm->stack)
+        markRoot(value);
 }
 
 void Heap::sweep()

@@ -69,3 +69,14 @@ void Allocator::free(Cell* cell)
     *address = s_freeMarker;
     m_freeList.push(cell);
 }
+
+bool Allocator::contains(const Cell* cell)
+{
+    // TODO: quicker check based on alignment
+    const uint8_t* address = reinterpret_cast<const uint8_t*>(cell);
+    if (address < m_start || address >= m_current)
+        return false;
+    if ((address - m_start) % m_cellSize)
+        return false;
+    return true;
+}

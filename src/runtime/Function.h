@@ -16,33 +16,27 @@ public:
 
     void dump(std::ostream& out) const override
     {
-        if (m_isNativeFunction)
-            out << "<native function>";
-        else
+        if (m_block)
             out << "<function " << m_block->name() << ">";
+        else
+            out << "<native function>";
     }
 
     Value call(VM&, std::vector<Value>);
 
 private:
     Function(const BytecodeBlock& block, const Environment* parentEnvironment)
-        : m_isNativeFunction(false)
+        : m_parentEnvironment(parentEnvironment)
         , m_block(&block)
-        , m_parentEnvironment(parentEnvironment)
     {
     }
 
     Function(NativeFunction nativeFunction)
-        : m_isNativeFunction(true)
-        , m_nativeFunction(nativeFunction)
-        , m_parentEnvironment(nullptr)
+        : m_nativeFunction(nativeFunction)
     {
     }
 
-    bool m_isNativeFunction;
-    union {
-        const BytecodeBlock* m_block;
-        NativeFunction m_nativeFunction;
-    };
     const Environment* m_parentEnvironment;
+    const BytecodeBlock* m_block { nullptr };
+    NativeFunction m_nativeFunction { nullptr };
 };
