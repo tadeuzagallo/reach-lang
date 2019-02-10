@@ -43,7 +43,7 @@ int main(int argc, const char** argv)
 
     auto bytecode = program->generate(vm);
     vm.globalBlock = bytecode.get();
-    Interpreter interpreter { vm, *bytecode, &vm.globalEnvironment };
+    Interpreter interpreter { vm, *bytecode, vm.globalEnvironment };
     auto result = interpreter.run();
     std::cout << "End: " << result << " : " << *type << std::endl;
 

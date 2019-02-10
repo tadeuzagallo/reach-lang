@@ -25,7 +25,6 @@ enum JIT::Register : uint8_t {
     regA1 = rsi,
     regA2 = rdx,
     regA3 = rcx,
-    regA4 = rax,
 
     regR0 = rax,
 
@@ -36,6 +35,8 @@ enum JIT::Register : uint8_t {
     regCFR = rbp,
     regSP = rsp,
 };
+
+static constexpr JIT::Register tmpRegister = static_cast<JIT::Register>(r8);
 
 namespace REX {
 static constexpr JIT::Register NoR = static_cast<JIT::Register>(0);
@@ -115,25 +116,24 @@ void JIT::lea(Offset offset, Register dst)
 
 void JIT::call(void* target)
 {
-    move(target, (Register)rax);
+    move(target, tmpRegister);
+    emitRex(REX::NoR, REX::NoX, tmpRegister);
     emitOpcode(OP_GROUP5_Ev);
-    emitModRm(ModRM::Register, GROUP5_OP_CALLN, (Register)rax);
+    emitModRm(ModRM::Register, GROUP5_OP_CALLN, tmpRegister);
 }
 
 void JIT::compare(Register reg, Value value)
 {
-    Register tmp = reg == (Register)rax ? (Register)rdi : (Register)rax;
-    move(value.m_bits, tmp);
-    emitRex(tmp, REX::NoX, reg);
+    move(value.m_bits, tmpRegister);
+    emitRex(tmpRegister, REX::NoX, reg);
     emitOpcode(OP_CMP_EvGv);
-    emitModRm(ModRM::Register, tmp, reg);
+    emitModRm(ModRM::Register, tmpRegister, reg);
 }
 
 void JIT::sub(int64_t immediate, Register reg)
 {
-    Register tmp = reg == (Register)rax ? (Register)rdi : (Register)rax;
-    move(immediate, tmp);
-    sub(tmp, reg);
+    move(immediate, tmpRegister);
+    sub(tmpRegister, reg);
 }
 
 void JIT::sub(Register lhs, Register rhs)
@@ -153,11 +153,10 @@ void JIT::shiftl(uint8_t immediate, Register reg)
 
 void JIT::bit_and(int64_t immediate, Register reg)
 {
-    Register tmp = reg == (Register)rax ? (Register)rdi : (Register)rax;
-    move(immediate, tmp);
-    emitRex(tmp, REX::NoX, reg);
+    move(immediate, tmpRegister);
+    emitRex(tmpRegister, REX::NoX, reg);
     emitOpcode(OP_AND_EvGv);
-    emitModRm(ModRM::Register, tmp, reg);
+    emitModRm(ModRM::Register, tmpRegister, reg);
 }
 
 // jumps

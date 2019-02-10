@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Environment.h"
 #include "Heap.h"
 #include "Value.h"
 #include <vector>
 
 class BytecodeBlock;
+class Environment;
 class Type;
 class TypeChecker;
 class Value;
@@ -16,7 +16,7 @@ public:
 
     void addType(const std::string&, const Type&);
 
-    Environment globalEnvironment;
+    Environment* globalEnvironment;
     BytecodeBlock* globalBlock;
     TypeChecker* typeChecker;
     Heap heap;

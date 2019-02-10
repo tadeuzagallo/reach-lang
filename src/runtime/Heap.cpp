@@ -2,6 +2,7 @@
 
 #include "BytecodeBlock.h"
 #include "Cell.h"
+#include "Environment.h"
 #include "TypeChecker.h"
 #include "VM.h"
 
@@ -34,12 +35,18 @@ void Heap::markFromRoots()
         mark();
     };
 
-    m_vm->globalEnvironment.visit(markRoot);
+    m_vm->globalEnvironment->visit(markRoot);
     if (m_vm->globalBlock)
         m_vm->globalBlock->visit(markRoot);
     if (m_vm->typeChecker)
         m_vm->typeChecker->visit(markRoot);
 
+    markNativeStack(markRoot);
+    markInterpreterStack(markRoot);
+}
+
+void Heap::markNativeStack(const std::function<void(Value)>& visitor)
+{
     volatile void** rsp;
     asm("movq %%rsp, %0" : "=r"(rsp));
     pthread_t self = pthread_self();
@@ -51,17 +58,21 @@ void Heap::markFromRoots()
         Cell* cell = reinterpret_cast<Cell*>(root->m_bits);
         bool isValid = false;
         Allocator::each([&](Allocator& allocator) {
-            if (allocator.contains(cell)) {
+            if (isValid)
+                return;
+            if (allocator.contains(cell))
                 isValid = true;
-            }
         });
 
         if (isValid && cell->m_type < Cell::Type::InvalidCell)
-            markRoot(*root);
+            visitor(*root);
     }
+}
 
+void Heap::markInterpreterStack(const std::function<void(Value)>& visitor)
+{
     for (auto value : m_vm->stack)
-        markRoot(value);
+        visitor(value);
 }
 
 void Heap::sweep()
@@ -73,8 +84,7 @@ void Heap::sweep()
                 return;
             }
 
-            // TODO
-            //cell->~Cell();
+            cell->~Cell();
             allocator.free(cell);
         });
     });

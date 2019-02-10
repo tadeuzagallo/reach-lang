@@ -40,3 +40,5 @@ private:
     const BytecodeBlock* m_block { nullptr };
     NativeFunction m_nativeFunction { nullptr };
 };
+
+extern Function* createFunction(VM&, const BytecodeBlock&, const Environment*);

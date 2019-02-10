@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 class Cell;
+class Value;
 class VM;
 
 class Heap {
@@ -28,6 +29,8 @@ public:
 private:
     void collect();
     void markFromRoots();
+    void markNativeStack(const std::function<void(Value)>&);
+    void markInterpreterStack(const std::function<void(Value)>&);
     void sweep();
     void mark();
     bool isMarked(Cell*);

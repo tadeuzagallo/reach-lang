@@ -8,7 +8,6 @@
 
 class VM;
 class BytecodeBlock;
-class Environment;
 class Function;
 class Register;
 class Value;
@@ -19,7 +18,7 @@ public:
     using VirtualRegister = ::Register;
     enum Register : uint8_t;
 
-    static void* compile(VM&, const BytecodeBlock&, const Environment*);
+    static void* compile(VM&, const BytecodeBlock&);
 
 private:
     enum AddressTag { Address };
@@ -28,7 +27,7 @@ private:
 
     static Register defaultIndex;
 
-    JIT(VM&, const BytecodeBlock&, const Environment*);
+    JIT(VM&, const BytecodeBlock&);
 
     VM* vm();
     void* compile();
@@ -101,7 +100,6 @@ private:
 
     VM& m_vm;
     const BytecodeBlock& m_block;
-    Environment* m_environment;
     uint32_t m_bytecodeOffset;
     std::vector<uint8_t> m_buffer;
     std::vector<std::pair<uint32_t, uint32_t>> m_jumps;

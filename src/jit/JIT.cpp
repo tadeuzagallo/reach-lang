@@ -39,18 +39,16 @@ VM* JIT::vm()
     return &m_vm;
 }
 
-void* JIT::compile(VM& vm, const BytecodeBlock& block, const Environment* parentEnvironment)
+void* JIT::compile(VM& vm, const BytecodeBlock& block)
 {
-    JIT jit { vm, block, parentEnvironment };
+    JIT jit { vm, block };
     return jit.compile();
 }
 
-JIT::JIT(VM& vm, const BytecodeBlock& block, const Environment* parentEnvironment)
+JIT::JIT(VM& vm, const BytecodeBlock& block)
     : m_vm(vm)
     , m_block(block)
 {
-    // TODO: this will just leak right now and yet not be scanned
-    m_environment = new Environment { parentEnvironment };
 }
 
 void* JIT::compile()
@@ -104,7 +102,8 @@ OP(Enter)
 {
     prologue();
     move(Value::crash(), regT0);
-    for (uint32_t i = 1; i <= m_block.numLocals(); i++)
+    // skip environmentRegister register
+    for (uint32_t i = 2; i <= m_block.numLocals(); i++)
         store(regT0, regCFR, -i);
 }
 
@@ -128,7 +127,7 @@ OP(LoadConstant)
 
 OP(GetLocal)
 {
-    move(m_environment, regA0);
+    load(m_block.environmentRegister(), regA0);
     move(&m_block.identifier(ip.identifierIndex), regA1);
     call(&Environment::get);
     store(regR0, ip.dst);
@@ -136,7 +135,7 @@ OP(GetLocal)
 
 OP(SetLocal)
 {
-    move(m_environment, regA0);
+    load(m_block.environmentRegister(), regA0);
     move(&m_block.identifier(ip.identifierIndex), regA1);
     load(ip.src, regA2);
     call<Environment, void, const Identifier&, Value>(&Environment::set);
@@ -170,8 +169,8 @@ OP(NewFunction)
 {
     move(vm(), regA0);
     move(&m_block.function(ip.functionIndex), regA1);
-    move(m_environment, regA1);
-    call<Function*, VM&, const BytecodeBlock&, const Environment*>(&Function::create);
+    load(m_block.environmentRegister(), regA2);
+    call<Function*, VM&, const BytecodeBlock&, const Environment*>(createFunction);
     store(regR0, ip.dst);
 }
 
@@ -237,6 +236,19 @@ void JIT::prologue()
 {
     push(regCFR);
     move(regSP, regCFR);
+
+    push(regA0);
+    push(regA1);
+
+    // Create a new environment
+    move(vm(), regA0);
+    move(regA2, regA1);
+    call<Environment*, VM&, const Environment*>(createEnvironment);
+
+    pop(regA1);
+    pop(regA0);
+
+    // Copy arguments into stack
     shiftl(3, regA0);
     sub(regA0, regSP);
     {
@@ -245,8 +257,8 @@ void JIT::prologue()
         emitLabel(start);
         compare(regA0, Value { nullptr });
         jumpIfEqual(end);
-        move(Offset { 0, regA1 }, regT2);
-        move(regT2, Offset { -8, regSP, regA0 });
+        move(Offset { -0x8, regA1, regA0 }, regT2);
+        move(regT2, Offset { -0x8, regSP, regA0 });
         sub(8, regA0);
         jump(start);
         emitLabel(end);
@@ -254,8 +266,10 @@ void JIT::prologue()
 
     push(regCFR);
     move(regSP, regCFR);
+
     sub(m_block.numLocals() * 8, regSP);
     bit_and(~0xFLL, regSP);
+    store(regR0, m_block.environmentRegister());
 }
 
 void JIT::epilogue()

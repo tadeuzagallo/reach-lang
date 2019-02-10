@@ -20,18 +20,20 @@ public:
     InstructionStream& instructions() { return m_instructions; }
     const InstructionStream& instructions() const { return m_instructions; }
     uint32_t numLocals() const { return m_numLocals; }
+    Register environmentRegister() const { return m_environmentRegister; }
 
     const Identifier& identifier(uint32_t) const;
     Value constant(uint32_t) const;
     const BytecodeBlock& function(uint32_t) const;
 
-    bool optimize(VM&, const Environment*) const;
+    bool optimize(VM&) const;
     void* jitCode() const;
 
 private:
-    InstructionStream m_instructions;
-    std::string m_name;
     uint32_t m_numLocals { 0 };
+    Register m_environmentRegister;
+    std::string m_name;
+    InstructionStream m_instructions;
     std::vector<Value> m_constants;
     std::vector<Identifier> m_identifiers;
     std::vector<std::unique_ptr<BytecodeBlock>> m_functions;

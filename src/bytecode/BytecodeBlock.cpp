@@ -9,6 +9,7 @@ static uint32_t optimizationThreshold()
 
 BytecodeBlock::BytecodeBlock(std::string name)
     : m_name(name)
+    , m_environmentRegister(Register::forLocal(++m_numLocals))
 {
 }
 
@@ -55,13 +56,13 @@ void BytecodeBlock::dump(std::ostream& out) const
     out << std::endl;
 }
 
-bool BytecodeBlock::optimize(VM& vm, const Environment* parentEnvironment) const
+bool BytecodeBlock::optimize(VM& vm) const
 {
     if (std::getenv("NO_JIT"))
         return false;
 
     if (++m_hitCount > optimizationThreshold()) {
-        m_jitCode = JIT::compile(vm, *this, parentEnvironment);
+        m_jitCode = JIT::compile(vm, *this);
         return true;
     }
     return false;

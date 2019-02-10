@@ -30,6 +30,7 @@ public:
         Object,
         Function,
         Type,
+        Environment,
         InvalidCell,
     };
 
@@ -48,6 +49,7 @@ public:
 
     virtual void visit(std::function<void(Value)>) const = 0;
     virtual void dump(std::ostream& out) const = 0;
+    virtual ~Cell() = default;
 
     bool isMarked;
 

@@ -7,10 +7,10 @@
 Interpreter::Interpreter(VM& vm, const BytecodeBlock& block, const Environment* parentEnvironment)
     : m_vm(vm)
     , m_block(block)
-    , m_environment(parentEnvironment)
     , m_ip(m_block.instructions().at(0))
     , m_result(Value::crash())
 {
+    m_environment = Environment::create(vm, parentEnvironment);
 }
 
 Interpreter::~Interpreter()
@@ -105,13 +105,13 @@ OP(LoadConstant)
 OP(GetLocal)
 {
 
-    m_cfr[ip.dst.offset()] = m_environment.get(m_block.identifier(ip.identifierIndex));
+    m_cfr[ip.dst.offset()] = m_environment->get(m_block.identifier(ip.identifierIndex));
     DISPATCH();
 }
 
 OP(SetLocal)
 {
-    m_environment.set(m_block.identifier(ip.identifierIndex), m_cfr[ip.src.offset()]);
+    m_environment->set(m_block.identifier(ip.identifierIndex), m_cfr[ip.src.offset()]);
     DISPATCH();
 }
 
@@ -140,7 +140,7 @@ OP(GetArrayIndex)
 
 OP(NewFunction)
 {
-    auto* function = Function::create(vm(), m_block.function(ip.functionIndex), &m_environment);
+    auto* function = Function::create(vm(), m_block.function(ip.functionIndex), m_environment);
     m_cfr[ip.dst.offset()] = Value { function };
     DISPATCH();
 }

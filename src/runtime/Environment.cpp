@@ -34,7 +34,22 @@ const Environment* Environment::parent() const
 
 void Environment::visit(std::function<void(Value)> visitor) const
 {
-    for (const auto& pair : m_map) {
+    for (const auto& pair : m_map)
         visitor(pair.second);
+}
+
+void Environment::dump(std::ostream& out) const
+{
+    out << "Environment {" << std::endl;
+    for (const auto& pair : m_map) {
+        out << pair.first << ": ";
+        pair.second.dump(out);
+        out << std::endl;
     }
+    out << "}";
+}
+
+Environment* createEnvironment(VM& vm, const Environment* parentEnvironment)
+{
+    return Environment::create(vm, parentEnvironment);
 }
