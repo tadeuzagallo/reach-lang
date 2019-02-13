@@ -1,0 +1,15 @@
+// RUN: %reach | %check
+function g(x: Number) -> Number {
+    function h() -> Number { [{x = x}.x][0] }
+    if (false) {
+        42
+    } else {
+        h()
+    }
+}
+
+function f() -> Number {
+    g(13)
+}
+
+inspect(f()) // CHECK: 13 : Number
