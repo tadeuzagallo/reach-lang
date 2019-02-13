@@ -12,9 +12,7 @@
 
 static int32_t offset(JIT::VirtualRegister r)
 {
-    if (r.offset() > 0)
-        return -r.offset() * 8;
-    return -(r.offset() - 1) * 8;
+    return r.offset() * 8;
 }
 
 struct JIT::Offset {
@@ -225,8 +223,8 @@ OP(JumpIfFalse)
 Value JIT::trampoline(VM& vm, Function* function, uint32_t argc, Value* argv)
 {
     std::vector<Value> args(argc);
-    while (argc--)
-        args[argc] = argv[argc];
+    for (int32_t i = 0; i < argc; ++i)
+        args[i] = argv[-i];
     return function->call(vm, args);
 }
 

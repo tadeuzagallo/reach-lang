@@ -26,11 +26,17 @@ private:
     FOR_EACH_INSTRUCTION(DECLARE_OP)
 #undef DECLARE_OP
 
+    struct Stack {
+        Value& operator[](const Register&) const;
+
+        Value* m_stackAddress;
+    };
+
     VM& m_vm;
     const BytecodeBlock& m_block;
     Environment* m_environment;
     bool m_stop;
     InstructionStream::Ref m_ip;
-    Value* m_cfr;
+    Stack m_cfr;
     Value m_result;
 };
