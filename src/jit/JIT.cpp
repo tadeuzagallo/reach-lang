@@ -223,6 +223,16 @@ OP(IsEqual)
     ASSERT(false, "TODO");
 }
 
+OP(StoreGlobalConstant)
+{
+    ASSERT(false, "TODO");
+}
+
+OP(LoadGlobalConstant)
+{
+    ASSERT(false, "TODO");
+}
+
 // Type checking
 
 OP(GetType)

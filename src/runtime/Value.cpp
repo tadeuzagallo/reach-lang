@@ -174,7 +174,7 @@ Type* Value::type(VM& vm) const
     if (isAbstractValue())
         return asAbstractValue().type();
 
-    ASSERT(isCell());
+    ASSERT(isCell(), "OOPS");
     Cell* cell = asCell();
     if (cell->is<Function>())
         return cell->cast<Function>()->type();

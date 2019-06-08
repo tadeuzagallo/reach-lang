@@ -19,8 +19,7 @@ void TypeChecker::inferAsType(const T& node, Register result)
 
 void Declaration::infer(TypeChecker& tc, Register result)
 {
-    tc.unitValue(result);
-    check(tc, result);
+    check(tc, tc.unitType());
 }
 
 void LexicalDeclaration::check(TypeChecker& tc, Register type)
@@ -28,8 +27,8 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
     Register tmp = tc.generator().newLocal();
     (*initializer)->infer(tc, tmp);
     tc.insert(name->name, tmp);
-    tc.unitValue(tmp);
-    tc.unify(location, tmp, type);
+    tc.newValue(tmp, type);
+    tc.unify(location, tmp, tc.unitType());
 }
 
 void FunctionDeclaration::check(TypeChecker& tc, Register result)
@@ -68,7 +67,9 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
     generateImpl(tc.generator(), *valueRegister, typeRegister);
 
     tc.insert(name->name, *valueRegister);
-    tc.unify(location, result, tc.unitType());
+    Register tmp = tc.generator().newLocal();
+    tc.newValue(tmp, result);
+    tc.unify(location, tmp, tc.unitType());
 }
 
 void StatementDeclaration::infer(TypeChecker& tc, Register result)
@@ -119,11 +120,10 @@ void IfStatement::infer(TypeChecker& tc, Register result)
     condition->check(tc, result);
     consequent->infer(tc, result);
     if (!alternate) {
-        Register tmp = tc.generator().newLocal();
-        tc.unitValue(tmp);
-        tc.unify(location, result, tmp);
+        tc.unify(location, result, tc.unitType());
         tc.unitValue(result);
     } else {
+        tc.generator().getTypeForValue(result, result);
         (*alternate)->check(tc, result);
     }
 }
@@ -137,9 +137,8 @@ void IfStatement::check(TypeChecker& tc, Register type)
         consequent->check(tc, type);
         (*alternate)->check(tc, type);
     } else {
-        tc.unitValue(tmp);
-        tc.unify(location, type, tmp);
-        consequent->check(tc, tmp);
+        tc.unify(location, type, tc.unitType());
+        consequent->check(tc, tc.unitType());
     }
 }
 
@@ -240,9 +239,10 @@ void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
 
 void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    if (items.size())
+    if (items.size()) {
         items[0]->infer(tc, result);
-    else
+        tc.generator().getTypeForValue(result, result);
+    } else
         tc.unitValue(result);
 
     for (uint32_t i = 1; i < items.size(); i++)
@@ -265,14 +265,34 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
     });
 }
 
-void CallExpression::checkCallee(TypeChecker& tc, Register result)
+void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& isBottom)
 {
     callee->infer(tc, result);
     Register tmp = tc.generator().newLocal();
     tc.generator().checkValue(tmp, result, Type::Class::Bottom);
     tc.generator().branch(tmp, [&] {
+        if (Identifier* ident = dynamic_cast<Identifier*>(callee.get())) {
+            if (ident->name == "inspect") {
+                for (auto it = arguments.begin(); it != arguments.end(); it++) {
+                    std::unique_ptr<Expression>& argument = *it++;
+                    auto typeIndex = std::make_unique<uint32_t>(tc.vm().globalConstants.size());
+                    tc.vm().globalConstants.push_back(Value::crash());
+                    argument->infer(tc, tmp);
+                    tc.generator().storeGlobalConstant(tmp, *typeIndex);
+                    auto type = std::make_unique<SynthesizedTypeExpression>(argument->location);
+                    type->typeIndex = std::move(typeIndex);
+                    it = arguments.emplace(it, std::move(type));
+                }
+                goto result;
+            }
+        }
+
+        // check arguments are well-formed
         for (const auto& arg : arguments)
-            arg->infer(tc, tmp); // check arguments are well-formed
+            arg->infer(tc, tmp);
+result:
+        tc.bottomValue(result);
+        tc.generator().jump(isBottom);
     }, [&] {
         tc.generator().checkValue(tmp, result, Type::Class::Function);
         tc.generator().branch(tmp, [&] {
@@ -324,15 +344,18 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeCh
 void CallExpression::infer(TypeChecker& tc, Register result)
 {
     TypeChecker::UnificationScope scope(tc);
-    checkCallee(tc, result);
+    Label isBottom = tc.generator().label();
+    checkCallee(tc, result, isBottom);
     checkArguments(tc, result, scope);
     tc.generator().getField(result, result, TypeFunction::returnTypeField);
     scope.resolve(result, result);
     tc.newValue(result, result);
+    tc.generator().emit(isBottom);
 }
 
 void CallExpression::check(TypeChecker& tc, Register type)
 {
+    // TODO
     //TypeChecker::UnificationScope scope(tc);
     //const TypeFunction* calleeTypeFunction = checkCallee(tc);
     //if (!calleeTypeFunction)
@@ -346,8 +369,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     target->infer(tc, result);
 
     Register tmp = tc.generator().newLocal();
-    tc.numericValue(tmp);
-    index->check(tc, tmp);
+    index->check(tc, tc.numberType());
 
     tc.generator().checkValue(tmp, result, Type::Class::Array);
     tc.generator().branch(tmp, [&] {
@@ -364,8 +386,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
 void SubscriptExpression::check(TypeChecker& tc, Register itemType)
 {
     //Register tmp = tc.generator().newLocal();
-    //tc.numericValue(tmp);
-    //index->check(tc, tmp);
+    //index->check(tc, tc.numberType());
     //tc.generator().newArrayValue(itemType);
     //target->check(tc, itemType);
 }
@@ -418,15 +439,14 @@ void TypeExpression::check(TypeChecker& tc, Register result)
     tc.unify(location, tmp, result);
 }
 
-void SynthesizedTypeExpression::infer(TypeChecker& tc, Register result)
+void SynthesizedTypeExpression::infer(TypeChecker& tc, Register)
 {
-    ASSERT(false, "Should not infer type for SynthesizedTypeExpression");
-    tc.unitValue(result);
+    tc.generator().typeError("Should not infer type for SynthesizedTypeExpression");
 }
 
-void SynthesizedTypeExpression::check(TypeChecker&, Register)
+void SynthesizedTypeExpression::check(TypeChecker& tc, Register)
 {
-    ASSERT(false, "Should not type check SynthesizedTypeExpression");
+    tc.generator().typeError("Should not type check SynthesizedTypeExpression");
 }
 
 
@@ -439,7 +459,7 @@ void BooleanLiteral::infer(TypeChecker& tc, Register result)
 
 void NumericLiteral::infer(TypeChecker& tc, Register result)
 {
-    return tc.numericValue(result);
+    return tc.numberValue(result);
 }
 
 void StringLiteral::infer(TypeChecker& tc, Register result)

@@ -41,6 +41,8 @@ public:
     void jump(Label&);
     void jumpIfFalse(Register, Label&);
     void isEqual(Register, Register, Register);
+    void storeGlobalConstant(Register, uint32_t);
+    void loadGlobalConstant(Register, uint32_t);
 
     // Type checking operations
     void getType(Register, const std::string&);

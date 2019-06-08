@@ -76,7 +76,7 @@ ast_node :CallExpression < :Expression,
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
     "virtual void check(TypeChecker&, Register)",
-    "void checkCallee(TypeChecker&, Register)",
+    "void checkCallee(TypeChecker&, Register, Label&)",
     "void checkArguments(TypeChecker&, Register, TypeChecker::UnificationScope&)",
   ]
 
@@ -117,14 +117,17 @@ ast_node :LiteralExpression < :Expression,
 
 
 ast_node :SynthesizedTypeExpression < :Expression,
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
+    fields: {
+        typeIndex: "std::unique_ptr<uint32_t>",
+    },
+    extra_methods: [
+        "virtual void generate(BytecodeGenerator&, Register)",
+        "virtual void infer(TypeChecker&, Register)",
+        "virtual void check(TypeChecker&, Register)",
+    ]
 
 ast_node :TypeExpression < :Expression,
-        fields: {
+    fields: {
         type: "std::unique_ptr<ASTType>",
     },
     extra_methods: [

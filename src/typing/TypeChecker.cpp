@@ -72,6 +72,11 @@ Register TypeChecker::unitType()
     return m_unitType;
 }
 
+Register TypeChecker::numberType()
+{
+    return m_numberType;
+}
+
 void TypeChecker::typeType(Register result)
 {
     m_generator.move(result, m_typeType);
@@ -97,7 +102,7 @@ void TypeChecker::booleanValue(Register result)
     m_generator.newValue(result, m_boolType);
 }
 
-void TypeChecker::numericValue(Register result)
+void TypeChecker::numberValue(Register result)
 {
     m_generator.newValue(result, m_numberType);
 }

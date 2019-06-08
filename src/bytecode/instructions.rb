@@ -70,6 +70,14 @@ instruction :IsEqual,
     lhs: :Register,
     rhs: :Register
 
+instruction :StoreGlobalConstant,
+    value: :Register,
+    constantIndex: :uint32_t
+
+instruction :LoadGlobalConstant,
+    dst: :Register,
+    constantIndex: :uint32_t
+
 # Type checking instructions
 instruction :GetType,
     dst: :Register,

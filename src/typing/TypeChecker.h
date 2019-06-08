@@ -29,13 +29,14 @@ public:
 
     Register typeType();
     Register unitType();
+    Register numberType();
 
     void typeType(Register);
     void unitType(Register);
 
     void unitValue(Register);
     void booleanValue(Register);
-    void numericValue(Register);
+    void numberValue(Register);
     void stringValue(Register);
     void bottomValue(Register);
 

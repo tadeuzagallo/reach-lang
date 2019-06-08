@@ -219,21 +219,19 @@ OP(IsEqual)
     DISPATCH();
 }
 
+OP(StoreGlobalConstant)
+{
+    m_vm.globalConstants[ip.constantIndex] = m_cfr[ip.value];
+    DISPATCH();
+}
+
+OP(LoadGlobalConstant)
+{
+    m_cfr[ip.dst] = m_vm.globalConstants[ip.constantIndex];
+    DISPATCH();
+}
+
 // Type checking
-
-//OP(GetType)
-//{
-    //for (uint32_t i = m_environment.size(); i--;) {
-        //const auto& pair = m_environment[i];
-        //if (pair.first == name)
-            //return *pair.second;
-    //}
-
-    //std::stringstream msg;
-    //msg << "Unknown variable: `" << name << "`";
-    //typeError(location, msg.str());
-    //return defaultValue;
-//}
 
 OP(GetType)
 {

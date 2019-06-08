@@ -26,12 +26,12 @@ static Value functionPrint(VM& vm, std::vector<Value> args)
 
 static Value functionInspect(VM& vm, std::vector<Value> args)
 {
-    ASSERT(args.size() % 2 == 0, "");
+    ASSERT(args.size() % 2 == 0, "OOPS");
     bool isFirst = true;
     for (uint32_t i = 0; i < args.size(); i += 2) {
         if (!isFirst)
             std::cout << ", ";
-        std::cout << args[i] << " : " << args[i + 1];
+        std::cout << args[i] << " : " << *args[i + 1].type(vm);
         isFirst = false;
     }
     std::cout << std::endl;

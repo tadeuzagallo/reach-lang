@@ -22,6 +22,8 @@ public:
     Heap heap;
     std::vector<Value> stack;
 
+    std::vector<Value> globalConstants;
+
     // TypeChecking business
     Scope* typingScope { nullptr }; // TODO: s/scope/typingScope/
     UnificationScope* unificationScope { nullptr };

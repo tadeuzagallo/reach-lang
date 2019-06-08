@@ -14,7 +14,7 @@
 #include <vector>
 #include <stdlib.h>
 
-class Binding;
+class Label;
 class Type;
 class TypeFunction;
 
@@ -27,9 +27,17 @@ template <typename T>
 void dumpField(std::ostream& out, unsigned indentation, std::string name, const T& value);
 
 template <typename T>
-void dumpValue(std::ostream& out, unsigned indentation, const std::unique_ptr<T>& value)
+std::enable_if_t<!std::is_integral_v<T>, void>
+dumpValue(std::ostream& out, unsigned indentation, const std::unique_ptr<T>& value)
 {
   value->dump(out, indentation);
+}
+
+template <typename T>
+std::enable_if_t<std::is_integral_v<T>, void>
+dumpValue(std::ostream& out, unsigned indentation, const std::unique_ptr<T>& value)
+{
+    out << *value;
 }
 
 template<typename T>

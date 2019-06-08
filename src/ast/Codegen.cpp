@@ -147,16 +147,6 @@ void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst
 
 void CallExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    if (Identifier* ident = dynamic_cast<Identifier*>(callee.get()))
-        if (ident->name == "inspect") {
-            for (auto it = arguments.begin(); it != arguments.end(); it++) {
-                std::unique_ptr<Expression>& argument = *it++;
-                auto type = std::make_unique<SynthesizedTypeExpression>(argument->location);
-                type->typeRegister = typeRegister;
-                it = arguments.emplace(it, std::move(type));
-            }
-        }
-
     Register calleeReg = generator.newLocal();
     callee->generate(generator, calleeReg);
     std::vector<Register> args;
@@ -188,8 +178,7 @@ void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    ASSERT(false, "TODO");
-    //return generator.loadConstant(dst, binding->value());
+    return generator.loadGlobalConstant(dst, *typeIndex);
 }
 
 void TypeExpression::generate(BytecodeGenerator& generator, Register dst)

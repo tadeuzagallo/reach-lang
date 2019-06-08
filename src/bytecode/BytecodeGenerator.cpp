@@ -134,6 +134,17 @@ void BytecodeGenerator::isEqual(Register dst, Register lhs, Register rhs)
     emit<IsEqual>(dst, lhs, rhs);
 }
 
+void BytecodeGenerator::storeGlobalConstant(Register value, uint32_t constantIndex)
+{
+    emit<StoreGlobalConstant>(value, constantIndex);
+}
+
+void BytecodeGenerator::loadGlobalConstant(Register dst, uint32_t constantIndex)
+{
+    emit<LoadGlobalConstant>(dst, constantIndex);
+}
+
+
 // Type checking
 
 void BytecodeGenerator::getType(Register dst, const std::string& ident)
