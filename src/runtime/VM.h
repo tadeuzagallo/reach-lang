@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Heap.h"
+#include "InstructionStream.h"
 #include "Value.h"
 #include <vector>
 
@@ -16,16 +17,20 @@ class VM {
 public:
     VM();
 
+    void typeError(InstructionStream::Offset, const std::string&);
+    bool reportTypeErrors();
+
     Environment* globalEnvironment;
     BytecodeBlock* globalBlock;
+    const BytecodeBlock* currentBlock;
     TypeChecker* typeChecker;
+
     Heap heap;
     std::vector<Value> stack;
-
     std::vector<Value> globalConstants;
 
     // TypeChecking business
-    Scope* typingScope { nullptr }; // TODO: s/scope/typingScope/
+    Scope* typingScope { nullptr };
     UnificationScope* unificationScope { nullptr };
 
     Type* typeType;
@@ -34,4 +39,12 @@ public:
     Type* boolType;
     Type* numberType;
     Type* stringType;
+
+private:
+    struct TypeError {
+        InstructionStream::Offset bytecodeOffset;
+        std::string message;
+    };
+
+    std::vector<TypeError> m_typeErrors;
 };

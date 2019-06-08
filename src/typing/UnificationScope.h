@@ -1,5 +1,6 @@
 #pragma once
 
+#include "InstructionStream.h"
 #include "Register.h"
 #include "SourceLocation.h"
 #include "Type.h"
@@ -10,21 +11,19 @@ public:
     UnificationScope(VM&);
     ~UnificationScope();
 
-    void unify(/*const SourceLocation&,*/ Register, Register, Value, Value);
+    void unify(InstructionStream::Offset, Value, Value);
     Value resolve(Value);
-    void infer(/*const SourceLocation&,*/ Value);
+    void infer(InstructionStream::Offset, Value);
 
 private:
     struct Constraint {
-        /*SourceLocation location;*/
-        Register lhsRegister;
-        Register rhsRegister;
+        InstructionStream::Offset bytecodeOffset;
         Value lhs;
         Value rhs;
     };
 
     struct InferredType {
-        /*SourceLocation location;*/
+        InstructionStream::Offset bytecodeOffset;
         TypeVar* var;
     };
 

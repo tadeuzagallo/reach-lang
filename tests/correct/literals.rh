@@ -4,4 +4,4 @@ inspect(1) // CHECK: 1 : Number
 inspect("asd") // CHECK: "asd" : String
 inspect(true) // CHECK: true : Bool
 inspect(false) // CHECK: false : Bool
-inspect({ x = 1, y = [1, 2] }) // CHECK-L: {x = 1, y = [1, 2]} : {x: Number, y: Number[]}
+inspect({ x = 1, y = [1, 2] }) // CHECK-L: {y = [1, 2], x = 1} : {x: Number, y: Number[]}

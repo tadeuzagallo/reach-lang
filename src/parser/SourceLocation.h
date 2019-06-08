@@ -10,6 +10,11 @@ struct SourceFile {
 };
 
 struct SourcePosition {
+    bool operator==(const SourcePosition& other) const
+    {
+        return line == other.line && column == other.column && offset == other.offset;
+    }
+
     unsigned line;
     unsigned column;
     unsigned offset;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "InstructionMacros.h"
-#include "Type.h"
 #include <iostream>
 
 struct Instruction {

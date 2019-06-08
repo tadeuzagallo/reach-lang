@@ -12,8 +12,8 @@
 
 class Type;
 
-using Types = std::vector<Type*>;
-using Fields = std::unordered_map<std::string, Type*>;
+using Types = std::vector<Value>;
+using Fields = std::unordered_map<std::string, Value>;
 using Substitutions = std::unordered_map<uint32_t, Type*>;
 
 #define FIELD_NAME(__name) \
@@ -31,10 +31,10 @@ using Substitutions = std::unordered_map<uint32_t, Type*>;
         set(__name##Field, __value); \
     } \
 
-#define FIELD_VALUE_GETTER(__type, __name, __getter) \
+#define FIELD_VALUE_GETTER(__type, __name, ...) \
     __type __name() const \
     { \
-        return get(__name##Field).__getter(); \
+        return get(__name##Field) __VA_ARGS__; \
     } \
 
 #define FIELD_VALUE_SETTER(__type, __name) \
@@ -48,9 +48,9 @@ using Substitutions = std::unordered_map<uint32_t, Type*>;
     FIELD_CELL_GETTER(__type, __name) \
     FIELD_CELL_SETTER(__type, __name) \
 
-#define VALUE_FIELD(__type, __name, __getter) \
+#define VALUE_FIELD(__type, __name, ...) \
     FIELD_NAME(__name) \
-    FIELD_VALUE_GETTER(__type, __name, __getter) \
+    FIELD_VALUE_GETTER(__type, __name, __VA_ARGS__) \
     FIELD_VALUE_SETTER(__type, __name) \
 
 class Type : public Object {
@@ -139,12 +139,12 @@ public:
     CELL_FIELD(Array, params);
     CELL_FIELD(Array, implicitParams);
     CELL_FIELD(Array, explicitParams);
-    VALUE_FIELD(uint32_t, implicitParamCount, asNumber);
-    VALUE_FIELD(uint32_t, explicitParamCount, asNumber);
-    CELL_FIELD(Type, returnType);
+    VALUE_FIELD(uint32_t, implicitParamCount, .asNumber());
+    VALUE_FIELD(uint32_t, explicitParamCount, .asNumber());
+    VALUE_FIELD(Value, returnType);
 
 private:
-    TypeFunction(const Types&, Type*);
+    TypeFunction(const Types&, Value);
 };
 
 class TypeArray : public Type {
@@ -155,10 +155,10 @@ public:
     bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
-    CELL_FIELD(Type, itemType);
+    VALUE_FIELD(Value, itemType);
 
 private:
-    TypeArray(Type*);
+    TypeArray(Value);
 };
 
 class TypeRecord : public Type {
@@ -189,8 +189,8 @@ public:
     bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
-    VALUE_FIELD(uint32_t, uid, asNumber);
-    VALUE_FIELD(bool, inferred, asBool);
+    VALUE_FIELD(uint32_t, uid, .asNumber());
+    VALUE_FIELD(bool, inferred, .asBool());
     CELL_FIELD(String, name);
 
 private:

@@ -1,5 +1,6 @@
 #include "UnificationScope.h"
 
+#include "BytecodeBlock.h"
 #include "Log.h"
 #include "TypeChecker.h"
 #include <sstream>
@@ -19,11 +20,11 @@ UnificationScope::~UnificationScope()
     LOG(UnificationScope,  "===> ~UnificationScope <===");
 }
 
-void UnificationScope::unify(/*const SourceLocation& location,*/ Register lhsRegister, Register rhsRegister, Value lhs, Value rhs)
+void UnificationScope::unify(InstructionStream::Offset bytecodeOffset, Value lhs, Value rhs)
 {
     ASSERT(!m_finalized, "UnificationScope already finalized");
     ASSERT(rhs.isType(), "OOPS"); // You can only unify with a type
-    m_constraints.emplace_back(Constraint { /*location,*/ lhsRegister, rhsRegister, lhs, rhs });
+    m_constraints.emplace_back(Constraint { bytecodeOffset, lhs, rhs });
 }
 
 Value UnificationScope::resolve(Value resultType)
@@ -33,12 +34,12 @@ Value UnificationScope::resolve(Value resultType)
     return resultType.asType()->substitute(m_vm, m_substitutions);
 }
 
-void UnificationScope::infer(/*const SourceLocation& location,*/ Value value)
+void UnificationScope::infer(InstructionStream::Offset bytecodeOffset, Value value)
 {
     ASSERT(value.isType(), "OOPS");
     Type* type = value.asType();
     ASSERT(type->is<TypeVar>(), "OOPS");
-    m_inferredTypes.emplace_back(InferredType { /*location,*/ type->as<TypeVar>() });
+    m_inferredTypes.emplace_back(InferredType { bytecodeOffset, type->as<TypeVar>() });
 }
 
 void UnificationScope::finalize()
@@ -78,7 +79,7 @@ void UnificationScope::unifies(const Constraint& constraint)
     Type* lhsType = constraint.lhs.type(m_vm);
     Type* rhsType = constraint.rhs.asType()->substitute(m_vm, m_substitutions);
 
-    LOG(ConstraintSolving, "Solving constraint: [" << constraint.lhsRegister << "] " << *lhsType << " U " << "[" << constraint.rhsRegister << "] " << *rhsType);
+    LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " U " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
 
     if (lhsType->is<TypeType>() && rhsType->is<TypeVar>()) {
         ASSERT(constraint.lhs.isType(), "OOPS");
@@ -89,7 +90,7 @@ void UnificationScope::unifies(const Constraint& constraint)
             return;
         }
     }
-    
+
     if (*lhsType == *rhsType)
         return;
 
@@ -98,9 +99,7 @@ void UnificationScope::unifies(const Constraint& constraint)
 
     std::stringstream msg;
     msg << "Unification failure: expected `" << *rhsType << "` but found `" << *lhsType << "`";
-    ASSERT(false, "%s", msg.str().c_str());
-    // TODO
-    //m_typeChecker.typeError(location, msg.str());
+    m_vm.typeError(constraint.bytecodeOffset, msg.str());
 }
 
 void UnificationScope::bind(TypeVar* var, Type* type)

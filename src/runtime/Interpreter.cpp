@@ -19,6 +19,7 @@ Interpreter::Interpreter(VM& vm, const BytecodeBlock& block, Environment* parent
     , m_ip(m_block.instructions().at(0))
     , m_result(Value::crash())
 {
+    vm.currentBlock = &block;
     m_environment = Environment::create(vm, parentEnvironment);
 }
 
@@ -49,7 +50,7 @@ void Interpreter::dispatch()
 #define CASE(Instruction) \
     case Instruction::ID: { \
         const Instruction* instruction = reinterpret_cast<const Instruction*>(m_ip.get()); \
-        LOG(InterpreterDispatch, "["  << m_ip.offset() << "] " << *instruction); \
+        LOG(InterpreterDispatch, "["  << m_ip.offset() << "] " << *instruction << " @ " << m_block.locationInfo(m_ip.offset())); \
         run##Instruction(*instruction); \
         break; \
     } \
@@ -269,25 +270,33 @@ OP(PushUnificationScope)
 OP(PopUnificationScope)
 {
     delete m_vm.unificationScope;
+ 
+    if (!m_vm.unificationScope) {
+        // We are done type checking!
+        bool hasErrors = m_vm.reportTypeErrors();
+        if (hasErrors)
+            exit(1);
+    }
+
     DISPATCH();
 }
 
 OP(Unify)
 {
-    m_vm.unificationScope->unify(ip.lhs, ip.rhs, m_cfr[ip.lhs], m_cfr[ip.rhs]);
+    m_vm.unificationScope->unify(m_ip.offset(), m_cfr[ip.lhs], m_cfr[ip.rhs]);
     DISPATCH();
 }
 
 OP(ResolveType)
 {
-    Type* type = m_cfr[ip.type].asCell<Type>();
+    Type* type = m_cfr[ip.type].asType();
     m_cfr[ip.dst] = m_vm.unificationScope->resolve(type);
     DISPATCH();
 }
 
 OP(CheckType)
 {
-    Value value = m_cfr[ip.type].asCell<Type>();
+    Value value = m_cfr[ip.type].asType();
     bool result;
     switch (ip.expected) {
     case Type::Class::AnyValue:
@@ -376,14 +385,15 @@ OP(CheckValue)
 OP(TypeError)
 {
     const std::string& message = m_block.identifier(ip.messageIndex);
-    ASSERT(false, "%s", message.c_str());
+    m_vm.typeError(m_ip.offset(), message);
+    DISPATCH();
 }
 
 OP(InferImplicitParameters)
 {
     TypeFunction* function = m_cfr[ip.function].asCell<TypeFunction>();
     for (uint32_t i = 0; i < function->implicitParamCount(); i++)
-        m_vm.unificationScope->infer(function->implicitParam(i));
+        m_vm.unificationScope->infer(m_ip.offset(), function->implicitParam(i));
     DISPATCH();
 }
 
@@ -405,7 +415,7 @@ OP(NewNameType)
 
 OP(NewArrayType)
 {
-    Type* itemType = m_cfr[ip.itemType].asCell<Type>();
+    Value itemType = m_cfr[ip.itemType];
     m_cfr[ip.dst] = TypeArray::create(m_vm, itemType);
     DISPATCH();
 }
@@ -419,7 +429,7 @@ OP(NewRecordType)
         Value keyIndex = m_cfr[Register::forLocal(firstKeyOffset + i)];
         const std::string& key = m_block.identifier(keyIndex.asNumber());
         Value type = m_cfr[Register::forLocal(firstTypeOffset + i)];
-        fields.emplace(key, type.asCell<Type>());
+        fields.emplace(key, type);
     }
     m_cfr[ip.dst] = TypeRecord::create(m_vm, fields);
     DISPATCH();
@@ -431,9 +441,9 @@ OP(NewFunctionType)
     uint32_t firstParamOffset = -ip.firstParam.offset();
     for (uint32_t i = 0; i < ip.paramCount; i++) {
         Value param = m_cfr[Register::forLocal(firstParamOffset + i)];
-        params.emplace_back(param.asCell<Type>());
+        params.emplace_back(param);
     }
-    Type* returnType = m_cfr[ip.returnType].asCell<Type>();
+    Value returnType = m_cfr[ip.returnType];
     m_cfr[ip.dst] = TypeFunction::create(m_vm, params, returnType);
     DISPATCH();
 }

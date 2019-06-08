@@ -9,14 +9,14 @@ public:
 
     void setIndex(uint32_t index, Value item)
     {
-        ASSERT(index < m_items.size(), "Array ndex out of bounds: %u", index);
+        ASSERT(index < m_items.size(), "Array index out of bounds: %u", index);
         m_items[index] = item;
     }
 
     Value getIndex(Value indexValue)
     {
         uint32_t index = static_cast<uint32_t>(indexValue.asNumber());
-        ASSERT(index < m_items.size(), "Array ndex out of bounds: %u", index);
+        ASSERT(index < m_items.size(), "Array index out of bounds: %u", index);
         return m_items[index];
     }
 

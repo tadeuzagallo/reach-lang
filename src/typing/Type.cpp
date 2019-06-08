@@ -3,6 +3,15 @@
 #include "TypeChecker.h"
 #include <typeinfo>
 
+static bool isEqualType(Value lhs, Value rhs)
+{
+    if (lhs.isType() != rhs.isType())
+        return false;
+    if (lhs.isType())
+        return *lhs.asType() == *rhs.asType();
+    return lhs == rhs;
+}
+
 Type::Type()
     : Object(0)
 {
@@ -76,18 +85,24 @@ void TypeName::dump(std::ostream& out) const
     out << name()->str();
 }
 
-TypeFunction::TypeFunction(const Types& params, Type* returnType)
+TypeFunction::TypeFunction(const Types& params, Value returnType)
 {
     set_params(Array::create(vm(), params));
     set_returnType(returnType);
 
     Types implicitParams;
     Types explicitParams;
-    for (Type* param : params)
-        if (!param->is<TypeVar>() || !param->as<TypeVar>()->inferred())
-            explicitParams.emplace_back(param);
-        else
-            implicitParams.emplace_back(param);
+    for (Value param : params) {
+        if (param.isType()) {
+            Type* paramType = param.asType();
+            if (paramType->is<TypeVar>() && paramType->as<TypeVar>()->inferred()) {
+                implicitParams.emplace_back(param);
+                continue;
+            }
+        }
+
+        explicitParams.emplace_back(param);
+    }
     set_explicitParamCount(explicitParams.size());
     set_implicitParamCount(implicitParams.size());
     set_explicitParams(Array::create(vm(), explicitParams));
@@ -114,12 +129,8 @@ TypeVar* TypeFunction::implicitParam(uint32_t index) const
 Type* TypeFunction::instantiate(VM& vm)
 {
     Substitutions subst;
-    for (Value v : *params()) {
-        Type* param = v.asType();
-        if (param->is<TypeVar>()) {
-            param->as<TypeVar>()->fresh(vm, subst);
-        }
-    }
+    for (Value v : *implicitParams())
+        v.asType()->as<TypeVar>()->fresh(vm, subst);
     return substitute(vm, subst);
 }
 
@@ -127,10 +138,14 @@ Type* TypeFunction::substitute(VM& vm, Substitutions& subst)
 {
     Types params_;
     for (Value v : *params()) {
-        Type* param = v.asCell<Type>();
-        params_.emplace_back(param->substitute(vm, subst));
+        if (v.isType())
+            params_.emplace_back(v.asType()->substitute(vm, subst));
+        else
+            params_.emplace_back(v);
     }
-    Type* returnType_ = returnType()->substitute(vm, subst);
+    Value returnType_ = returnType();
+    if (returnType_.isType())
+        returnType_ = returnType_.asType()->substitute(vm, subst);
     return TypeFunction::create(vm, params_, returnType_);
 }
 
@@ -142,9 +157,9 @@ bool TypeFunction::operator==(const Type& otherT) const
     if (params()->size() != other->params()->size())
         return false;
     for (unsigned i = 0; i < params()->size(); i++)
-        if (*param(i) != *other->param(i))
+        if (isEqualType(param(i), other->param(i)))
             return false;
-    if (*returnType() != *other->returnType())
+    if (isEqualType(returnType(), other->returnType()))
         return false;
     return true;
 }
@@ -159,17 +174,19 @@ void TypeFunction::dump(std::ostream& out) const
         out << param;
         isFirst = false;
     }
-    out << ") -> " << *returnType();
+    out << ") -> " << returnType();
 }
 
-TypeArray::TypeArray(Type* itemType)
+TypeArray::TypeArray(Value itemType)
 {
     set_itemType(itemType);
 }
 
 Type* TypeArray::substitute(VM& vm, Substitutions& subst)
 {
-    Type* itemType_ = itemType()->substitute(vm, subst);
+    Value itemType_ = itemType();
+    if (itemType_.isType())
+        itemType_ = itemType_.asType()->substitute(vm, subst);
     return TypeArray::create(vm, itemType_);
 }
 
@@ -177,12 +194,12 @@ bool TypeArray::operator==(const Type& other) const
 {
     if (!other.is<TypeArray>())
         return false;
-    return *itemType() == *other.as<TypeArray>()->itemType();
+    return isEqualType(itemType(), other.as<TypeArray>()->itemType());
 }
 
 void TypeArray::dump(std::ostream& out) const
 {
-    out << *itemType() << "[]";
+    out << *itemType().type(vm()) << "[]";
 }
 
 TypeRecord::TypeRecord(const Fields& fields)
@@ -228,7 +245,7 @@ void TypeRecord::dump(std::ostream& out) const
     for (auto& pair : *fields()) {
         if (!isFirst)
             out << ", ";
-        out << pair.first << ": " << pair.second;
+        out << pair.first << ": " << *pair.second.type(vm());
         isFirst = false;
     }
     out << "}";

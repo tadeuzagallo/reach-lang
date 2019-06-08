@@ -53,6 +53,8 @@ public:
     Ref begin() const;
     Ref end() const;
 
+    size_t size() const { return m_instructions.size(); }
+
     template<typename JumpType, typename Label>
     void recordJump(Label& label)
     {

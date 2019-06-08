@@ -56,3 +56,19 @@ VM::VM()
     addFunction(this, "print", functionPrint, bottomType);
     addFunction(this, "inspect", functionInspect, bottomType);
 }
+
+void VM::typeError(InstructionStream::Offset bytecodeOffset, const std::string& message)
+{
+    m_typeErrors.emplace_back(TypeError { bytecodeOffset, message });
+}
+
+bool VM::reportTypeErrors()
+{
+    if (m_typeErrors.empty())
+        return false;
+
+    for (const auto& typeError : m_typeErrors)
+        std::cerr << currentBlock->locationInfo(typeError.bytecodeOffset) << ": " << typeError.message << std::endl;
+    m_typeErrors.clear();
+    return true;
+}

@@ -24,6 +24,8 @@ public:
     Label label();
     void branch(Register, const std::function<void()>&, const std::function<void()>&);
 
+    void emitLocation(const SourceLocation&);
+
     void loadConstant(Register, Value);
     void getLocal(Register, const Identifier&);
     void setLocal(const Identifier&, Register);

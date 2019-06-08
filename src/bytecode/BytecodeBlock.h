@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InstructionStream.h"
+#include "SourceLocation.h"
 #include "Value.h"
 #include "expressions.h"
 #include <iomanip>
@@ -29,14 +30,41 @@ public:
     bool optimize(VM&) const;
     void* jitCode() const;
 
+    void addLocation(const SourceLocation&);
+
+private:
+    struct LocationInfo {
+        uint32_t bytecodeOffset;
+        SourcePosition start;
+        SourcePosition end;
+    };
+
+    struct LocationInfoWithFile {
+        void dump(std::ostream&) const;
+
+        friend std::ostream& operator<<(std::ostream& out, const LocationInfoWithFile& info)
+        {
+            info.dump(out);
+            return out;
+        }
+
+        const char* filename;
+        const LocationInfo& info;
+    };
+
+public:
+    LocationInfoWithFile locationInfo(InstructionStream::Offset) const;
+
 private:
     uint32_t m_numLocals { 0 };
     Register m_environmentRegister;
     std::string m_name;
+    const char* m_filename { nullptr };
     InstructionStream m_instructions;
     std::vector<Value> m_constants;
     std::vector<std::string> m_identifiers;
     std::vector<std::unique_ptr<BytecodeBlock>> m_functions;
+    std::vector<LocationInfo> m_locationInfos;
 
     // JIT
     mutable uint32_t m_hitCount = 0;

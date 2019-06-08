@@ -42,8 +42,8 @@ Register TypeChecker::check(const std::unique_ptr<Program>& program)
     for (const auto& decl : program->declarations) {
         decl->infer(*this, result);
     }
-    //m_topUnificationScope.resolve(result);
-    // TODO: error checkpoint
+    m_generator.getTypeForValue(result, result);
+    m_topUnificationScope.resolve(result, result);
     return result;
 }
 
@@ -72,6 +72,11 @@ Register TypeChecker::unitType()
     return m_unitType;
 }
 
+Register TypeChecker::boolType()
+{
+    return m_boolType;
+}
+
 Register TypeChecker::numberType()
 {
     return m_numberType;
@@ -97,7 +102,7 @@ void TypeChecker::unitValue(Register result)
     m_generator.newValue(result, m_unitType);
 }
 
-void TypeChecker::booleanValue(Register result)
+void TypeChecker::boolValue(Register result)
 {
     m_generator.newValue(result, m_boolType);
 }

@@ -1,3 +1,7 @@
+import "Instruction.h"
+import "Register.h"
+import "Type.h"
+
 instruction :Enter
 
 instruction :End,

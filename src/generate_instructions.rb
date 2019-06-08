@@ -48,7 +48,16 @@ class Instruction < Struct.new(:name, :fields)
   end
 end
 
+$includes = []
 $instructions = []
+
+def import(name)
+    if name.is_a? String
+        $includes << "#include \"#{name}\""
+    else
+        $includes << "#include <#{name.to_s}>"
+    end
+end
 
 def instruction(name, fields = {})
   $instructions << Instruction.new(name.to_s, fields)
@@ -62,8 +71,7 @@ def generate_instructions(file)
   File.write file, <<-EOS
   #pragma once
 
-  #include "Instruction.h"
-  #include "Register.h"
+  #{$includes.join("\n")}
 
   #{$instructions.map(&:cpp_struct).join("\n\n")}
   EOS

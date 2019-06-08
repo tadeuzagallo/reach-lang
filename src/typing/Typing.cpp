@@ -19,11 +19,13 @@ void TypeChecker::inferAsType(const T& node, Register result)
 
 void Declaration::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     check(tc, tc.unitType());
 }
 
 void LexicalDeclaration::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
     Register tmp = tc.generator().newLocal();
     (*initializer)->infer(tc, tmp);
     tc.insert(name->name, tmp);
@@ -33,6 +35,7 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
 
 void FunctionDeclaration::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     valueRegister = std::make_unique<Register>(tc.generator().newLocal());
     Register typeRegister = tc.generator().newLocal();
 
@@ -58,7 +61,6 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
             tc.newValue(*valueRegister, typeRegister);
             tc.insert(name->name, *valueRegister);
         }
-        //tc.newValue(returnRegister, returnRegister);
         body->check(tc, returnRegister);
     };
 
@@ -74,11 +76,13 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
 
 void StatementDeclaration::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     statement->infer(tc, result);
 }
 
 void StatementDeclaration::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     statement->check(tc, result);
 }
 
@@ -87,16 +91,19 @@ void StatementDeclaration::check(TypeChecker& tc, Register result)
 
 void Statement::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     tc.unitValue(result);
 }
 
-void EmptyStatement::check(TypeChecker&, Register)
+void EmptyStatement::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // nothing to do here
 }
 
 void BlockStatement::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     TypeChecker::UnificationScope unificationScope(tc);
     TypeChecker::Scope scope(tc);
     for (const auto& decl : declarations) {
@@ -109,15 +116,16 @@ void BlockStatement::check(TypeChecker& tc, Register result)
     }
 }
 
-void ReturnStatement::check(TypeChecker&, Register)
+void ReturnStatement::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // TODO
 }
 
 void IfStatement::infer(TypeChecker& tc, Register result)
 {
-    tc.booleanValue(result);
-    condition->check(tc, result);
+    tc.generator().emitLocation(location);
+    condition->check(tc, tc.boolType());
     consequent->infer(tc, result);
     if (!alternate) {
         tc.unify(location, result, tc.unitType());
@@ -130,9 +138,9 @@ void IfStatement::infer(TypeChecker& tc, Register result)
 
 void IfStatement::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
     Register tmp = tc.generator().newLocal();
-    tc.booleanValue(tmp);
-    condition->check(tc, tmp);
+    condition->check(tc, tc.boolType());
     if (alternate) {
         consequent->check(tc, type);
         (*alternate)->check(tc, type);
@@ -142,23 +150,27 @@ void IfStatement::check(TypeChecker& tc, Register type)
     }
 }
 
-void BreakStatement::check(TypeChecker&, Register)
+void BreakStatement::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // TODO
 }
 
-void ContinueStatement::check(TypeChecker&, Register)
+void ContinueStatement::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // TODO
 }
 
-void WhileStatement::check(TypeChecker&, Register)
+void WhileStatement::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // TODO
 }
 
-void ForStatement::check(TypeChecker&, Register)
+void ForStatement::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // TODO
 }
 
@@ -169,6 +181,7 @@ void ExpressionStatement::infer(TypeChecker& tc, Register result)
 
 void ExpressionStatement::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     expression->check(tc, result);
 }
 
@@ -177,12 +190,14 @@ void ExpressionStatement::check(TypeChecker& tc, Register result)
 
 void Identifier::infer(TypeChecker& tc, Register result)
 {
-    //tc.unitValue(result);
+    tc.generator().emitLocation(location);
+    // TODO: handle unknown variables
     tc.lookup(result, location, name);
 }
 
 void Identifier::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
     // TODO: we'll eventually need something custom here
     Register tmp = tc.generator().newLocal();
     infer(tc, tmp);
@@ -191,27 +206,33 @@ void Identifier::check(TypeChecker& tc, Register type)
 
 void BinaryExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     // TODO
     tc.unitValue(result);
 }
 
-void BinaryExpression::check(TypeChecker&, Register)
+void BinaryExpression::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
     // TODO
 }
 
 void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     expression->infer(tc, result);
 }
 
 void ParenthesizedExpression::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
     expression->check(tc, type);
 }
 
 void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     std::vector<std::pair<std::string, Register>> fieldRegisters;
 
     for (const auto& pair : fields)
@@ -219,7 +240,9 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 
     unsigned i = 0;
     for (auto& pair : fields) {
-        pair.second->infer(tc, fieldRegisters[i++].second);
+        Register type = fieldRegisters[i++].second;
+        pair.second->infer(tc, type);
+        //tc.generator().getTypeForValue(type, type);
     }
 
     tc.newRecordValue(result, fieldRegisters);
@@ -227,8 +250,10 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 
 void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
+
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkValue(tmp, type, Type::Class::Record);
+    tc.generator().checkType(tmp, type, Type::Class::Record);
     tc.generator().branch(tmp, [&] {
         // TODO: actual check
     }, [&] {
@@ -239,25 +264,29 @@ void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
 
 void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
+    Register tmp = tc.generator().newLocal();
     if (items.size()) {
         items[0]->infer(tc, result);
-        tc.generator().getTypeForValue(result, result);
+        tc.generator().getTypeForValue(tmp, result);
     } else
         tc.unitValue(result);
 
     for (uint32_t i = 1; i < items.size(); i++)
-        items[i]->check(tc, result);
+        items[i]->check(tc, tmp);
 
     tc.newArrayValue(result, result);
 }
 
 void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
+
     Register tmp = tc.generator().newLocal();
     tc.generator().checkValue(tmp, type, Type::Class::Array);
     tc.generator().branch(tmp, [&]{
         tc.generator().getField(tmp, type, TypeArray::itemTypeField);
-        tc.generator().newValue(tmp, tmp);
         for (const auto& item : items)
             item->check(tc, tmp);
     }, [&] {
@@ -343,6 +372,8 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeCh
 
 void CallExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     TypeChecker::UnificationScope scope(tc);
     Label isBottom = tc.generator().label();
     checkCallee(tc, result, isBottom);
@@ -355,6 +386,8 @@ void CallExpression::infer(TypeChecker& tc, Register result)
 
 void CallExpression::check(TypeChecker& tc, Register type)
 {
+    tc.generator().emitLocation(location);
+
     // TODO
     //TypeChecker::UnificationScope scope(tc);
     //const TypeFunction* calleeTypeFunction = checkCallee(tc);
@@ -366,6 +399,8 @@ void CallExpression::check(TypeChecker& tc, Register type)
 
 void SubscriptExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     target->infer(tc, result);
 
     Register tmp = tc.generator().newLocal();
@@ -375,7 +410,6 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     tc.generator().branch(tmp, [&] {
         tc.generator().getTypeForValue(result, result);
         tc.generator().getField(result, result, TypeArray::itemTypeField);
-        tc.generator().newValue(result, result);
     }, [&] {
         tc.generator().typeError("Trying to subscript non-array");
     });
@@ -385,6 +419,8 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
 
 void SubscriptExpression::check(TypeChecker& tc, Register itemType)
 {
+    tc.generator().emitLocation(location);
+
     //Register tmp = tc.generator().newLocal();
     //index->check(tc, tc.numberType());
     //tc.generator().newArrayValue(itemType);
@@ -393,6 +429,8 @@ void SubscriptExpression::check(TypeChecker& tc, Register itemType)
 
 void MemberExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     // FIXME: should check tc against { this->field }
     Register tmp = tc.generator().newLocal();
     object->infer(tc, result);
@@ -408,6 +446,8 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
 
 void MemberExpression::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     // TODO: do we need something custom here?
     //Register tmp = tc.generator().newLocal();
     //infer(tc, tmp);
@@ -416,11 +456,15 @@ void MemberExpression::check(TypeChecker& tc, Register result)
 
 void LiteralExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     literal->infer(tc, result);
 }
 
 void LiteralExpression::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     Register tmp = tc.generator().newLocal();
     infer(tc, tmp);
     tc.unify(location, tmp, result);
@@ -428,10 +472,14 @@ void LiteralExpression::check(TypeChecker& tc, Register result)
 
 void TypeExpression::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     type->infer(tc, result);
 }
 void TypeExpression::check(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     Register tmp = tc.generator().newLocal();
     tc.typeType(tmp);
     tc.unify(location, result, tmp);
@@ -441,11 +489,15 @@ void TypeExpression::check(TypeChecker& tc, Register result)
 
 void SynthesizedTypeExpression::infer(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
+
     tc.generator().typeError("Should not infer type for SynthesizedTypeExpression");
 }
 
 void SynthesizedTypeExpression::check(TypeChecker& tc, Register)
 {
+    tc.generator().emitLocation(location);
+
     tc.generator().typeError("Should not type check SynthesizedTypeExpression");
 }
 
@@ -454,22 +506,30 @@ void SynthesizedTypeExpression::check(TypeChecker& tc, Register)
 
 void BooleanLiteral::infer(TypeChecker& tc, Register result)
 {
-    tc.booleanValue(result);
+    tc.generator().emitLocation(location);
+
+    tc.boolValue(result);
 }
 
 void NumericLiteral::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     return tc.numberValue(result);
 }
 
 void StringLiteral::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     return tc.stringValue(result);
 }
 
 // Types
 void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     type->check(tc, tc.typeType());
     type->generate(tc.generator(), result);
 
@@ -488,5 +548,7 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
 
 void ASTTypeType::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
+
     tc.typeType(result);
 }

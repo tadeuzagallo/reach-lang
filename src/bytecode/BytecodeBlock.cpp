@@ -72,3 +72,40 @@ void* BytecodeBlock::jitCode() const
 {
     return m_jitCode;
 }
+
+void BytecodeBlock::LocationInfoWithFile::dump(std::ostream& out) const
+{
+    out << filename << ":" << info.start.line << ":" << info.start.column;
+}
+
+auto BytecodeBlock::locationInfo(InstructionStream::Offset bytecodeOffset) const -> LocationInfoWithFile
+{
+    int low = 0;
+    int high = m_locationInfos.size();
+    while (low < high) {
+        int mid = low + (high - low) / 2;
+        if (m_locationInfos[mid].bytecodeOffset <= bytecodeOffset)
+            low = mid + 1;
+        else
+            high = mid;
+    }
+
+    if (!low)
+        low = 1;
+
+    const LocationInfo& info = m_locationInfos[low - 1];
+    return { m_filename, info };
+}
+
+void BytecodeBlock::addLocation(const SourceLocation& location)
+{
+    ASSERT(!m_filename || location.file.name == m_filename, "OOPS");
+    if (!m_filename)
+        m_filename = location.file.name;
+    if (m_locationInfos.size()) {
+        const LocationInfo& info = m_locationInfos.back();
+        if (info.start == location.start && info.end == location.end)
+            return;
+    }
+    m_locationInfos.emplace_back(LocationInfo { static_cast<uint32_t>(m_instructions.size()), location.start, location.end });
+}

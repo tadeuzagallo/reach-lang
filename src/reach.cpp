@@ -48,7 +48,7 @@ int main(int argc, const char** argv)
     Value result = interpreter.run({}, [&]{
         type = interpreter.reg(typeReg);
     });
-    std::cout << "End: " << result << " : " << *type.type(vm) << std::endl;
+    std::cout << "End: " << result << " : " << type << std::endl;
 
     return EXIT_SUCCESS;
 }

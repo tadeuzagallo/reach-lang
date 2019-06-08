@@ -38,6 +38,11 @@ void BytecodeGenerator::branch(Register condition, const std::function<void()>& 
     emit(end);
 }
 
+void BytecodeGenerator::emitLocation(const SourceLocation& location)
+{
+    m_block->addLocation(location);
+}
+
 void BytecodeGenerator::loadConstant(Register dst, Value value)
 {
     m_block->m_constants.push_back(value);
