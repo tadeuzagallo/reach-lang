@@ -1,16 +1,21 @@
 #include "Type.h"
 
-#include "Binding.h"
 #include "TypeChecker.h"
+#include <typeinfo>
+
+Type::Type()
+    : Object(0)
+{
+}
 
 bool Type::operator!=(const Type& other) const
 {
     return !(*this == other);
 }
 
-const Type& Type::instantiate(TypeChecker& tc) const
+Type* Type::instantiate(VM&)
 {
-    return *this;
+    return this;
 }
 
 std::ostream& operator<<(std::ostream& out, const Type& type)
@@ -19,11 +24,9 @@ std::ostream& operator<<(std::ostream& out, const Type& type)
     return out;
 }
 
-void TypeType::visit(std::function<void(Value)>) const { };
-
-const Type& TypeType::substitute(TypeChecker&, Substitutions&) const
+Type* TypeType::substitute(VM&, Substitutions&)
 {
-    return *this;
+    return this;
 }
 
 bool TypeType::operator==(const Type& other) const
@@ -36,11 +39,9 @@ void TypeType::dump(std::ostream& out) const
     out << "Type";
 }
 
-void TypeBottom::visit(std::function<void(Value)>) const { };
-
-const Type& TypeBottom::substitute(TypeChecker&, Substitutions&) const
+Type* TypeBottom::substitute(VM&, Substitutions&)
 {
-    return *this;
+    return this;
 }
 
 bool TypeBottom::operator==(const Type& other) const
@@ -54,98 +55,96 @@ void TypeBottom::dump(std::ostream& out) const
 }
 
 TypeName::TypeName(const std::string& name)
-    : m_name(name)
 {
+    set_name(String::create(vm(), name));
 }
 
-void TypeName::visit(std::function<void(Value)>) const { }
-
-const Type& TypeName::substitute(TypeChecker&, Substitutions&) const
+Type* TypeName::substitute(VM&, Substitutions&)
 {
-    return *this;
+    return this;
 }
 
 bool TypeName::operator==(const Type& other) const
 {
     if (!other.is<TypeName>())
         return false;
-    return m_name == other.as<TypeName>().m_name;
+    return name() == other.as<TypeName>()->name();
 }
 
 void TypeName::dump(std::ostream& out) const
 {
-    out << m_name;
+    out << name()->str();
 }
 
-TypeFunction::TypeFunction(const Types& params, const Type& returnType)
-    : m_params(params)
-    , m_returnType(returnType)
+TypeFunction::TypeFunction(const Types& params, Type* returnType)
 {
+    set_params(Array::create(vm(), params));
+    set_returnType(returnType);
+
+    Types implicitParams;
+    Types explicitParams;
+    for (Type* param : params)
+        if (!param->is<TypeVar>() || !param->as<TypeVar>()->inferred())
+            explicitParams.emplace_back(param);
+        else
+            implicitParams.emplace_back(param);
+    set_explicitParamCount(explicitParams.size());
+    set_implicitParamCount(implicitParams.size());
+    set_explicitParams(Array::create(vm(), explicitParams));
+    set_implicitParams(Array::create(vm(), implicitParams));
 }
 
 size_t TypeFunction::paramCount() const
 {
-    return m_params.size();
+    return params()->size();
 }
 
-size_t TypeFunction::explicitParamCount() const
-{
-    uint32_t count = 0;
-    for (const Binding& param : m_params)
-        if (!param.inferred())
-            ++count;
-    return count;
-}
-
-const Binding& TypeFunction::param(uint32_t index) const
+Type* TypeFunction::param(uint32_t index) const
 {
     ASSERT(index < paramCount(), "Out of bounds access to TypeFunction::param");
-    return m_params[index];
+    return params()->getIndex(index).asCell<Type>();
 }
 
-const Type& TypeFunction::returnType() const
+TypeVar* TypeFunction::implicitParam(uint32_t index) const
 {
-    return m_returnType;
+    ASSERT(index < implicitParamCount(), "Out of bounds access to TypeFunction::implicitParam");
+    return implicitParams()->getIndex(index).asCell<TypeVar>();
 }
 
-const Type& TypeFunction::instantiate(TypeChecker& tc) const
+Type* TypeFunction::instantiate(VM& vm)
 {
     Substitutions subst;
-    for (const Binding& param : m_params) {
-        if (param.type().is<TypeType>()) {
-            param.valueAsType().as<TypeVar>().fresh(tc, subst);
+    for (Value v : *params()) {
+        Type* param = v.asType();
+        if (param->is<TypeVar>()) {
+            param->as<TypeVar>()->fresh(vm, subst);
         }
     }
-    return substitute(tc, subst);
+    return substitute(vm, subst);
 }
 
-void TypeFunction::visit(std::function<void(Value)> visitor) const
+Type* TypeFunction::substitute(VM& vm, Substitutions& subst)
 {
-    for (const Binding& param : m_params)
-        param.visit(visitor);
-    visitor(Value { &m_returnType });
-}
-
-const Type& TypeFunction::substitute(TypeChecker& tc, Substitutions& subst) const
-{
-    Types params;
-    for (const Binding& param : m_params)
-        params.emplace_back(param.substitute(tc, subst));
-    const Type& returnType = m_returnType.substitute(tc, subst);
-    return *TypeFunction::create(tc.vm(), params, returnType);
+    Types params_;
+    for (Value v : *params()) {
+        Type* param = v.asCell<Type>();
+        params_.emplace_back(param->substitute(vm, subst));
+    }
+    Type* returnType_ = returnType()->substitute(vm, subst);
+    return TypeFunction::create(vm, params_, returnType_);
 }
 
 bool TypeFunction::operator==(const Type& otherT) const
 {
     if (!otherT.is<TypeFunction>())
         return false;
-    const TypeFunction& other = otherT.as<TypeFunction>();
-    if (m_params.size() != other.m_params.size())
+    const TypeFunction* other = otherT.as<TypeFunction>();
+    if (params()->size() != other->params()->size())
         return false;
-    for (unsigned i = 0; i < m_params.size(); i++)
-        if (m_params[i] != other.m_params[i])
+    for (unsigned i = 0; i < params()->size(); i++)
+        if (*param(i) != *other->param(i))
             return false;
-    if (m_returnType != other.m_returnType)
+    if (*returnType() != *other->returnType())
         return false;
     return true;
 }
@@ -154,84 +153,68 @@ void TypeFunction::dump(std::ostream& out) const
 {
     out << "(";
     bool isFirst = true;
-    for (const Binding& param : m_params) {
+    for (Value param : *params()) {
         if (!isFirst)
             out << ", ";
-        out << param.type();
+        out << param;
         isFirst = false;
     }
-    out << ") -> " << m_returnType;
+    out << ") -> " << *returnType();
 }
 
-TypeArray::TypeArray(const Type& itemType)
-    : m_itemType(itemType)
+TypeArray::TypeArray(Type* itemType)
 {
+    set_itemType(itemType);
 }
 
-const Type& TypeArray::itemType() const
+Type* TypeArray::substitute(VM& vm, Substitutions& subst)
 {
-    return m_itemType;
-}
-
-void TypeArray::visit(std::function<void(Value)> visitor) const
-{
-    visitor(Value { &m_itemType });
-}
-
-const Type& TypeArray::substitute(TypeChecker& tc, Substitutions& subst) const
-{
-    const Type& itemType = m_itemType.substitute(tc, subst);
-    return *TypeArray::create(tc.vm(), itemType);
+    Type* itemType_ = itemType()->substitute(vm, subst);
+    return TypeArray::create(vm, itemType_);
 }
 
 bool TypeArray::operator==(const Type& other) const
 {
     if (!other.is<TypeArray>())
         return false;
-    return m_itemType == other.as<TypeArray>().m_itemType;
+    return *itemType() == *other.as<TypeArray>()->itemType();
 }
 
 void TypeArray::dump(std::ostream& out) const
 {
-    out << m_itemType << "[]";
+    out << *itemType() << "[]";
 }
 
 TypeRecord::TypeRecord(const Fields& fields)
-    : m_fields(fields)
 {
+    set_fields(Object::create(vm(), fields));
 }
 
-std::optional<std::reference_wrapper<const Binding>> TypeRecord::field(const std::string& name) const
+Type* TypeRecord::field(const std::string& name) const
 {
-    const auto it = m_fields.find(name);
-    if (it == m_fields.end())
-        return std::nullopt;
-    return { it->second };
+    std::optional<Value> field = fields()->tryGet(name);
+    if (!field)
+        return nullptr;
+    return field->asCell<Type>();
 }
 
-void TypeRecord::visit(std::function<void(Value)> visitor) const
+Type* TypeRecord::substitute(VM& vm, Substitutions& subst)
 {
-    for (const auto& field : m_fields)
-        field.second.visit(visitor);
-}
-
-const Type& TypeRecord::substitute(TypeChecker& tc, Substitutions& subst) const
-{
-    Fields fields;
-    for (const auto& field : m_fields)
-        fields.emplace(field.first, field.second.substitute(tc, subst));
-    return *TypeRecord::create(tc.vm(), fields);
+    Fields fields_;
+    for (auto& field : *fields())
+        fields_.emplace(field.first, field.second.asCell<Type>()->substitute(vm, subst));
+    return TypeRecord::create(vm, fields_);
 }
 
 bool TypeRecord::operator==(const Type& otherT) const
 {
     if (!otherT.is<TypeRecord>())
         return false;
-    const TypeRecord& other = otherT.as<TypeRecord>();
-    if (m_fields.size() != other.m_fields.size())
+    const TypeRecord* other = otherT.as<TypeRecord>();
+    if (fields()->size() != other->fields()->size())
         return false;
-    for (const auto& pair : m_fields) {
-        auto otherField = other.field(pair.first);
+    for (const auto& pair : *fields()) {
+        auto otherField = other->field(pair.first);
         if (!otherField || pair.second != otherField)
             return false;
     }
@@ -242,10 +225,10 @@ void TypeRecord::dump(std::ostream& out) const
 {
     out << "{";
     bool isFirst = true;
-    for (const auto& pair : m_fields) {
+    for (auto& pair : *fields()) {
         if (!isFirst)
             out << ", ";
-        out << pair.first << ": " << pair.second.type();
+        out << pair.first << ": " << pair.second;
         isFirst = false;
     }
     out << "}";
@@ -253,47 +236,70 @@ void TypeRecord::dump(std::ostream& out) const
 
 uint32_t TypeVar::s_uid = 0;
 
-TypeVar::TypeVar(const std::string& name, bool inferred)
-    : m_uid(++s_uid)
-    , m_inferred(inferred)
-    , m_name(name)
+TypeVar::TypeVar(const std::string& name, bool inferred, bool rigid)
+    : m_isRigid(rigid)
 {
+    set_uid(++s_uid);
+    set_inferred(inferred);
+    set_name(String::create(vm(), name));
 }
 
-uint32_t TypeVar::uid() const
+void TypeVar::fresh(VM& vm, Substitutions& subst) const
 {
-    return m_uid;
+    TypeVar* newVar = TypeVar::create(vm, name()->str(), inferred(), false);
+    subst.emplace(uid(), newVar);
 }
 
-bool TypeVar::inferred() const
+Type* TypeVar::substitute(VM&, Substitutions& subst)
 {
-    return m_inferred;
-}
-
-void TypeVar::fresh(TypeChecker& tc, Substitutions& subst) const
-{
-    const TypeVar& newVar = *TypeVar::create(tc.vm(), m_name, m_inferred);
-    subst.emplace(m_uid, newVar);
-}
-
-void TypeVar::visit(std::function<void(Value)>) const { }
-
-const Type& TypeVar::substitute(TypeChecker& tc, Substitutions& subst) const
-{
-    const auto it = subst.find(m_uid);
+    const auto it = subst.find(uid());
     if (it != subst.end())
         return it->second;
-    return *this;
+    return this;
 }
 
 bool TypeVar::operator==(const Type& other) const
 {
     if (!other.is<TypeVar>())
         return false;
-    return m_uid == other.as<TypeVar>().m_uid;
+    return uid() == other.as<TypeVar>()->uid();
 }
 
 void TypeVar::dump(std::ostream& out) const
 {
-    out << m_name;
+    out << name()->str();
+}
+
+std::ostream& operator<<(std::ostream& out, Type::Class tc)
+{
+    switch (tc) {
+    case Type::Class::AnyValue:
+        out << "Type::Class::AnyValue";
+        break;
+    case Type::Class::AnyType:
+        out << "Type::Class::AnyType";
+        break;
+    case Type::Class::Type:
+        out << "Type::Class::Type";
+        break;
+    case Type::Class::Bottom:
+        out << "Type::Class::Bottom";
+        break;
+    case Type::Class::Name:
+        out << "Type::Class::Name";
+        break;
+    case Type::Class::Function:
+        out << "Type::Class::Function";
+        break;
+    case Type::Class::Array:
+        out << "Type::Class::Array";
+        break;
+    case Type::Class::Record:
+        out << "Type::Class::Record";
+        break;
+    case Type::Class::Var:
+        out << "Type::Class::Var";
+        break;
+    }
+    return out;
 }

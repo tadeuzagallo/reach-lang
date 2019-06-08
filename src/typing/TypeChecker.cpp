@@ -1,310 +1,206 @@
 #include "TypeChecker.h"
 
 #include "AST.h"
-#include "Binding.h"
+#include "BytecodeGenerator.h"
 #include "Log.h"
 #include <sstream>
 #include <limits>
 
-TypeChecker::TypeChecker(VM& vm)
-    : m_vm(vm)
-    , m_topScope(*this)
+TypeChecker::TypeChecker(BytecodeGenerator& generator)
+    : m_generator(generator)
+    //, m_topScope(*this)
     , m_topUnificationScope(*this)
-    , m_unificationScope(&m_topUnificationScope)
-{
-    ASSERT(!m_vm.typeChecker, "Already type checking");
-    m_vm.typeChecker = this;
-    Type* typeType = TypeType::create(vm);
-    Type* typeBottom = TypeBottom::create(vm);
-    m_bindings.emplace_back(new Binding { Value { typeType }, *typeType });
-    m_bindings.emplace_back(new Binding { Value { typeBottom }, *typeType });
-    insert("Void", newNameType("Void"));
-    insert("Bool", newNameType("Bool"));
-    insert("Number", newNameType("Number"));
-    insert("String", newNameType("String"));
 
-    insert("inspect", bottomValue());
-    insert("print", bottomValue());
+    , m_typeType(generator.newLocal())
+    , m_bottomType(generator.newLocal())
+    , m_unitType(generator.newLocal())
+    , m_boolType(generator.newLocal())
+    , m_numberType(generator.newLocal())
+    , m_stringType(generator.newLocal())
+{
+    ASSERT(!vm().typeChecker, "Already type checking");
+    vm().typeChecker = this;
+
+    m_generator.loadConstant(m_typeType, vm().typeType);
+    m_generator.loadConstant(m_bottomType, vm().bottomType);
+    m_generator.loadConstant(m_unitType, vm().unitType);
+    m_generator.loadConstant(m_boolType, vm().boolType);
+    m_generator.loadConstant(m_numberType, vm().numberType);
+    m_generator.loadConstant(m_stringType, vm().stringType);
+
+    // No need to insert Type since it's a reserved keyword
+    insert("Void", m_unitType);
+    insert("Bool", m_boolType);
+    insert("Number", m_numberType);
+    insert("String", m_stringType);
 }
 
-const Type* TypeChecker::check(const std::unique_ptr<Program>& program)
+Register TypeChecker::check(const std::unique_ptr<Program>& program)
 {
-    const Binding* binding = &unitValue();
+    Register result = m_generator.newLocal();
+    //unitValue(result);
     for (const auto& decl : program->declarations) {
-        binding = &decl->infer(*this);
-        decl->binding = &newType(*binding);
+        decl->infer(*this, result);
     }
-    const Type& result = m_topUnificationScope.resolve(binding->type());
-    if (m_errors.size())
-        return nullptr;
-    return &result;
+    //m_topUnificationScope.resolve(result);
+    // TODO: error checkpoint
+    return result;
 }
 
 void TypeChecker::visit(const std::function<void(Value)>& visitor) const
 {
-    for (Binding* binding : m_bindings)
-        binding->visit(visitor);
+    // TODO
 }
 
 VM& TypeChecker::vm() const
 {
-    return m_vm;
+    return m_generator.vm();
 }
 
-const Binding& TypeChecker::typeType() { return *m_bindings[0]; }
-const Binding& TypeChecker::unitType() { return *m_bindings[2]; }
-
-const Binding& TypeChecker::bottomValue() { return newValue(*m_bindings[1]); }
-const Binding& TypeChecker::unitValue() { return newValue(*m_bindings[2]); }
-const Binding& TypeChecker::booleanValue() { return newValue(*m_bindings[3]); }
-const Binding& TypeChecker::numericValue() { return newValue(*m_bindings[4]); }
-const Binding& TypeChecker::stringValue() { return newValue(*m_bindings[5]); }
-
-// New type bindings - for constructs that introduces new types, e.g.
-// T : Type
-const Binding& TypeChecker::newType(const Type& type)
+BytecodeGenerator& TypeChecker::generator()
 {
-    // introduce a binding for a new value of the given type
-    m_bindings.emplace_back(new Binding { Value { &type }, typeType().type() });
-    return *m_bindings.back();
+    return m_generator;
 }
 
-const Binding& TypeChecker::newType(const Binding& binding)
+Register TypeChecker::typeType()
 {
-    return newType(binding.type());
+    return m_typeType;
+}
+
+Register TypeChecker::unitType()
+{
+    return m_unitType;
+}
+
+void TypeChecker::typeType(Register result)
+{
+    m_generator.move(result, m_typeType);
+}
+
+void TypeChecker::unitType(Register result)
+{
+    m_generator.move(result, m_unitType);
+}
+
+void TypeChecker::bottomValue(Register result)
+{
+    m_generator.newValue(result, m_bottomType);
+}
+
+void TypeChecker::unitValue(Register result)
+{
+    m_generator.newValue(result, m_unitType);
+}
+
+void TypeChecker::booleanValue(Register result)
+{
+    m_generator.newValue(result, m_boolType);
+}
+
+void TypeChecker::numericValue(Register result)
+{
+    m_generator.newValue(result, m_numberType);
+}
+
+void TypeChecker::stringValue(Register result)
+{
+    m_generator.newValue(result, m_stringType);
 }
 
 // New value bindings - for constructs that introduces new values, e.g.
 // T : Type -> x : T
-const Binding& TypeChecker::newValue(const Type& type)
+void TypeChecker::newValue(Register result, Register type)
 {
-    // introduce a binding for a new value of the given type
-    m_bindings.emplace_back(new Binding { type });
-    return *m_bindings.back();
+    m_generator.newValue(result, type);
 }
 
-// introduce a binding for a new value of the given type
-const Binding& TypeChecker::newValue(const Binding& binding)
+void TypeChecker::newFunctionValue(Register result, const std::vector<Register>& params, Register returnType)
 {
-    // typeType is a special case, since it's recursive
-    if (&binding == &typeType())
-        return typeType();
-    return newValue(binding.valueAsType());
+    newFunctionType(result, params, returnType);
+    m_generator.newValue(result, result);
 }
 
-const Binding& TypeChecker::newFunctionValue(const Types& params, const Type& returnType)
+void TypeChecker::newArrayValue(Register result, Register itemType)
 {
-    TypeFunction* fnType = TypeFunction::create(m_vm, params, returnType);
-    return newValue(*fnType);
+    newArrayType(result, itemType);
+    m_generator.newValue(result, result);
 }
 
-const Binding& TypeChecker::newArrayValue(const Type& itemType)
+void TypeChecker::newRecordValue(Register result, const std::vector<std::pair<std::string, Register>>& fields)
 {
-    TypeArray* arrayType = TypeArray::create(m_vm, itemType);
-    return newValue(*arrayType);
-}
-
-const Binding& TypeChecker::newRecordValue(const Fields& fields)
-{
-    TypeRecord* recordType = TypeRecord::create(m_vm, fields);
-    return newValue(*recordType);
+    newRecordType(result, fields);
+    m_generator.newValue(result, result);
 }
 
 // New type bindings - for constructs that introduces new types, e.g.
 // T : Type
 
-const Binding& TypeChecker::newNameType(const std::string& name)
+void TypeChecker::newNameType(Register result, const std::string& name)
 {
-    TypeName* nameType = TypeName::create(m_vm, name);
-    m_vm.addType(name, *nameType);
-    return newType(*nameType);
+    m_generator.newNameType(result, name);
 }
 
-const Binding& TypeChecker::newVarType(const std::string& name, bool inferred)
+void TypeChecker::newVarType(Register result, const std::string& name, bool inferred)
 {
-    TypeVar* varType = TypeVar::create(m_vm, name, inferred);
-    return newType(*varType);
+    m_generator.newVarType(result, name, inferred);
 }
 
-const Binding& TypeChecker::newArrayType(const Type& itemType)
+void TypeChecker::newArrayType(Register result, Register itemType)
 {
-    TypeArray* arrayType = TypeArray::create(m_vm, itemType);
-    return newType(*arrayType);
+    m_generator.newArrayType(result, itemType);
 }
 
-const Binding& TypeChecker::newRecordType(const Fields& fields)
+void TypeChecker::newRecordType(Register result, const std::vector<std::pair<std::string, Register>>& fields)
 {
-    TypeRecord* recordType = TypeRecord::create(m_vm, fields);
-    return newType(*recordType);
+    m_generator.newRecordType(result, fields);
 }
 
-const Binding& TypeChecker::lookup(const SourceLocation& location, const std::string& name, const Binding& defaultValue)
+void TypeChecker::newFunctionType(Register result, const std::vector<Register>& params, Register returnType)
 {
-    for (uint32_t i = m_environment.size(); i--;) {
-        const auto& pair = m_environment[i];
-        if (pair.first == name)
-            return *pair.second;
-    }
-
-    std::stringstream msg;
-    msg << "Unknown variable: `" << name << "`";
-    typeError(location, msg.str());
-    return defaultValue;
+    m_generator.newFunctionType(result, params, returnType);
 }
 
-void TypeChecker::insert(const std::string& name, const Binding& binding)
+void TypeChecker::lookup(Register result, const SourceLocation& location, const std::string& name)
 {
-    m_environment.emplace_back(name, &binding);
+    // TODO: location
+    m_generator.getType(result, name);
 }
 
-// Error handling
-TypeChecker::Error::Error(const SourceLocation& location, const std::string& message)
-    : m_location(location)
-    , m_message(message)
+void TypeChecker::insert(const std::string& name, Register type)
 {
+    m_generator.setType(name, type);
 }
 
-const SourceLocation& TypeChecker::Error::location() const
+void TypeChecker::unify(const SourceLocation& location, Register lhs, Register rhs)
 {
-    return m_location;
+    LOG(ConstraintSolving, "unify: " << location << ": " << lhs << " U " << rhs);
+    // TODO: location
+    m_generator.unify(lhs, rhs);
 }
 
-const std::string& TypeChecker::Error::message() const
+TypeChecker::Scope::Scope(TypeChecker& typeChecker)
+    : m_typeChecker(typeChecker)
 {
-    return m_message;
-}
-
-void TypeChecker::unify(const SourceLocation& location, const Binding& lhs, const Binding& rhs)
-{
-    LOG(ConstraintSolving, "unify: " << location << ": " << lhs.type() << " U " << rhs.type());
-    m_unificationScope->unify(location, lhs, rhs);
-}
-
-void TypeChecker::typeError(const SourceLocation& location, const std::string& message)
-{
-    m_errors.emplace_back(Error {
-        location,
-        message,
-    });
-}
-
-void TypeChecker::reportErrors(std::ostream& out) const
-{
-    for (const auto& error : m_errors) {
-        out << error.location() << ": " << error.message() << std::endl;
-    }
-}
-
-
-TypeChecker::Scope::Scope(TypeChecker& tc)
-    : m_typeChecker(tc)
-    , m_environmentSize(tc.m_environment.size())
-    , m_bindingsSize(tc.m_bindings.size())
-{
+    m_typeChecker.m_generator.pushScope();
 }
 
 TypeChecker::Scope::~Scope()
 {
-    m_typeChecker.m_environment.resize(m_environmentSize);
-    //for (uint32_t i = m_bindingsSize; i < m_typeChecker.m_bindings.size(); i++)
-        //delete m_typeChecker.m_bindings[i];
-    m_typeChecker.m_bindings.resize(m_bindingsSize);
+    m_typeChecker.m_generator.popScope();
 }
 
-TypeChecker::UnificationScope::UnificationScope(TypeChecker& tc)
-    : m_typeChecker(tc)
-    , m_parentScope(tc.m_unificationScope)
+TypeChecker::UnificationScope::UnificationScope(TypeChecker& typeChecker)
+    : m_typeChecker(typeChecker)
 {
-    LOG(UnificationScope, "===> UnificationScope <===");
-    m_typeChecker.m_unificationScope = this;
+    m_typeChecker.m_generator.pushUnificationScope();
 }
 
 TypeChecker::UnificationScope::~UnificationScope()
 {
-    finalize();
-    m_typeChecker.m_unificationScope = m_parentScope;
-    LOG(UnificationScope,  "===> ~UnificationScope <===");
+    m_typeChecker.m_generator.popUnificationScope();
 }
 
-void TypeChecker::UnificationScope::unify(const SourceLocation& location, const Binding& lhs, const Binding& rhs)
+void TypeChecker::UnificationScope::resolve(Register dst, Register type)
 {
-    ASSERT(!m_finalized, "UnificationScope already finalized");
-    m_constraints.emplace_back(Constraint { location, lhs, rhs });
-}
-
-const Type& TypeChecker::UnificationScope::resolve(const Type& resultType)
-{
-    finalize();
-    return resultType.substitute(m_typeChecker, m_substitutions);
-}
-
-void TypeChecker::UnificationScope::infer(const SourceLocation& location, const Binding& binding)
-{
-    ASSERT(binding.valueAsType().is<TypeVar>(), "");
-    m_inferredBindings.emplace_back(InferredBinding { location, binding.valueAsType().as<TypeVar>() });
-}
-
-void TypeChecker::UnificationScope::finalize()
-{
-    if (m_finalized)
-        return;
-    m_finalized = true;
-    solveConstraints();
-    checkInferredVariables();
-}
-
-void TypeChecker::UnificationScope::solveConstraints()
-{
-    while (!m_constraints.empty()) {
-        auto constraint = m_constraints.front();
-        m_constraints.pop_front();
-
-
-        const Type& lhs_ = constraint.lhs.type().substitute(m_typeChecker, m_substitutions);
-        const Type& rhs_ = constraint.rhs.type().substitute(m_typeChecker, m_substitutions);
-
-        LOG(ConstraintSolving, "Solving constraint: " << constraint.location << ": " << constraint.lhs.type() << " => " << lhs_ << " U " << constraint.rhs.type() << " => " << rhs_);
-        unifies(constraint.location, lhs_, rhs_);
-        if (lhs_.is<TypeType>() && rhs_.is<TypeType>()) {
-            const Type& lhsValue = constraint.lhs.valueAsType();
-            const Type& rhsValue = constraint.rhs.valueAsType();
-            if (rhsValue.is<TypeVar>())
-                bind(rhsValue.as<TypeVar>(), lhsValue);
-        }
-    }
-}
-
-void TypeChecker::UnificationScope::checkInferredVariables()
-{
-    for (const InferredBinding& ib : m_inferredBindings) {
-        auto it = m_substitutions.find(ib.var.uid());
-        if (it != m_substitutions.end())
-            continue;
-        std::stringstream message;
-        message << "Unification failure: failed to infer type variable `" << ib.var << "`";
-        m_typeChecker.typeError(ib.location, message.str());
-    }
-}
-
-void TypeChecker::UnificationScope::unifies(const SourceLocation& location, const Type& lhs, const Type& rhs)
-{
-    if (lhs == rhs)
-        return;
-    if (rhs.is<TypeVar>()) {
-        const TypeVar& var = rhs.as<TypeVar>();
-        if (var.inferred()) {
-            bind(var, lhs);
-            return;
-        }
-    }
-
-    std::stringstream msg;
-    msg << "Unification failure: expected `" << rhs << "` but found `" << lhs << "`";
-    m_typeChecker.typeError(location, msg.str());
-}
-
-void TypeChecker::UnificationScope::bind(const TypeVar& var, const Type& type)
-{
-    LOG(ConstraintSolving, "Binding " << var << " to " << type);
-    m_substitutions.emplace(var.uid(), type);
+    m_typeChecker.m_generator.resolveType(dst, type);
 }

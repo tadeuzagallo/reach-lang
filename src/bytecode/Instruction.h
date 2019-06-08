@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InstructionMacros.h"
+#include "Type.h"
 #include <iostream>
 
 struct Instruction {
@@ -19,6 +20,12 @@ public:
     const char* name() const;
     size_t size() const;
     void dump(std::ostream&) const;
+
+    friend std::ostream& operator<<(std::ostream& out, const Instruction& instruction)
+    {
+        instruction.dump(out);
+        return out;
+    }
 
     ID id;
 };

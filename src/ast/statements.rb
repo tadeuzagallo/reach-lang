@@ -11,14 +11,14 @@ declare :LexicalDeclaration
 ast_node :Statement < :Node,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
-    "virtual const Binding& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Binding&) = 0",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register) = 0",
   ]
 
 ast_node :EmptyStatement < :Statement,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :BlockStatement < :Statement,
@@ -27,7 +27,7 @@ ast_node :BlockStatement < :Statement,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :ReturnStatement < :Statement,
@@ -36,7 +36,7 @@ ast_node :ReturnStatement < :Statement,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :IfStatement < :Statement,
@@ -47,20 +47,20 @@ ast_node :IfStatement < :Statement,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Binding& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :BreakStatement < :Statement,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :ContinueStatement < :Statement,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :WhileStatement < :Statement,
@@ -70,7 +70,7 @@ ast_node :WhileStatement < :Statement,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :ForStatement < :Statement,
@@ -82,7 +82,7 @@ ast_node :ForStatement < :Statement,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void check(TypeChecker&, Register)",
   ]
 
 ast_node :ExpressionStatement < :Statement,
@@ -92,6 +92,6 @@ ast_node :ExpressionStatement < :Statement,
   extra_methods: [
     "ExpressionStatement(std::unique_ptr<Expression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual const Binding& infer(TypeChecker&)",
-    "virtual void check(TypeChecker&, const Binding&)",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register)",
   ]

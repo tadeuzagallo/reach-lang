@@ -13,7 +13,7 @@ void Object::dump(std::ostream& out) const
     for (const auto& field : m_fields) {
         if (!first)
             out << ", ";
-        out << field.first.name << " = " << field.second;
+        out << field.first << " = " << field.second;
         first = false;
     }
     out << "}";

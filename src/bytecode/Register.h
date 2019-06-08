@@ -15,19 +15,24 @@ public:
       return m_offset;
   }
 
-  bool isLocal() const { return m_offset > 0; }
+  bool isLocal() const { return m_offset < 0; }
   bool isValid() const { return m_offset != s_invalidOffset; }
 
   bool operator==(Register);
 
+  void dump(std::ostream& out, unsigned = 0) const
+  {
+      if (!isValid())
+          out << "<invalid>";
+      else if (isLocal())
+          out << "loc" << -m_offset;
+      else
+          out << "arg" << m_offset - 1;
+  }
+
   friend std::ostream& operator<<(std::ostream& out, const Register& reg)
   {
-      if (!reg.isValid())
-          out << "<invalid>";
-      else if (reg.isLocal())
-          out << "loc" << reg.m_offset;
-      else
-          out << "arg" << -reg.m_offset;
+      reg.dump(out);
       return out;
   }
 

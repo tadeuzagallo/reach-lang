@@ -5,10 +5,13 @@
 #include <unordered_map>
 
 class Cell;
+class VM;
 
 class Allocator {
+    friend class Cell;
+
 public:
-    static Allocator& forSize(size_t);
+    static Allocator& forSize(VM*, size_t);
     static void each(std::function<void(Allocator&)>);
 
     ~Allocator();
@@ -19,14 +22,18 @@ public:
     void each(std::function<void(Cell*)>);
 
 private:
+    struct Header {
+        VM* vm;
+    };
+
     constexpr static uint8_t s_freeMarker = std::numeric_limits<uint8_t>::max();
+    static constexpr size_t s_blockSize = 0x4000;
 
     static std::unordered_map<size_t, Allocator*> s_allocators;
 
-    Allocator(size_t);
+    Allocator(VM*, size_t);
 
     size_t m_cellSize;
-    size_t m_blockSize;
     uint8_t* m_start;
     uint8_t* m_end;
     uint8_t* m_current;

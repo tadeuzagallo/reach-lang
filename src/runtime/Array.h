@@ -20,12 +20,22 @@ public:
         return m_items[index];
     }
 
+    size_t size() { return m_items.size(); }
+    std::vector<Value>::iterator begin() { return m_items.begin(); }
+    std::vector<Value>::iterator end() { return m_items.end(); }
+
     void visit(std::function<void(Value)>) const override;
     void dump(std::ostream& out) const override;
 
 private:
     Array(uint32_t initialSize)
         : m_items(initialSize)
+    {
+    }
+
+    template<typename T>
+    Array(const std::vector<T>& vector)
+        : m_items(vector.begin(), vector.end())
     {
     }
 

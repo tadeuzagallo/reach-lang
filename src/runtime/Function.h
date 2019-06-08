@@ -12,6 +12,8 @@ class Function : public Cell {
 public:
     CELL(Function)
 
+    Type* type() const { return m_type; }
+
     void visit(std::function<void(Value)>) const override;
 
     void dump(std::ostream& out) const override
@@ -25,20 +27,23 @@ public:
     Value call(VM&, std::vector<Value>);
 
 private:
-    Function(const BytecodeBlock& block, const Environment* parentEnvironment)
-        : m_parentEnvironment(parentEnvironment)
+    Function(const BytecodeBlock& block, Environment* parentEnvironment, Type* type)
+        : m_type(type)
+        , m_parentEnvironment(parentEnvironment)
         , m_block(&block)
     {
     }
 
-    Function(NativeFunction nativeFunction)
-        : m_nativeFunction(nativeFunction)
+    Function(NativeFunction nativeFunction, Type* type)
+        : m_type(type)
+        , m_nativeFunction(nativeFunction)
     {
     }
 
-    const Environment* m_parentEnvironment;
+    Type* m_type { nullptr };
+    Environment* m_parentEnvironment;
     const BytecodeBlock* m_block { nullptr };
     NativeFunction m_nativeFunction { nullptr };
 };
 
-extern Function* createFunction(VM&, const BytecodeBlock&, const Environment*);
+extern Function* createFunction(VM&, const BytecodeBlock&, Environment*, Type*);

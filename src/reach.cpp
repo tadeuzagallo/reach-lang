@@ -34,18 +34,21 @@ int main(int argc, const char** argv)
     }
 
     VM vm;
-    TypeChecker tc(vm);
-    const Type* type = tc.check(program);
-    if (!type) {
-        tc.reportErrors(std::cerr);
-        return EXIT_FAILURE;
+    BytecodeGenerator generator(vm);
+    Register typeReg = Register::invalid();
+    {
+        TypeChecker tc(generator);
+        typeReg = tc.check(program);
     }
 
-    auto bytecode = program->generate(vm);
+    auto bytecode = program->generate(generator);
     vm.globalBlock = bytecode.get();
     Interpreter interpreter { vm, *bytecode, vm.globalEnvironment };
-    auto result = interpreter.run();
-    std::cout << "End: " << result << " : " << *type << std::endl;
+    Value type;
+    Value result = interpreter.run({}, [&]{
+        type = interpreter.reg(typeReg);
+    });
+    std::cout << "End: " << result << " : " << *type.type(vm) << std::endl;
 
     return EXIT_SUCCESS;
 }

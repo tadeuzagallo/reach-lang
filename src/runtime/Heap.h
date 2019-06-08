@@ -15,7 +15,7 @@ public:
     template<typename CellType>
     void* allocate()
     {
-		Allocator& allocator = Allocator::forSize(sizeof(CellType));
+		Allocator& allocator = Allocator::forSize(m_vm, sizeof(CellType));
 		void* cell = allocator.cell();
 		if (cell)
 			return cell;

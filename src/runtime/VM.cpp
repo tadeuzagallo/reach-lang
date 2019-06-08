@@ -5,9 +5,9 @@
 #include "Type.h"
 #include <iostream>
 
-static void addFunction(VM* vm, const char* name, NativeFunction fn)
+static void addFunction(VM* vm, const char* name, NativeFunction fn, Type* type)
 {
-    Function* builtinFunction = Function::create(*vm, fn);
+    Function* builtinFunction = Function::create(*vm, fn, type);
     vm->globalEnvironment->set(name, Value { builtinFunction });
 }
 
@@ -41,18 +41,18 @@ static Value functionInspect(VM& vm, std::vector<Value> args)
 VM::VM()
     : heap(this)
     , typeChecker(nullptr)
+    , typeType(TypeType::create(*this))
+    , bottomType(TypeBottom::create(*this))
+    , unitType(TypeName::create(*this, "Void"))
+    , boolType(TypeName::create(*this, "Bool"))
+    , numberType(TypeName::create(*this, "Number"))
+    , stringType(TypeName::create(*this, "String"))
 {
     globalEnvironment = Environment::create(*this, nullptr);
 
     // so we don't crash when calling stack.back()
     stack.push_back(Value::crash());
 
-    addFunction(this, "print", functionPrint);
-    addFunction(this, "inspect", functionInspect);
+    addFunction(this, "print", functionPrint, bottomType);
+    addFunction(this, "inspect", functionInspect, bottomType);
 }
-
-void VM::addType(const std::string& name, const Type& type)
-{
-    globalEnvironment->set(name, Value { &type });
-}
-

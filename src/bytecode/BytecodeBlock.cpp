@@ -13,7 +13,7 @@ BytecodeBlock::BytecodeBlock(std::string name)
 {
 }
 
-const Identifier& BytecodeBlock::identifier(uint32_t index) const
+const std::string& BytecodeBlock::identifier(uint32_t index) const
 {
     ASSERT(index < m_identifiers.size(), "Identifier out of bounds");
     return *std::next(m_identifiers.begin(), index);

@@ -1,8 +1,10 @@
 #pragma once
+
+#include "Assert.h"
+#include "Register.h"
 #include "SourceLocation.h"
 #include "Token.h"
 #include "TypeChecker.h"
-#include "Assert.h"
 
 #include <iostream>
 #include <map>
@@ -90,6 +92,7 @@ void dumpField(std::ostream& out, unsigned indentation, std::string name, const 
 struct Node {
   Node(const Token& token)
     : location(token.location)
+    , typeRegister(Register::invalid())
   { }
 
   virtual ~Node() = default;
@@ -125,9 +128,11 @@ struct Node {
 
   SourceLocation location;
   const Binding* binding;
+  Register typeRegister;
 
 protected:
   Node(SourceLocation& loc)
     : location(loc)
+    , typeRegister(Register::invalid())
   { }
 };

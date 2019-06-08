@@ -9,5 +9,5 @@ ast_node :Program < :Node,
   },
   extra_methods: [
     "void dump(std::ostream&)",
-    "std::unique_ptr<BytecodeBlock> generate(VM&) const"
+    "std::unique_ptr<BytecodeBlock> generate(BytecodeGenerator&) const"
   ]

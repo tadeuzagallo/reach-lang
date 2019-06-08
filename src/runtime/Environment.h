@@ -15,17 +15,20 @@ public:
 
     void set(const Identifier& key, Value value);
     void set(const std::string& key, Value value);
-    Value get(const Identifier& key) const;
+    Value get(const std::string& key) const;
+    void setType(const std::string& key, Value value);
+    Value getType(const std::string& key) const;
 
-    const Environment* parent() const;
+    Environment* parent() const;
     void dump(std::ostream&) const override;
     void visit(std::function<void(Value)>) const override;
 
 private:
-    Environment(const Environment* parent);
+    Environment(Environment* parent);
 
-    const Environment* m_parent;
+    Environment* m_parent;
     Map m_map;
+    Map m_typeMap;
 };
 
-extern Environment* createEnvironment(VM&, const Environment*);
+extern Environment* createEnvironment(VM&, Environment*);

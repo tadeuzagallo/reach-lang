@@ -22,7 +22,7 @@ public:
     uint32_t numLocals() const { return m_numLocals; }
     Register environmentRegister() const { return m_environmentRegister; }
 
-    const Identifier& identifier(uint32_t) const;
+    const std::string& identifier(uint32_t) const;
     Value constant(uint32_t) const;
     const BytecodeBlock& function(uint32_t) const;
 
@@ -35,7 +35,7 @@ private:
     std::string m_name;
     InstructionStream m_instructions;
     std::vector<Value> m_constants;
-    std::vector<Identifier> m_identifiers;
+    std::vector<std::string> m_identifiers;
     std::vector<std::unique_ptr<BytecodeBlock>> m_functions;
 
     // JIT

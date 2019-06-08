@@ -7,22 +7,27 @@ class String : public Cell {
 public:
     CELL(String)
 
+    const std::string& str() const { return m_str; }
+
     void visit(std::function<void(Value)>) const override
     {
     }
 
     void dump(std::ostream& out) const override
     {
-        out << std::string(m_data, m_length);
+        out << m_str;
+    }
+
+    bool operator==(const String& other) const
+    {
+        return m_str == other.m_str;
     }
 
 private:
-    String(const char* data, size_t length)
-        : m_length(length)
-        , m_data(data)
+    String(const std::string& str)
+        : m_str(str)
     {
     }
 
-    size_t m_length;
-    const char* m_data;
+    std::string m_str;
 };

@@ -168,7 +168,7 @@ OP(NewFunction)
     move(vm(), regA0);
     move(&m_block.function(ip.functionIndex), regA1);
     load(m_block.environmentRegister(), regA2);
-    call<Function*, VM&, const BytecodeBlock&, const Environment*>(createFunction);
+    call<Function*, VM&, const BytecodeBlock&, Environment*, Type*>(createFunction);
     store(regR0, ip.dst);
 }
 
@@ -218,6 +218,138 @@ OP(JumpIfFalse)
     jumpIfEqual(ip.target);
 }
 
+OP(IsEqual)
+{
+    ASSERT(false, "TODO");
+}
+
+// Type checking
+
+OP(GetType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(SetType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(PushScope)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(PopScope)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(PushUnificationScope)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(PopUnificationScope)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(Unify)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(ResolveType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(CheckType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(CheckValue)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(TypeError)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(InferImplicitParameters)
+{
+    ASSERT(false, "TODO");
+
+}
+
+// Create new types
+
+OP(NewVarType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(NewNameType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(NewArrayType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(NewRecordType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(NewFunctionType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+// New values from existing types
+
+OP(NewType)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(NewValue)
+{
+    ASSERT(false, "TODO");
+
+}
+
+OP(GetTypeForValue)
+{
+    ASSERT(false, "TODO");
+
+}
+
+
 #undef OP
 
 Value JIT::trampoline(VM& vm, Function* function, uint32_t argc, Value* argv)
@@ -241,7 +373,7 @@ void JIT::prologue()
     // Create a new environment
     move(vm(), regA0);
     move(regA2, regA1);
-    call<Environment*, VM&, const Environment*>(createEnvironment);
+    call<Environment*, VM&, Environment*>(createEnvironment);
 
     pop(regA1);
     pop(regA0);

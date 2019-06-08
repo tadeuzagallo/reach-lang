@@ -35,7 +35,8 @@ instruction :GetArrayIndex,
 
 instruction :NewFunction,
     dst: :Register,
-    functionIndex: :uint32_t
+    functionIndex: :uint32_t,
+    type: :Register
 
 instruction :Call,
     dst: :Register,
@@ -63,3 +64,88 @@ instruction :Jump,
 instruction :JumpIfFalse,
     condition: :Register,
     target: :int32_t
+
+instruction :IsEqual,
+    dst: :Register,
+    lhs: :Register,
+    rhs: :Register
+
+# Type checking instructions
+instruction :GetType,
+    dst: :Register,
+    identifierIndex: :uint32_t
+
+instruction :SetType,
+    identifierIndex: :uint32_t,
+    src: :Register
+
+instruction :PushScope
+
+instruction :PopScope
+
+instruction :PushUnificationScope
+
+instruction :PopUnificationScope
+
+instruction :Unify,
+    lhs: :Register,
+    rhs: :Register
+
+instruction :ResolveType,
+    dst: :Register,
+    type: :Register
+
+instruction :CheckType,
+    dst: :Register,
+    type: :Register,
+    expected: "Type::Class"
+
+instruction :CheckValue,
+    dst: :Register,
+    type: :Register,
+    expected: "Type::Class"
+
+instruction :TypeError,
+    messageIndex: :uint32_t
+
+instruction :InferImplicitParameters,
+    function: :Register
+
+# Create new types
+instruction :NewVarType,
+   dst: :Register,
+   nameIndex: :uint32_t,
+   isInferred: :bool
+
+instruction :NewNameType,
+    dst: :Register,
+    nameIndex: :uint32_t
+
+instruction :NewArrayType,
+    dst: :Register,
+    itemType: :Register
+
+instruction :NewRecordType,
+    dst: :Register,
+    fieldCount: :uint32_t,
+    firstKey: :Register,
+    firstType: :Register
+
+instruction :NewFunctionType,
+    dst: :Register,
+    paramCount: :uint32_t,
+    firstParam: :Register,
+    returnType: :Register
+
+# Create new values from types
+instruction :NewValue,
+    dst: :Register,
+    type: :Register
+
+instruction :NewType,
+    dst: :Register,
+    type: :Register
+
+instruction :GetTypeForValue,
+    dst: :Register,
+    value: :Register

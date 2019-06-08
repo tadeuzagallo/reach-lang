@@ -10,3 +10,7 @@
             *(int*)0xbbadbeef = 0; \
         } \
     } while (false);
+
+
+#define ASSERT_NOT_REACHED() \
+    ASSERT(false, "Should not be reached")

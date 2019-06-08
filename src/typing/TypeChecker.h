@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Register.h"
 #include "SourceLocation.h"
 #include "Type.h"
 #include <deque>
@@ -10,6 +11,7 @@
 #include <vector>
 
 class Binding;
+class BytecodeGenerator;
 class Program;
 class VM;
 
@@ -18,48 +20,48 @@ class TypeChecker {
     friend class UnificationScope;
 
 public:
-    TypeChecker(VM&);
+    TypeChecker(BytecodeGenerator&);
     VM& vm() const;
+    BytecodeGenerator& generator();
 
-    const Type* check(const std::unique_ptr<Program>&);
+    Register check(const std::unique_ptr<Program>&);
     void visit(const std::function<void(Value)>&) const;
 
-    const Binding& typeType();
-    const Binding& unitType();
+    Register typeType();
+    Register unitType();
 
-    const Binding& unitValue();
-    const Binding& booleanValue();
-    const Binding& numericValue();
-    const Binding& stringValue();
-    const Binding& bottomValue();
+    void typeType(Register);
+    void unitType(Register);
 
-    const Binding& newType(const Type&);
-    const Binding& newType(const Binding&);
-    const Binding& newValue(const Type&);
-    const Binding& newValue(const Binding&);
+    void unitValue(Register);
+    void booleanValue(Register);
+    void numericValue(Register);
+    void stringValue(Register);
+    void bottomValue(Register);
 
-    const Binding& newFunctionValue(const Types&, const Type&);
-    const Binding& newArrayValue(const Type&);
-    const Binding& newRecordValue(const Fields&);
+    void newType(Register result, Register type);
+    void newValue(Register result, Register type);
 
-    const Binding& newNameType(const std::string&);
-    const Binding& newVarType(const std::string&, bool);
-    const Binding& newArrayType(const Type&);
-    const Binding& newRecordType(const Fields&);
+    void newFunctionValue(Register result, const std::vector<Register>&, Register);
+    void newArrayValue(Register result, Register itemType);
+    void newRecordValue(Register result, const std::vector<std::pair<std::string, Register>>&);
 
-    const Binding& lookup(const SourceLocation&, const std::string&, const Binding&);
+    void newNameType(Register, const std::string&);
+    void newVarType(Register, const std::string&, bool);
+    void newArrayType(Register, Register);
+    void newRecordType(Register, const std::vector<std::pair<std::string, Register>>&);
+    void newFunctionType(Register result, const std::vector<Register>&, Register);
 
-    void bindValue(const Type&);
-    void bindType(const Type&);
+    void lookup(Register, const SourceLocation&, const std::string&);
 
-    void insert(const std::string&, const Binding&);
+    void insert(const std::string&, Register);
 
-    void unify(const SourceLocation&, const Binding&, const Binding&);
-    void typeError(const SourceLocation&, const std::string&);
-    void reportErrors(std::ostream&) const;
+    void unify(const SourceLocation&, Register, Register);
+    //void typeError(const SourceLocation&, const std::string&);
+    //void reportErrors(std::ostream&) const;
 
     template<typename T>
-    const Binding& inferAsType(const T&);
+    void inferAsType(const T&, Register);
 
     class Scope {
     public:
@@ -68,8 +70,6 @@ public:
 
     private:
         TypeChecker& m_typeChecker;
-        size_t m_environmentSize;
-        size_t m_bindingsSize;
     };
 
     class UnificationScope {
@@ -77,35 +77,10 @@ public:
         UnificationScope(TypeChecker&);
         ~UnificationScope();
 
-        void unify(const SourceLocation&, const Binding&, const Binding&);
-        const Type& resolve(const Type&);
-        void infer(const SourceLocation&, const Binding&);
+        void resolve(Register, Register);
 
     private:
-        struct Constraint {
-            SourceLocation location;
-            const Binding& lhs;
-            const Binding& rhs;
-        };
-
-        struct InferredBinding {
-            SourceLocation location;
-            const TypeVar& var;
-        };
-
-        void finalize();
-        void solveConstraints();
-        void checkInferredVariables();
-        void unifies(const SourceLocation&, const Type&, const Type&);
-        void bind(const TypeVar&, const Type&);
-
-        bool m_finalized { false };
         TypeChecker& m_typeChecker;
-        UnificationScope* m_parentScope;
-        std::deque<Constraint> m_constraints;
-        std::deque<InferredBinding> m_inferredBindings;
-        Substitutions m_substitutions;
-        // jokeing 
     };
 
 private:
@@ -121,11 +96,18 @@ private:
         std::string m_message;
     };
 
-    VM& m_vm;
-    Scope m_topScope;
+    Register m_typeType;
+    Register m_bottomType;
+    Register m_unitType;
+    Register m_boolType;
+    Register m_numberType;
+    Register m_stringType;
+
+    BytecodeGenerator& m_generator;
+    //Scope m_topScope;
     UnificationScope m_topUnificationScope;
-    UnificationScope* m_unificationScope;
-    std::vector<Error> m_errors;
-    std::vector<std::pair<std::string, const Binding*>> m_environment;
-    std::vector<Binding*> m_bindings;
+
+    //std::vector<Error> m_errors;
+    //std::vector<std::pair<std::string, const Binding*>> m_environment;
+    //std::vector<Binding*> m_bindings;
 };

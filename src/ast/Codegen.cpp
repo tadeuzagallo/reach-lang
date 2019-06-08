@@ -2,9 +2,8 @@
 #include "BytecodeGenerator.h"
 #include "RhString.h"
 
-std::unique_ptr<BytecodeBlock> Program::generate(VM& vm) const
+std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) const
 {
-    BytecodeGenerator generator { vm, "<global>" };
     Register result = Register::invalid();
     for (const auto& decl : declarations) {
         result = generator.newLocal();
@@ -23,7 +22,7 @@ void LexicalDeclaration::generate(BytecodeGenerator& generator, Register result)
     generator.setLocal(*name, result);
 }
 
-void FunctionDeclaration::generate(BytecodeGenerator& generator, Register result)
+void FunctionDeclaration::generateImpl(BytecodeGenerator& generator, Register result, Register type)
 {
     BytecodeGenerator functionGenerator { generator.vm(), name->name };
     for (unsigned i = 0; i < parameters.size(); i++)
@@ -32,8 +31,13 @@ void FunctionDeclaration::generate(BytecodeGenerator& generator, Register result
     body->generate(functionGenerator, functionResult);
     auto block = functionGenerator.finalize(functionResult);
 
-    generator.newFunction(result, std::move(block));
+    generator.newFunction(result, std::move(block), type);
     generator.setLocal(*name, result);
+}
+
+void FunctionDeclaration::generate(BytecodeGenerator& generator, Register result)
+{
+    generator.move(result, *valueRegister);
 }
 
 void StatementDeclaration::generate(BytecodeGenerator& generator, Register result)
@@ -127,7 +131,7 @@ void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register ds
     for (const auto& field : fields) {
         Register tmp = generator.newLocal();
         field.second->generate(generator, tmp);
-        generator.setField(dst, *field.first, tmp);
+        generator.setField(dst, field.first->name, tmp);
     }
 }
 
@@ -148,8 +152,7 @@ void CallExpression::generate(BytecodeGenerator& generator, Register dst)
             for (auto it = arguments.begin(); it != arguments.end(); it++) {
                 std::unique_ptr<Expression>& argument = *it++;
                 auto type = std::make_unique<SynthesizedTypeExpression>(argument->location);
-                ASSERT(argument->binding, "");
-                type->binding = argument->binding;
+                type->typeRegister = typeRegister;
                 it = arguments.emplace(it, std::move(type));
             }
         }
@@ -175,7 +178,7 @@ void SubscriptExpression::generate(BytecodeGenerator& generator, Register dst)
 void MemberExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     object->generate(generator, dst);
-    generator.getField(dst, dst, *property);
+    generator.getField(dst, dst, property->name);
 }
 
 void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
@@ -185,12 +188,13 @@ void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    return generator.loadConstant(dst, binding->value());
+    ASSERT(false, "TODO");
+    //return generator.loadConstant(dst, binding->value());
 }
 
-void TypeExpression::generate(BytecodeGenerator&, Register)
+void TypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    // TODO
+    type->generate(generator, dst);
 }
 
 
@@ -198,16 +202,24 @@ void TypeExpression::generate(BytecodeGenerator&, Register)
 
 void BooleanLiteral::generate(BytecodeGenerator& generator, Register dst)
 {
-    return generator.loadConstant(dst, Value { value });
+    return generator.loadConstant(dst, value);
 }
 
 void NumericLiteral::generate(BytecodeGenerator& generator, Register dst)
 {
-    return generator.loadConstant(dst, Value { value });
+    return generator.loadConstant(dst, value);
 }
 
 void StringLiteral::generate(BytecodeGenerator& generator, Register dst)
 {
-    String* string = String::create(generator.vm(), value.c_str(), value.length());
-    return generator.loadConstant(dst, Value { string });
+    String* string = String::create(generator.vm(), value);
+    return generator.loadConstant(dst, string);
+}
+
+
+// Types
+
+void ASTTypeType::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.loadConstant(dst, generator.vm().typeType);
 }

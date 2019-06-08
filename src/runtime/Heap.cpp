@@ -26,7 +26,7 @@ void Heap::markFromRoots()
         if (root.isCrash() || !root.isCell())
             return;
 
-        Cell* cell = root.asCell();
+        Cell* cell = root.getCell();
         if (isMarked(cell))
             return;
 
@@ -64,7 +64,7 @@ void Heap::markNativeStack(const std::function<void(Value)>& visitor)
                 isValid = true;
         });
 
-        if (isValid && cell->m_type < Cell::Type::InvalidCell)
+        if (isValid && cell->m_kind < Cell::Kind::InvalidCell)
             visitor(*root);
     }
 }

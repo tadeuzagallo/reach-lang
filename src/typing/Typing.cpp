@@ -1,67 +1,82 @@
 #include "AST.h"
-#include "Binding.h"
 #include "Type.h"
 #include "TypeChecker.h"
 
 
 template<typename T>
-const Binding& TypeChecker::inferAsType(const T& node)
+void TypeChecker::inferAsType(const T& node, Register result)
 {
-    const Binding& result = node->infer(*this);
+    node->generate(m_generator, result);
+
     unify(node->location, result, typeType());
-    if (!result.valueIsType())
-        return unitType();
-    return result;
+    //if (!result.valueIsType())
+        //return unitType();
+    //return result;
 }
+
 
 // Declarations
 
-const Binding& Declaration::infer(TypeChecker& tc)
+void Declaration::infer(TypeChecker& tc, Register result)
 {
-    check(tc, tc.unitValue());
-    return tc.unitValue();
+    tc.unitValue(result);
+    check(tc, result);
 }
 
-void LexicalDeclaration::check(TypeChecker& tc, const Binding& type)
+void LexicalDeclaration::check(TypeChecker& tc, Register type)
 {
-    const Binding& initializerBinding = (*initializer)->infer(tc);
-    tc.insert(name->name, initializerBinding);
-    tc.unify(location, tc.unitValue(), type);
+    Register tmp = tc.generator().newLocal();
+    (*initializer)->infer(tc, tmp);
+    tc.insert(name->name, tmp);
+    tc.unitValue(tmp);
+    tc.unify(location, tmp, type);
 }
 
-void FunctionDeclaration::check(TypeChecker& tc, const Binding& result)
+void FunctionDeclaration::check(TypeChecker& tc, Register result)
 {
-    const Binding* fnType;
-    Types params;
+    valueRegister = std::make_unique<Register>(tc.generator().newLocal());
+    Register typeRegister = tc.generator().newLocal();
+
+    std::vector<Register> parameterRegisters;
+    Register returnRegister = tc.generator().newLocal();
+    for (const auto& _ : parameters)
+        parameterRegisters.emplace_back(tc.generator().newLocal());
+
+    bool shadowsFunctionName = false;
     std::function<void(uint32_t)> check = [&](uint32_t i) {
         TypeChecker::Scope scope(tc);
         if (i < parameters.size()) {
-            const Binding& binding = parameters[i]->infer(tc);
-            params.emplace_back(binding);
-            tc.insert(parameters[i]->name->name, binding);
+            if (parameters[i]->name->name == name->name)
+                shadowsFunctionName = true;
+            parameters[i]->infer(tc, parameterRegisters[i]);
             check(i + 1);
             return;
         }
 
-        const Binding& ret = tc.inferAsType(returnType);
-        fnType = &tc.newFunctionValue(params, ret.valueAsType());
-        tc.insert(name->name, *fnType);
-        body->check(tc, tc.newValue(ret));
+        tc.inferAsType(returnType, returnRegister);
+        tc.newFunctionType(typeRegister, parameterRegisters, returnRegister);
+        if (!shadowsFunctionName) {
+            tc.newValue(*valueRegister, typeRegister);
+            tc.insert(name->name, *valueRegister);
+        }
+        //tc.newValue(returnRegister, returnRegister);
+        body->check(tc, returnRegister);
     };
 
     check(0);
-    tc.insert(name->name, *fnType);
-    tc.unify(location, result, tc.unitValue());
+
+    generateImpl(tc.generator(), *valueRegister, typeRegister);
+
+    tc.insert(name->name, *valueRegister);
+    tc.unify(location, result, tc.unitType());
 }
 
-const Binding& StatementDeclaration::infer(TypeChecker& tc)
+void StatementDeclaration::infer(TypeChecker& tc, Register result)
 {
-    const Binding& result = statement->infer(tc);
-    binding = statement->binding = &tc.newType(result);
-    return result;
+    statement->infer(tc, result);
 }
 
-void StatementDeclaration::check(TypeChecker& tc, const Binding& result)
+void StatementDeclaration::check(TypeChecker& tc, Register result)
 {
     statement->check(tc, result);
 }
@@ -69,85 +84,91 @@ void StatementDeclaration::check(TypeChecker& tc, const Binding& result)
 
 // Statements
 
-const Binding& Statement::infer(TypeChecker& tc)
+void Statement::infer(TypeChecker& tc, Register result)
 {
-    return tc.unitValue();
+    tc.unitValue(result);
 }
 
-void EmptyStatement::check(TypeChecker&, const Binding&)
+void EmptyStatement::check(TypeChecker&, Register)
 {
     // nothing to do here
 }
 
-void BlockStatement::check(TypeChecker& tc, const Binding& result)
+void BlockStatement::check(TypeChecker& tc, Register result)
 {
     TypeChecker::UnificationScope unificationScope(tc);
     TypeChecker::Scope scope(tc);
     for (const auto& decl : declarations) {
         if (decl == declarations.back())
             decl->check(tc, result);
-        else
-            decl->infer(tc);
+        else {
+            Register tmp = tc.generator().newLocal();
+            decl->infer(tc, tmp);
+        }
     }
 }
 
-void ReturnStatement::check(TypeChecker&, const Binding&)
+void ReturnStatement::check(TypeChecker&, Register)
 {
     // TODO
 }
 
-const Binding& IfStatement::infer(TypeChecker& tc)
+void IfStatement::infer(TypeChecker& tc, Register result)
 {
-    condition->check(tc, tc.booleanValue());
-    const Binding& result = consequent->infer(tc);
+    tc.booleanValue(result);
+    condition->check(tc, result);
+    consequent->infer(tc, result);
     if (!alternate) {
-        tc.unify(location, result, tc.unitValue());
-        return tc.unitValue();
+        Register tmp = tc.generator().newLocal();
+        tc.unitValue(tmp);
+        tc.unify(location, result, tmp);
+        tc.unitValue(result);
+    } else {
+        (*alternate)->check(tc, result);
     }
-    (*alternate)->check(tc, result);
-    return result;
 }
 
-void IfStatement::check(TypeChecker& tc, const Binding& type)
+void IfStatement::check(TypeChecker& tc, Register type)
 {
-    condition->check(tc, tc.booleanValue());
+    Register tmp = tc.generator().newLocal();
+    tc.booleanValue(tmp);
+    condition->check(tc, tmp);
     if (alternate) {
         consequent->check(tc, type);
         (*alternate)->check(tc, type);
     } else {
-        tc.unify(location, type, tc.unitValue());
-        consequent->check(tc, tc.unitValue());
+        tc.unitValue(tmp);
+        tc.unify(location, type, tmp);
+        consequent->check(tc, tmp);
     }
 }
 
-void BreakStatement::check(TypeChecker&, const Binding&)
+void BreakStatement::check(TypeChecker&, Register)
 {
     // TODO
 }
 
-void ContinueStatement::check(TypeChecker&, const Binding&)
+void ContinueStatement::check(TypeChecker&, Register)
 {
     // TODO
 }
 
-void WhileStatement::check(TypeChecker&, const Binding&)
+void WhileStatement::check(TypeChecker&, Register)
 {
     // TODO
 }
 
-void ForStatement::check(TypeChecker&, const Binding&)
+void ForStatement::check(TypeChecker&, Register)
 {
     // TODO
 }
 
-const Binding& ExpressionStatement::infer(TypeChecker& tc)
+void ExpressionStatement::infer(TypeChecker& tc, Register result)
 {
-    const Binding& result = expression->infer(tc);
-    binding = expression->binding = &tc.newType(result);
-    return result;
+    expression->infer(tc, result);
 }
 
-void ExpressionStatement::check(TypeChecker& tc, const Binding& result)
+void ExpressionStatement::check(TypeChecker& tc, Register result)
 {
     expression->check(tc, result);
 }
@@ -155,243 +176,255 @@ void ExpressionStatement::check(TypeChecker& tc, const Binding& result)
 
 // Expressions
 
-const Binding& Identifier::infer(TypeChecker& tc)
+void Identifier::infer(TypeChecker& tc, Register result)
 {
-    const Binding& result = tc.lookup(location, name, tc.unitValue());
-    binding = &tc.newType(result);
-    return result;
+    //tc.unitValue(result);
+    tc.lookup(result, location, name);
 }
 
-void Identifier::check(TypeChecker& tc, const Binding& type)
+void Identifier::check(TypeChecker& tc, Register type)
 {
     // TODO: we'll eventually need something custom here
-    tc.unify(location, infer(tc), type);
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
-const Binding& BinaryExpression::infer(TypeChecker& tc)
+void BinaryExpression::infer(TypeChecker& tc, Register result)
 {
     // TODO
-    return tc.unitValue();
+    tc.unitValue(result);
 }
 
-void BinaryExpression::check(TypeChecker&, const Binding&)
+void BinaryExpression::check(TypeChecker&, Register)
 {
     // TODO
 }
 
-const Binding& ParenthesizedExpression::infer(TypeChecker& tc)
+void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
 {
-    return expression->infer(tc);
+    expression->infer(tc, result);
 }
 
-void ParenthesizedExpression::check(TypeChecker& tc, const Binding& type)
+void ParenthesizedExpression::check(TypeChecker& tc, Register type)
 {
     expression->check(tc, type);
 }
 
-const Binding& ObjectLiteralExpression::infer(TypeChecker& tc)
+void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    Fields typeFields;
+    std::vector<std::pair<std::string, Register>> fieldRegisters;
+
+    for (const auto& pair : fields)
+        fieldRegisters.emplace_back(std::make_pair(pair.first->name, tc.generator().newLocal()));
+
+    unsigned i = 0;
     for (auto& pair : fields) {
-        typeFields.emplace(pair.first->name, pair.second->infer(tc));
+        pair.second->infer(tc, fieldRegisters[i++].second);
     }
 
-    binding = &tc.newRecordType(typeFields);
-    return tc.newRecordValue(typeFields);
+    tc.newRecordValue(result, fieldRegisters);
 }
 
-void ObjectLiteralExpression::check(TypeChecker& tc, const Binding& type)
+void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
 {
-    if (!type.type().is<TypeRecord>()) {
-        infer(tc); // check for errors in the type anyhow
-        tc.typeError(location, "Unexpected record type");
-        return;
-    }
-
-    // TODO: actual checking
+    Register tmp = tc.generator().newLocal();
+    tc.generator().checkValue(tmp, type, Type::Class::Record);
+    tc.generator().branch(tmp, [&] {
+        // TODO: actual check
+    }, [&] {
+        infer(tc, type);
+        tc.generator().typeError("Unexpected record");
+    });
 }
 
-const Binding& ArrayLiteralExpression::infer(TypeChecker& tc)
+void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    const Binding& itemBinding = items.size()
-        ? items[0]->infer(tc)
-        : tc.unitValue();
+    if (items.size())
+        items[0]->infer(tc, result);
+    else
+        tc.unitValue(result);
 
     for (uint32_t i = 1; i < items.size(); i++)
-        items[i]->check(tc, itemBinding);
+        items[i]->check(tc, result);
 
-    binding = &tc.newArrayType(itemBinding.type());
-    return tc.newArrayValue(itemBinding.type());
+    tc.newArrayValue(result, result);
 }
 
-void ArrayLiteralExpression::check(TypeChecker& tc, const Binding& type)
+void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
 {
-    if (!type.type().is<TypeArray>()) {
-        tc.typeError(location, "Unexpected array");
-        infer(tc); // check for error in the array anyhow
-        return;
-    }
-
-    const Type& itemType = type.type().as<TypeArray>().itemType();
-    const Binding& itemBinding = tc.newValue(itemType);
-    for (const auto& item : items)
-        item->check(tc, itemBinding);
+    Register tmp = tc.generator().newLocal();
+    tc.generator().checkValue(tmp, type, Type::Class::Array);
+    tc.generator().branch(tmp, [&]{
+        tc.generator().getField(tmp, type, TypeArray::itemTypeField);
+        tc.generator().newValue(tmp, tmp);
+        for (const auto& item : items)
+            item->check(tc, tmp);
+    }, [&] {
+        tc.generator().typeError("Unexpected array");
+    });
 }
 
-const TypeFunction* CallExpression::checkCallee(TypeChecker& tc, const Binding*& binding)
+void CallExpression::checkCallee(TypeChecker& tc, Register result)
 {
-    const Binding& calleeBinding = callee->infer(tc);
-    const Type& calleeType = calleeBinding.type();
-    if (calleeType.is<TypeBottom>()) {
+    callee->infer(tc, result);
+    Register tmp = tc.generator().newLocal();
+    tc.generator().checkValue(tmp, result, Type::Class::Bottom);
+    tc.generator().branch(tmp, [&] {
         for (const auto& arg : arguments)
-            arg->infer(tc); // check arguments are well-formed
-        binding = &tc.bottomValue();
-        return nullptr;
-    }
-
-    if (!calleeType.is<TypeFunction>()) {
-        tc.typeError(location, "Callee is not a function");
-        binding = &tc.unitValue();
-        return nullptr;
-    }
-
-    return &calleeType.as<TypeFunction>();
+            arg->infer(tc, tmp); // check arguments are well-formed
+    }, [&] {
+        tc.generator().checkValue(tmp, result, Type::Class::Function);
+        tc.generator().branch(tmp, [&] {
+            tc.generator().getTypeForValue(result, result);
+        }, [&] {
+            tc.generator().typeError("Callee is not a function");
+        });
+    });
 }
 
-void CallExpression::checkArguments(TypeChecker& tc, const TypeFunction& calleeTypeFunction, TypeChecker::UnificationScope& scope)
+void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeChecker::UnificationScope& scope)
 {
-    bool argumentMismatch = calleeTypeFunction.explicitParamCount() != arguments.size();
-    if (argumentMismatch)
-        tc.typeError(location, "Argument count mismatch");
-    else {
-        uint32_t argIndex = 0;
-        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
-            const Binding& param = calleeTypeFunction.param(i);
-            if (param.inferred())
-                scope.infer(location, param);
-            else
-                arguments[argIndex++]->check(tc, param);
-        }
-        ASSERT(argIndex == arguments.size(), "");
+    Register explicitParamCount = tc.generator().newLocal();
+    tc.generator().getField(explicitParamCount, calleeType, TypeFunction::explicitParamCountField);
 
-        auto it = arguments.begin();
-        for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
-            const Binding& param = calleeTypeFunction.param(i);
-            if (!param.inferred()) {
-                ++it;
-                continue;
-            }
+    Register tmp = tc.generator().newLocal();
+    tc.generator().loadConstant(tmp, static_cast<uint32_t>(arguments.size()));
+    tc.generator().isEqual(tmp, tmp, explicitParamCount);
+    tc.generator().branch(tmp, [&] {}, [&] {
+        // TODO: location
+        tc.generator().typeError("Argument count mismatch");
+    });
 
-            const Type& inferredType = scope.resolve(param.valueAsType());
-            auto argument = std::make_unique<SynthesizedTypeExpression>(location);
-            argument->binding = &tc.newType(inferredType);
-            it = ++arguments.emplace(it, std::move(argument));
-        }
-        ASSERT(it == arguments.end(), "");
+    Register param = tc.generator().newLocal();
+    Register index = tc.generator().newLocal();
+    tc.generator().getField(tmp, calleeType, TypeFunction::explicitParamsField);
+    for (uint32_t i = 0; i < arguments.size(); i++) {
+        tc.generator().loadConstant(index, i);
+        tc.generator().getArrayIndex(param, tmp, index);
+        arguments[i]->check(tc, param);
     }
+    tc.generator().inferImplicitParameters(calleeType);
+
+    //auto it = arguments.begin();
+    //for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
+        //Register param = calleeTypeFunction.param(i);
+        //if (!param.inferred()) {
+            //++it;
+            //continue;
+        //}
+
+        //const Type& inferredType = scope.resolve(param.valueAsType());
+        //auto argument = std::make_unique<SynthesizedTypeExpression>(location);
+        //it = ++arguments.emplace(it, std::move(argument));
+    //}
+    //ASSERT(it == arguments.end(), "");
 }
 
-const Binding& CallExpression::infer(TypeChecker& tc)
-{
-    TypeChecker::UnificationScope scope(tc);
-    const Binding* calleeBinding;
-    const TypeFunction* calleeTypeFunction = checkCallee(tc, calleeBinding);
-    if (!calleeTypeFunction)
-        return *calleeBinding;
-    checkArguments(tc, *calleeTypeFunction, scope);
-    const Type& result = scope.resolve(calleeTypeFunction->returnType());
-    binding = &tc.newType(result);
-    return tc.newValue(result);
-}
-
-void CallExpression::check(TypeChecker& tc, const Binding& type)
+void CallExpression::infer(TypeChecker& tc, Register result)
 {
     TypeChecker::UnificationScope scope(tc);
-    const Binding* calleeBinding;
-    const TypeFunction* calleeTypeFunction = checkCallee(tc, calleeBinding);
-    if (!calleeTypeFunction)
-        return;
-    tc.unify(location, tc.newValue(calleeTypeFunction->returnType()), type);
-    checkArguments(tc, *calleeTypeFunction, scope);
+    checkCallee(tc, result);
+    checkArguments(tc, result, scope);
+    tc.generator().getField(result, result, TypeFunction::returnTypeField);
+    scope.resolve(result, result);
+    tc.newValue(result, result);
 }
 
-const Binding& SubscriptExpression::infer(TypeChecker& tc)
+void CallExpression::check(TypeChecker& tc, Register type)
 {
-    const Binding& targetBinding = target->infer(tc);
-    const Type& targetType = targetBinding.type();
-    if (!targetType.is<TypeArray>()) {
-        tc.typeError(location, "Trying to subscript non-array");
-        return tc.unitValue();
-    }
-
-    const TypeArray& targetArrayType = targetType.as<TypeArray>();
-    index->check(tc, tc.numericValue());
-
-    binding = &tc.newType(targetArrayType.itemType());
-    return tc.newValue(targetArrayType.itemType());
+    //TypeChecker::UnificationScope scope(tc);
+    //const TypeFunction* calleeTypeFunction = checkCallee(tc);
+    //if (!calleeTypeFunction)
+        //return;
+    //tc.unify(location, tc.newValue(calleeTypeFunction->returnType()), type);
+    //checkArguments(tc, *calleeTypeFunction, scope);
 }
 
-void SubscriptExpression::check(TypeChecker& tc, const Binding& itemType)
+void SubscriptExpression::infer(TypeChecker& tc, Register result)
 {
-    index->check(tc, tc.numericValue());
-    target->check(tc, tc.newArrayValue(itemType.type()));
+    target->infer(tc, result);
+
+    Register tmp = tc.generator().newLocal();
+    tc.numericValue(tmp);
+    index->check(tc, tmp);
+
+    tc.generator().checkValue(tmp, result, Type::Class::Array);
+    tc.generator().branch(tmp, [&] {
+        tc.generator().getTypeForValue(result, result);
+        tc.generator().getField(result, result, TypeArray::itemTypeField);
+        tc.generator().newValue(result, result);
+    }, [&] {
+        tc.generator().typeError("Trying to subscript non-array");
+    });
+
+
 }
 
-const Binding& MemberExpression::infer(TypeChecker& tc)
+void SubscriptExpression::check(TypeChecker& tc, Register itemType)
 {
-    const Binding& targetBinding = object->infer(tc);
-    const Type& targetType = targetBinding.type();
-    if (!targetType.is<TypeRecord>()) {
-        tc.typeError(location, "Trying to access field of non-record");
-        return tc.unitValue();
-    }
-
-    const TypeRecord& recordType = targetType.as<TypeRecord>();
-    auto optionalFieldType = recordType.field(property->name);
-    if (!optionalFieldType) {
-        tc.typeError(location, "Unknown field");
-        return tc.unitValue();
-    }
-
-    binding = &tc.newType(*optionalFieldType);
-    return *optionalFieldType;
+    //Register tmp = tc.generator().newLocal();
+    //tc.numericValue(tmp);
+    //index->check(tc, tmp);
+    //tc.generator().newArrayValue(itemType);
+    //target->check(tc, itemType);
 }
 
-void MemberExpression::check(TypeChecker& tc, const Binding& type)
+void MemberExpression::infer(TypeChecker& tc, Register result)
+{
+    // FIXME: should check tc against { this->field }
+    Register tmp = tc.generator().newLocal();
+    object->infer(tc, result);
+    tc.generator().checkValue(tmp, result, Type::Class::Record);
+    tc.generator().branch(tmp, [&] {
+        tc.generator().getTypeForValue(result, result);
+        tc.generator().getField(result, result, TypeRecord::fieldsField);
+        tc.generator().getField(result, result, property->name);
+    }, [&] {
+        tc.generator().typeError("Trying to acess field of non-record");
+    });
+}
+
+void MemberExpression::check(TypeChecker& tc, Register result)
 {
     // TODO: do we need something custom here?
-    tc.unify(location, infer(tc), type);
+    //Register tmp = tc.generator().newLocal();
+    //infer(tc, tmp);
+    //tc.unify(location, tmp, type);
 }
 
-const Binding& LiteralExpression::infer(TypeChecker& tc)
+void LiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    const Binding& result = literal->infer(tc);
-    binding = literal->binding = &tc.newType(result);
-    return result;
+    literal->infer(tc, result);
 }
 
-void LiteralExpression::check(TypeChecker& tc, const Binding& result)
+void LiteralExpression::check(TypeChecker& tc, Register result)
 {
-    tc.unify(location, infer(tc), result);
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, result);
 }
 
-const Binding& TypeExpression::infer(TypeChecker& tc)
+void TypeExpression::infer(TypeChecker& tc, Register result)
 {
-    return type->infer(tc);
+    type->infer(tc, result);
 }
-void TypeExpression::check(TypeChecker& tc, const Binding& result)
+void TypeExpression::check(TypeChecker& tc, Register result)
 {
-    tc.unify(location, result, tc.typeType());
-    tc.unify(location, infer(tc), result);
+    Register tmp = tc.generator().newLocal();
+    tc.typeType(tmp);
+    tc.unify(location, result, tmp);
+    infer(tc, tmp);
+    tc.unify(location, tmp, result);
 }
 
-const Binding& SynthesizedTypeExpression::infer(TypeChecker& tc)
+void SynthesizedTypeExpression::infer(TypeChecker& tc, Register result)
 {
     ASSERT(false, "Should not infer type for SynthesizedTypeExpression");
-    return tc.unitValue();
+    tc.unitValue(result);
 }
 
-void SynthesizedTypeExpression::check(TypeChecker&, const Binding&)
+void SynthesizedTypeExpression::check(TypeChecker&, Register)
 {
     ASSERT(false, "Should not type check SynthesizedTypeExpression");
 }
@@ -399,35 +432,41 @@ void SynthesizedTypeExpression::check(TypeChecker&, const Binding&)
 
 // Literals
 
-const Binding& BooleanLiteral::infer(TypeChecker& tc)
+void BooleanLiteral::infer(TypeChecker& tc, Register result)
 {
-    return tc.booleanValue();
+    tc.booleanValue(result);
 }
 
-const Binding& NumericLiteral::infer(TypeChecker& tc)
+void NumericLiteral::infer(TypeChecker& tc, Register result)
 {
-    return tc.numericValue();
+    return tc.numericValue(result);
 }
 
-const Binding& StringLiteral::infer(TypeChecker& tc)
+void StringLiteral::infer(TypeChecker& tc, Register result)
 {
-    return tc.stringValue();
+    return tc.stringValue(result);
 }
 
 // Types
-const Binding& TypedIdentifier::infer(TypeChecker& tc)
+void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
-    const Binding& binding = tc.inferAsType(type);
-    if (binding.valueAsType().is<TypeType>())
-        return tc.newVarType(name->name, inferred);
-    else {
+    type->check(tc, tc.typeType());
+    type->generate(tc.generator(), result);
+
+    Register tmp = tc.generator().newLocal();
+    tc.generator().checkType(tmp, result, Type::Class::Type);
+    tc.generator().branch(tmp, [&]{
+        tc.generator().newVarType(result, name->name, inferred);
+        tc.insert(name->name, result);
+    }, [&]{
         if (inferred)
-            tc.typeError(location, "Only type arguments can be inferred");
-        return tc.newValue(binding.valueAsType());
-    }
+            tc.generator().typeError("Only type arguments can be inferred");
+        tc.generator().newValue(tmp, result);
+        tc.insert(name->name, tmp);
+    });
 }
 
-const Binding& ASTTypeType::infer(TypeChecker& tc)
+void ASTTypeType::infer(TypeChecker& tc, Register result)
 {
-    return tc.typeType();
+    tc.typeType(result);
 }

@@ -8,5 +8,5 @@
 #define LOG(__channel, ...) \
     do { \
         if (std::getenv(STRINGIFY(LOG_##__channel))) \
-            std::cerr << __VA_ARGS__ << std::endl; \
+            std::cerr << "[" #__channel "] " << __VA_ARGS__ << std::endl; \
     } while(false)

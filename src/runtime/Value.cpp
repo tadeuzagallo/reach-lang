@@ -1,6 +1,10 @@
 #include "Value.h"
 
 #include "Assert.h"
+#include "Function.h"
+#include "Type.h"
+#include "VM.h"
+#include <string>
 
 #define CHECK() ASSERT(!isCrash(), "Value::crash")
 
@@ -24,6 +28,16 @@ Value::Value(bool b)
 {
 }
 
+Value::Value(uint32_t u)
+    : Value(static_cast<double>(u))
+{
+}
+
+Value::Value(int32_t i)
+    : Value(static_cast<double>(i))
+{
+}
+
 Value::Value(double d)
 {
     union {
@@ -33,9 +47,14 @@ Value::Value(double d)
     m_bits = u.i + DoubleEncodeOffset;
 }
 
-Value::Value(const Cell* cell)
+Value::Value(Cell* cell)
 {
     m_bits = reinterpret_cast<intptr_t>(cell);
+}
+
+Value::Value(AbstractValue abstractValue)
+{
+    m_bits = abstractValue.bits() | TagTypeAbstractValue;
 }
 
 Value::Value(CrashTag)
@@ -71,6 +90,8 @@ void Value::dump(std::ostream& out) const
         out << "()";
     else if (isCell())
         asCell()->dump(out);
+    else if (isAbstractValue())
+        asAbstractValue().dump(out);
 }
 
 bool Value::isUnit() const
@@ -97,6 +118,17 @@ bool Value::isCell() const
     return !(m_bits & TagMask);
 }
 
+bool Value::isAbstractValue() const
+{
+    CHECK();
+    return m_bits & TagTypeAbstractValue;
+}
+
+bool Value::isType() const
+{
+    return isCell() && asCell()->is<Type>();
+}
+
 double Value::asNumber() const
 {
     ASSERT(isNumber(), "Value is not a number");
@@ -119,8 +151,45 @@ Cell* Value::asCell() const
     return reinterpret_cast<Cell*>(m_bits);
 }
 
+AbstractValue Value::asAbstractValue() const
+{
+    Type* type = reinterpret_cast<Type*>(m_bits & ~TagTypeAbstractValue);
+    return AbstractValue(type);
+}
+
+Type* Value::asType() const
+{
+    ASSERT(isType(), "OOPS");
+    return asCell<Type>();
+}
+
+Type* Value::type(VM& vm) const
+{
+    if (isBool())
+        return vm.boolType;
+    if (isNumber())
+        return vm.numberType;
+    if (isUnit())
+        return vm.unitType;
+    if (isAbstractValue())
+        return asAbstractValue().type();
+
+    ASSERT(isCell());
+    Cell* cell = asCell();
+    if (cell->is<Function>())
+        return cell->cast<Function>()->type();
+
+    ASSERT(cell->is<Type>(), "OOPS");
+    return vm.typeType;
+}
+
 bool Value::isCrash() const
 {
     return !m_bits;
+}
 
+Cell* Value::getCell() const
+{
+    ASSERT(isCell() || isAbstractValue(), "OOPS");
+    return isCell() ? asCell() : asAbstractValue().type();
 }

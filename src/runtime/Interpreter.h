@@ -10,14 +10,17 @@
 class Function;
 
 class Interpreter {
+    friend class Scope;
+
 public:
-    Interpreter(VM&, const BytecodeBlock&, const Environment*);
+    Interpreter(VM&, const BytecodeBlock&, Environment*);
     ~Interpreter();
 
     VM& vm() { return m_vm; }
 
-    Value run(std::vector<Value> = {});
+    Value run(std::vector<Value> = {}, const std::function<void()>& = {});
     Value call(Function*, std::vector<Value>);
+    Value reg(Register) const;
 
 private:
     void dispatch();
@@ -39,4 +42,5 @@ private:
     InstructionStream::Ref m_ip;
     Stack m_cfr;
     Value m_result;
+    std::function<void()> m_callback;
 };

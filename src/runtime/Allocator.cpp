@@ -1,16 +1,20 @@
 #include "Allocator.h"
+
 #include "Assert.h"
+#include <stdlib.h>
 
 std::unordered_map<size_t, Allocator*> Allocator::s_allocators;
 
-Allocator::Allocator(size_t cellSize)
+Allocator::Allocator(VM* vm, size_t cellSize)
     : m_cellSize(cellSize)
 {
-    m_blockSize = m_cellSize * 256;
-    m_start = reinterpret_cast<uint8_t*>(malloc(m_blockSize));
-    ASSERT(m_start, "Failed to create allocation block");
+    Header* header;
+    int result = posix_memalign(reinterpret_cast<void**>(&header), s_blockSize, s_blockSize);
+    ASSERT(!result, "Failed to create allocation block");
+    *header = Header { vm };
+    m_start = reinterpret_cast<uint8_t*>(header + 1);
     m_current = m_start;
-    m_end = m_start + m_blockSize;
+    m_end = m_start + s_blockSize;
 }
 
 Allocator::~Allocator()
@@ -18,12 +22,13 @@ Allocator::~Allocator()
     ::free(m_start);
 }
 
-Allocator& Allocator::forSize(size_t size)
+Allocator& Allocator::forSize(VM* vm, size_t size)
 {
+    ASSERT(size < s_blockSize, "Allocation is too big: %lu", size);
     auto it = s_allocators.find(size);
     if (it != s_allocators.end())
         return *it->second;
-    Allocator* allocator = new Allocator(size);
+    Allocator* allocator = new Allocator(vm, size);
     s_allocators[size] = allocator;
     return *allocator;
 }
@@ -51,7 +56,7 @@ Cell* Allocator::cell()
         return cell;
     }
 
-    if (m_current < m_end) {
+    if (m_current + m_cellSize <= m_end) {
         Cell* result = reinterpret_cast<Cell*>(m_current);
         m_current += m_cellSize;
         return result;
