@@ -31,11 +31,10 @@ ast_node :FunctionDeclaration < :Declaration,
     parameters: "std::vector<std::unique_ptr<TypedIdentifier>>",
     returnType: "std::unique_ptr<Expression>",
     body: "std::unique_ptr<BlockStatement>",
-    valueRegister: "std::unique_ptr<Register>",
-    type: "Type*",
+    functionIndex: "uint32_t",
   },
   extra_methods: [
-    "void generateImpl(BytecodeGenerator&, Register, Register)",
+    "void generateImpl(BytecodeGenerator&, Register)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void check(TypeChecker&, Register)",
   ]

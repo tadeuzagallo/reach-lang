@@ -38,8 +38,8 @@ void Heap::markFromRoots()
     m_vm->globalEnvironment->visit(markRoot);
     if (m_vm->globalBlock)
         m_vm->globalBlock->visit(markRoot);
-    if (m_vm->typeChecker)
-        m_vm->typeChecker->visit(markRoot);
+    for (TypeChecker* typeChecker = m_vm->typeChecker; typeChecker; typeChecker = typeChecker->previousTypeChecker())
+        typeChecker->visit(markRoot);
 
     markNativeStack(markRoot);
     markInterpreterStack(markRoot);

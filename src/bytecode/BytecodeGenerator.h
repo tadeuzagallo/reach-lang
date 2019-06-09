@@ -35,7 +35,8 @@ public:
     void newArray(Register, unsigned);
     void setArrayIndex(Register, unsigned, Register);
     void getArrayIndex(Register, Register, Register);
-    void newFunction(Register, std::unique_ptr<BytecodeBlock>, Register);
+    uint32_t newFunction(Register, std::unique_ptr<BytecodeBlock>);
+    void newFunction(Register, uint32_t);
     void move(Register dst, Register src);
     void newObject(Register, uint32_t);
     void setField(Register, const std::string&, Register);
@@ -59,6 +60,7 @@ public:
     void checkValue(Register, Register, Type::Class);
     void typeError(const char*);
     void inferImplicitParameters(Register);
+    void endTypeChecking(Register);
 
     // Types
     void newVarType(Register, const std::string&, bool);

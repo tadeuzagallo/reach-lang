@@ -17,14 +17,19 @@ class VM;
 
 class TypeChecker {
     friend class Scope;
+    friend class Scope;
     friend class UnificationScope;
 
 public:
     TypeChecker(BytecodeGenerator&);
-    VM& vm() const;
-    BytecodeGenerator& generator();
+    ~TypeChecker();
 
-    Register check(const std::unique_ptr<Program>&);
+    VM& vm() const;
+    TypeChecker* previousTypeChecker() const;
+    BytecodeGenerator& generator() const;
+    std::unique_ptr<BytecodeBlock> finalize(Register);
+
+    void check(const std::unique_ptr<Program>&);
     void visit(const std::function<void(Value)>&) const;
 
     Register typeType();
@@ -80,9 +85,10 @@ public:
         ~UnificationScope();
 
         void resolve(Register, Register);
+        void finalize();
 
     private:
-        TypeChecker& m_typeChecker;
+        TypeChecker* m_typeChecker;
     };
 
 private:
@@ -108,6 +114,8 @@ private:
     BytecodeGenerator& m_generator;
     //Scope m_topScope;
     UnificationScope m_topUnificationScope;
+
+    TypeChecker* m_previousTypeChecker;
 
     //std::vector<Error> m_errors;
     //std::vector<std::pair<std::string, const Binding*>> m_environment;

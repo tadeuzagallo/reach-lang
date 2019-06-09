@@ -166,9 +166,9 @@ OP(GetArrayIndex)
 OP(NewFunction)
 {
     move(vm(), regA0);
-    move(&m_block.function(ip.functionIndex), regA1);
+    move(&m_block.functionBlock(ip.functionIndex), regA1);
     load(m_block.environmentRegister(), regA2);
-    call<Function*, VM&, const BytecodeBlock&, Environment*, Type*>(createFunction);
+    call<Function*, VM&, BytecodeBlock&, Environment*, Type*>(createFunction);
     store(regR0, ip.dst);
 }
 

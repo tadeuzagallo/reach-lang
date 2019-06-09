@@ -39,8 +39,7 @@ instruction :GetArrayIndex,
 
 instruction :NewFunction,
     dst: :Register,
-    functionIndex: :uint32_t,
-    type: :Register
+    functionIndex: :uint32_t
 
 instruction :Call,
     dst: :Register,

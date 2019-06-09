@@ -22,11 +22,10 @@ Value Function::call(VM& vm, std::vector<Value> args)
         return call(vm, args);
     }
 
-    Interpreter interpreter { vm, *m_block, m_parentEnvironment };
-    return interpreter.run(args);
+    return Interpreter::run(vm, *m_block, m_parentEnvironment, args);
 }
 
-Function* createFunction(VM& vm, const BytecodeBlock& block, Environment* parentEnvironment, Type* type)
+Function* createFunction(VM& vm, BytecodeBlock& block, Environment* parentEnvironment, Type* type)
 {
     return Function::create(vm, block, parentEnvironment, type);
 }

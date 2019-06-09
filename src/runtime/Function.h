@@ -13,6 +13,10 @@ public:
     CELL(Function)
 
     Type* type() const { return m_type; }
+    void setParentEnvironment(Environment* parentEnvironment)
+    {
+        m_parentEnvironment = parentEnvironment;
+    }
 
     void visit(std::function<void(Value)>) const override;
 
@@ -27,7 +31,7 @@ public:
     Value call(VM&, std::vector<Value>);
 
 private:
-    Function(const BytecodeBlock& block, Environment* parentEnvironment, Type* type)
+    Function(BytecodeBlock& block, Environment* parentEnvironment, Type* type)
         : m_type(type)
         , m_parentEnvironment(parentEnvironment)
         , m_block(&block)
@@ -42,8 +46,8 @@ private:
 
     Type* m_type { nullptr };
     Environment* m_parentEnvironment;
-    const BytecodeBlock* m_block { nullptr };
+    BytecodeBlock* m_block { nullptr };
     NativeFunction m_nativeFunction { nullptr };
 };
 
-extern Function* createFunction(VM&, const BytecodeBlock&, Environment*, Type*);
+extern Function* createFunction(VM&, BytecodeBlock&, Environment*, Type*);

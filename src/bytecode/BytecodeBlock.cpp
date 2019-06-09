@@ -1,6 +1,8 @@
 #include "BytecodeBlock.h"
 
+#include "Function.h"
 #include "JIT.h"
+
 static uint32_t optimizationThreshold()
 {
     static uint32_t threshold = std::getenv("JIT_THRESHOLD") ? atoi(std::getenv("JIT_THRESHOLD")) : 10;
@@ -25,10 +27,30 @@ Value BytecodeBlock::constant(uint32_t index) const
     return m_constants[index];
 }
 
-const BytecodeBlock& BytecodeBlock::function(uint32_t index) const
+BytecodeBlock& BytecodeBlock::functionBlock(uint32_t index) const
+{
+    ASSERT(index < m_functionBlocks.size(), "Function out of bounds");
+    return *m_functionBlocks[index];
+}
+
+uint32_t BytecodeBlock::addFunctionBlock(std::unique_ptr<BytecodeBlock> block)
+{
+    uint32_t functionIndex = m_functionBlocks.size();
+    m_functionBlocks.emplace_back(std::move(block));
+    m_functions.emplace_back(nullptr);
+    return functionIndex;
+}
+
+Function* BytecodeBlock::function(uint32_t index) const
 {
     ASSERT(index < m_functions.size(), "Function out of bounds");
-    return *m_functions[index];
+    return m_functions[index];
+}
+
+void BytecodeBlock::setFunction(uint32_t index, Function* function)
+{
+    ASSERT(index < m_functions.size(), "Trying to set function out of bounds");
+    m_functions[index] = function;
 }
 
 void BytecodeBlock::visit(std::function<void(Value)> visitor) const
@@ -36,8 +58,12 @@ void BytecodeBlock::visit(std::function<void(Value)> visitor) const
     for (auto value : m_constants)
         visitor(value);
 
-    for (auto& block : m_functions)
+    for (auto& block : m_functionBlocks)
         block->visit(visitor);
+
+    for (auto* function : m_functions)
+        if (function)
+            function->visit(visitor);
 }
 
 void BytecodeBlock::dump(std::ostream& out) const
@@ -51,8 +77,8 @@ void BytecodeBlock::dump(std::ostream& out) const
     for (unsigned i = 0; i < m_identifiers.size(); i++)
         out << std::setw(8) << i << ": " << identifier(i) << std::endl;
     out << std::endl << "    Functions: " << std::endl;
-    for (unsigned i = 0; i < m_functions.size(); i++)
-        out << std::setw(8) << i << ": " << function(i).name() << std::endl;
+    for (unsigned i = 0; i < m_functionBlocks.size(); i++)
+        out << std::setw(8) << i << ": " << functionBlock(i).name() << std::endl;
     out << std::endl;
 }
 

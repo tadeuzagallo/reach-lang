@@ -8,26 +8,45 @@
 #include "Type.h"
 #include "UnificationScope.h"
 
+Value Interpreter::check(VM& vm, BytecodeBlock& block, Environment* parentEnvironment)
+{
+    LOG(InterpreterDispatch, "Checking " << block.name() << " @ " << block.locationInfo(0));
+    Interpreter interpreter { vm, block, 0, parentEnvironment };
+    interpreter.m_mode = Mode::Check;
+    Value result = interpreter.run();
+    LOG(InterpreterDispatch, "Done checking " << block.name() << ": " << result << " @ " << block.locationInfo(0));
+    return result;
+}
+
+Value Interpreter::run(VM& vm, BytecodeBlock& block, Environment* parentEnvironment, const Values& args, const Callback& callback)
+{
+    LOG(InterpreterDispatch, "Running " << block.name() << " @ " << block.locationInfo(0));
+    Interpreter interpreter { vm, block, block.codeStart(), parentEnvironment };
+    Value result = interpreter.run(args, callback);
+    LOG(InterpreterDispatch, "Done running " << block.name() << ": " << result << " @ " << block.locationInfo(0));
+    return result;
+}
+
 Value& Interpreter::Stack::operator[](const Register& reg) const
 {
     return m_stackAddress[reg.offset()];
 }
 
-Interpreter::Interpreter(VM& vm, const BytecodeBlock& block, Environment* parentEnvironment)
+Interpreter::Interpreter(VM& vm, BytecodeBlock& block, InstructionStream::Offset bytecodeOffset, Environment* parentEnvironment)
     : m_vm(vm)
     , m_block(block)
-    , m_ip(m_block.instructions().at(0))
+    , m_ip(m_block.instructions().at(bytecodeOffset))
     , m_result(Value::crash())
 {
     vm.currentBlock = &block;
-    m_environment = Environment::create(vm, parentEnvironment);
+    m_environment = Environment::create(vm, parentEnvironment ?: vm.globalEnvironment);
 }
 
 Interpreter::~Interpreter()
 {
 }
 
-Value Interpreter::run(std::vector<Value> args, const std::function<void()>& callback)
+Value Interpreter::run(const Values& args, const Callback& callback)
 {
     m_vm.stack.insert(m_vm.stack.begin(), args.begin(), args.end());
 
@@ -50,7 +69,7 @@ void Interpreter::dispatch()
 #define CASE(Instruction) \
     case Instruction::ID: { \
         const Instruction* instruction = reinterpret_cast<const Instruction*>(m_ip.get()); \
-        LOG(InterpreterDispatch, "["  << m_ip.offset() << "] " << *instruction << " @ " << m_block.locationInfo(m_ip.offset())); \
+        LOG(InterpreterDispatch, m_block.name() << "#" << m_ip.offset() << ": " << *instruction << " @ " << m_block.locationInfo(m_ip.offset())); \
         run##Instruction(*instruction); \
         break; \
     } \
@@ -62,11 +81,12 @@ void Interpreter::dispatch()
 #undef CASE
 }
 
-Value Interpreter::call(Function* function, std::vector<Value> args)
+template<typename Functor>
+Value Interpreter::preserveStack(const Functor& functor)
 {
     size_t stackSize = vm().stack.size();
     uint32_t cfrIndex = m_cfr.m_stackAddress - &vm().stack[0];
-    Value result = function->call(vm(), args);
+    auto result = functor();
     ASSERT(vm().stack.size() == stackSize, "Inconsistent stack");
     m_cfr = Stack { &vm().stack[cfrIndex] };
     return result;
@@ -105,7 +125,7 @@ OP(End)
 {
     m_result = m_cfr[ip.dst];
     if (m_callback)
-        m_callback();
+        m_callback(*this);
     m_vm.stack.erase(m_vm.stack.begin(), m_vm.stack.begin() + m_block.numLocals());
 }
 
@@ -159,8 +179,21 @@ OP(GetArrayIndex)
 
 OP(NewFunction)
 {
-    Type* type = m_cfr[ip.type].asType();
-    auto* function = Function::create(vm(), m_block.function(ip.functionIndex), m_environment, type);
+    Function* function;
+
+    if (m_mode == Mode::Check) {
+        BytecodeBlock& functionBlock = m_block.functionBlock(ip.functionIndex);
+        Value type = preserveStack([&] {
+            return check(vm(), functionBlock, m_environment);
+        });
+        ASSERT(type.isType(), "OOPS");
+        function = Function::create(vm(), functionBlock, m_environment, type.asType());
+        m_block.setFunction(ip.functionIndex, function);
+    } else {
+        function = m_block.function(ip.functionIndex);
+        function->setParentEnvironment(m_environment);
+    }
+
     m_cfr[ip.dst] = Value { function };
     DISPATCH();
 }
@@ -168,11 +201,13 @@ OP(NewFunction)
 OP(Call)
 {
     auto* function = m_cfr[ip.callee].asCell<Function>();
-    std::vector<Value> args(ip.argc);
+    Values args(ip.argc);
     uint32_t firstArgOffset = -ip.firstArg.offset();
     for (uint32_t i = 0; i < ip.argc; i++)
         args[i] = m_cfr[Register::forLocal(firstArgOffset + i)];
-    auto result = call(function, args);
+    auto result = preserveStack([&] {
+        return function->call(vm(), args);
+    });
     m_cfr[ip.dst] = result;
     DISPATCH();
 }
@@ -270,7 +305,7 @@ OP(PushUnificationScope)
 OP(PopUnificationScope)
 {
     delete m_vm.unificationScope;
- 
+
     if (!m_vm.unificationScope) {
         // We are done type checking!
         bool hasErrors = m_vm.reportTypeErrors();

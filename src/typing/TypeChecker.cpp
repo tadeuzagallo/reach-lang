@@ -18,7 +18,7 @@ TypeChecker::TypeChecker(BytecodeGenerator& generator)
     , m_numberType(generator.newLocal())
     , m_stringType(generator.newLocal())
 {
-    ASSERT(!vm().typeChecker, "Already type checking");
+    m_previousTypeChecker = vm().typeChecker;
     vm().typeChecker = this;
 
     m_generator.loadConstant(m_typeType, vm().typeType);
@@ -35,7 +35,12 @@ TypeChecker::TypeChecker(BytecodeGenerator& generator)
     insert("String", m_stringType);
 }
 
-Register TypeChecker::check(const std::unique_ptr<Program>& program)
+TypeChecker::~TypeChecker()
+{
+    vm().typeChecker = m_previousTypeChecker;
+}
+
+void TypeChecker::check(const std::unique_ptr<Program>& program)
 {
     Register result = m_generator.newLocal();
     //unitValue(result);
@@ -44,7 +49,7 @@ Register TypeChecker::check(const std::unique_ptr<Program>& program)
     }
     m_generator.getTypeForValue(result, result);
     m_topUnificationScope.resolve(result, result);
-    return result;
+    m_generator.endTypeChecking(result);
 }
 
 void TypeChecker::visit(const std::function<void(Value)>& visitor) const
@@ -57,9 +62,20 @@ VM& TypeChecker::vm() const
     return m_generator.vm();
 }
 
-BytecodeGenerator& TypeChecker::generator()
+TypeChecker* TypeChecker::previousTypeChecker() const
+{
+    return m_previousTypeChecker;
+}
+
+BytecodeGenerator& TypeChecker::generator() const
 {
     return m_generator;
+}
+
+std::unique_ptr<BytecodeBlock> TypeChecker::finalize(Register result)
+{
+    m_topUnificationScope.finalize();
+    return m_generator.finalize(result);
 }
 
 Register TypeChecker::typeType()
@@ -200,17 +216,25 @@ TypeChecker::Scope::~Scope()
 }
 
 TypeChecker::UnificationScope::UnificationScope(TypeChecker& typeChecker)
-    : m_typeChecker(typeChecker)
+    : m_typeChecker(&typeChecker)
 {
-    m_typeChecker.m_generator.pushUnificationScope();
+    m_typeChecker->m_generator.pushUnificationScope();
 }
 
 TypeChecker::UnificationScope::~UnificationScope()
 {
-    m_typeChecker.m_generator.popUnificationScope();
+    finalize();
 }
 
 void TypeChecker::UnificationScope::resolve(Register dst, Register type)
 {
-    m_typeChecker.m_generator.resolveType(dst, type);
+    m_typeChecker->m_generator.resolveType(dst, type);
+}
+
+void TypeChecker::UnificationScope::finalize()
+{
+    if (!m_typeChecker)
+        return;
+    m_typeChecker->m_generator.popUnificationScope();
+    m_typeChecker = nullptr;
 }

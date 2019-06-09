@@ -12,17 +12,32 @@ class Function;
 class Interpreter {
     friend class Scope;
 
+    using Values = std::vector<Value>;
+    using Callback = std::function<void(const Interpreter&)>;
+
 public:
-    Interpreter(VM&, const BytecodeBlock&, Environment*);
+    static Value check(VM& vm, BytecodeBlock&, Environment*);
+    static Value run(VM& vm, BytecodeBlock&, Environment* = nullptr, const Values& = {}, const Callback& = {});
+
+    Value reg(Register) const;
+
+private:
+    enum class Mode {
+        Check = 0b01,
+        Run = 0b10,
+        CheckAndRun = 0b11,
+    };
+
+    Interpreter(VM&, BytecodeBlock&, InstructionStream::Offset, Environment*);
     ~Interpreter();
 
     VM& vm() { return m_vm; }
 
-    Value run(std::vector<Value> = {}, const std::function<void()>& = {});
-    Value call(Function*, std::vector<Value>);
-    Value reg(Register) const;
+    Value run(const Values& = {}, const Callback& = {});
 
-private:
+    template<typename Functor>
+    Value preserveStack(const Functor&);
+
     void dispatch();
 
 #define DECLARE_OP(Instruction) void run##Instruction(const Instruction&);
@@ -36,11 +51,12 @@ private:
     };
 
     VM& m_vm;
-    const BytecodeBlock& m_block;
+    BytecodeBlock& m_block;
     Environment* m_environment;
+    Mode m_mode { Mode::Run };
     bool m_stop;
     InstructionStream::Ref m_ip;
     Stack m_cfr;
     Value m_result;
-    std::function<void()> m_callback;
+    Callback m_callback;
 };

@@ -36,39 +36,48 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
 void FunctionDeclaration::check(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
-    valueRegister = std::make_unique<Register>(tc.generator().newLocal());
-    Register typeRegister = tc.generator().newLocal();
+
+    Register valueRegister = tc.generator().newLocal();
+
+    BytecodeGenerator functionGenerator { tc.generator().vm(), name->name };
+    TypeChecker functionTC { functionGenerator };
+
+    Register resultRegister = functionGenerator.newLocal();
+    Register typeRegister = functionGenerator.newLocal();
 
     std::vector<Register> parameterRegisters;
-    Register returnRegister = tc.generator().newLocal();
+    Register returnRegister = functionGenerator.newLocal();
     for (const auto& _ : parameters)
-        parameterRegisters.emplace_back(tc.generator().newLocal());
+        parameterRegisters.emplace_back(functionGenerator.newLocal());
 
     bool shadowsFunctionName = false;
     std::function<void(uint32_t)> check = [&](uint32_t i) {
-        TypeChecker::Scope scope(tc);
+        TypeChecker::Scope scope(functionTC);
         if (i < parameters.size()) {
             if (parameters[i]->name->name == name->name)
                 shadowsFunctionName = true;
-            parameters[i]->infer(tc, parameterRegisters[i]);
+            parameters[i]->infer(functionTC, parameterRegisters[i]);
             check(i + 1);
             return;
         }
 
-        tc.inferAsType(returnType, returnRegister);
-        tc.newFunctionType(typeRegister, parameterRegisters, returnRegister);
+        functionTC.inferAsType(returnType, returnRegister);
+        functionTC.newFunctionType(typeRegister, parameterRegisters, returnRegister);
         if (!shadowsFunctionName) {
-            tc.newValue(*valueRegister, typeRegister);
-            tc.insert(name->name, *valueRegister);
+            functionTC.newValue(resultRegister, typeRegister);
+            functionTC.insert(name->name, resultRegister);
         }
-        body->check(tc, returnRegister);
+        body->check(functionTC, returnRegister);
     };
 
     check(0);
 
-    generateImpl(tc.generator(), *valueRegister, typeRegister);
+    functionGenerator.endTypeChecking(typeRegister);
+    generateImpl(functionGenerator, resultRegister);
+    auto block = functionTC.finalize(resultRegister);
+    functionIndex = tc.generator().newFunction(valueRegister, std::move(block));
+    tc.insert(name->name, valueRegister);
 
-    tc.insert(name->name, *valueRegister);
     Register tmp = tc.generator().newLocal();
     tc.newValue(tmp, result);
     tc.unify(location, tmp, tc.unitType());

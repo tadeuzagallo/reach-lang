@@ -92,10 +92,16 @@ void BytecodeGenerator::getArrayIndex(Register dst, Register array, Register ind
     emit<GetArrayIndex>(dst, array, index);
 }
 
-void BytecodeGenerator::newFunction(Register dst, std::unique_ptr<BytecodeBlock> block, Register type)
+uint32_t BytecodeGenerator::newFunction(Register dst, std::unique_ptr<BytecodeBlock> block)
 {
-    m_block->m_functions.push_back(std::move(block));
-    emit<NewFunction>(dst, m_block->m_functions.size() - 1, type);
+    uint32_t functionIndex = m_block->addFunctionBlock(std::move(block));
+    emit<NewFunction>(dst, functionIndex);
+    return functionIndex;
+}
+
+void BytecodeGenerator::newFunction(Register dst, uint32_t functionIndex)
+{
+    emit<NewFunction>(dst, functionIndex);
 }
 
 void BytecodeGenerator::move(Register from, Register to)
@@ -211,6 +217,13 @@ void BytecodeGenerator::typeError(const char* message)
 void BytecodeGenerator::inferImplicitParameters(Register function)
 {
     emit<InferImplicitParameters>(function);
+}
+
+void BytecodeGenerator::endTypeChecking(Register type)
+{
+    emit<End>(type);
+    m_block->m_codeStart = m_block->instructions().size();
+    emit<Enter>();
 }
 
 // Types

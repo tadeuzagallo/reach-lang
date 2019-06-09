@@ -8,6 +8,8 @@
 #include <iostream>
 #include <vector>
 
+class Function;
+
 class BytecodeBlock {
     friend class BytecodeGenerator;
 
@@ -22,10 +24,14 @@ public:
     const InstructionStream& instructions() const { return m_instructions; }
     uint32_t numLocals() const { return m_numLocals; }
     Register environmentRegister() const { return m_environmentRegister; }
+    InstructionStream::Offset codeStart() const { return m_codeStart; };
 
     const std::string& identifier(uint32_t) const;
     Value constant(uint32_t) const;
-    const BytecodeBlock& function(uint32_t) const;
+    BytecodeBlock& functionBlock(uint32_t) const;
+    uint32_t addFunctionBlock(std::unique_ptr<BytecodeBlock>);
+    Function* function(uint32_t) const;
+    void setFunction(uint32_t, Function*);
 
     bool optimize(VM&) const;
     void* jitCode() const;
@@ -57,13 +63,15 @@ public:
 
 private:
     uint32_t m_numLocals { 0 };
+    InstructionStream::Offset m_codeStart { 0 };
     Register m_environmentRegister;
     std::string m_name;
     const char* m_filename { nullptr };
     InstructionStream m_instructions;
     std::vector<Value> m_constants;
     std::vector<std::string> m_identifiers;
-    std::vector<std::unique_ptr<BytecodeBlock>> m_functions;
+    std::vector<std::unique_ptr<BytecodeBlock>> m_functionBlocks;
+    std::vector<Function*> m_functions;
     std::vector<LocationInfo> m_locationInfos;
 
     // JIT

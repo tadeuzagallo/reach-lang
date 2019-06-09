@@ -25,26 +25,18 @@ void LexicalDeclaration::generate(BytecodeGenerator& generator, Register result)
     generator.setLocal(*name, result);
 }
 
-void FunctionDeclaration::generateImpl(BytecodeGenerator& generator, Register result, Register type)
+void FunctionDeclaration::generateImpl(BytecodeGenerator& generator, Register result)
 {
-    generator.emitLocation(location);
-
-    BytecodeGenerator functionGenerator { generator.vm(), name->name };
     for (unsigned i = 0; i < parameters.size(); i++)
-        functionGenerator.setLocal(*parameters[i]->name, Register::forParameter(i));
-    Register functionResult = functionGenerator.newLocal();
-    body->generate(functionGenerator, functionResult);
-    auto block = functionGenerator.finalize(functionResult);
-
-    generator.newFunction(result, std::move(block), type);
-    generator.setLocal(*name, result);
+        generator.setLocal(*parameters[i]->name, Register::forParameter(i));
+    body->generate(generator, result);
 }
 
 void FunctionDeclaration::generate(BytecodeGenerator& generator, Register result)
 {
     generator.emitLocation(location);
-
-    generator.move(result, *valueRegister);
+    generator.newFunction(result, functionIndex);
+    generator.setLocal(name->name, result);
 }
 
 void StatementDeclaration::generate(BytecodeGenerator& generator, Register result)
