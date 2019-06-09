@@ -27,6 +27,8 @@ public:
     void emitLocation(const SourceLocation&);
 
     void loadConstant(Register, Value);
+    void loadConstantIndex(Register, uint32_t);
+    uint32_t storeConstant(Register);
     void getLocal(Register, const Identifier&);
     void setLocal(const Identifier&, Register);
     void getLocal(Register, const std::string&);
@@ -44,8 +46,6 @@ public:
     void jump(Label&);
     void jumpIfFalse(Register, Label&);
     void isEqual(Register, Register, Register);
-    void storeGlobalConstant(Register, uint32_t);
-    void loadGlobalConstant(Register, uint32_t);
 
     // Type checking operations
     void getType(Register, const std::string&);

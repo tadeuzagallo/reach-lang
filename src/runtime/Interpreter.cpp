@@ -141,6 +141,12 @@ OP(LoadConstant)
     DISPATCH();
 }
 
+OP(StoreConstant)
+{
+    m_block.constant(ip.constantIndex) = m_cfr[ip.value];
+    DISPATCH();
+}
+
 OP(GetLocal)
 {
 
@@ -252,18 +258,6 @@ OP(JumpIfFalse)
 OP(IsEqual)
 {
     m_cfr[ip.dst] = m_cfr[ip.lhs] == m_cfr[ip.rhs];
-    DISPATCH();
-}
-
-OP(StoreGlobalConstant)
-{
-    m_vm.globalConstants[ip.constantIndex] = m_cfr[ip.value];
-    DISPATCH();
-}
-
-OP(LoadGlobalConstant)
-{
-    m_cfr[ip.dst] = m_vm.globalConstants[ip.constantIndex];
     DISPATCH();
 }
 

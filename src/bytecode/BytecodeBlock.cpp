@@ -27,6 +27,12 @@ Value BytecodeBlock::constant(uint32_t index) const
     return m_constants[index];
 }
 
+Value& BytecodeBlock::constant(uint32_t index)
+{
+    ASSERT(index < m_constants.size(), "Constant out of bounds");
+    return m_constants[index];
+}
+
 BytecodeBlock& BytecodeBlock::functionBlock(uint32_t index) const
 {
     ASSERT(index < m_functionBlocks.size(), "Function out of bounds");
@@ -72,7 +78,7 @@ void BytecodeBlock::dump(std::ostream& out) const
     m_instructions.dump(out);
     out << std::endl << "    Constants: " << std::endl;
     for (unsigned i = 0; i < m_constants.size(); i++)
-        out << std::setw(8) << i << ": " << m_constants[i] << std::endl;
+        out << std::setw(8) << i << ": " << Value::SafeDump(m_constants[i]) << std::endl;
     out << std::endl << "    Identifiers: " << std::endl;
     for (unsigned i = 0; i < m_identifiers.size(); i++)
         out << std::setw(8) << i << ": " << identifier(i) << std::endl;

@@ -193,3 +193,16 @@ Cell* Value::getCell() const
     ASSERT(isCell() || isAbstractValue(), "OOPS");
     return isCell() ? asCell() : asAbstractValue().type();
 }
+
+Value::SafeDump::SafeDump(Value value)
+    : m_value(value)
+{
+}
+
+void Value::SafeDump::dump(std::ostream& out) const
+{
+    if (m_value.isCrash())
+        out << "<crash>";
+    else
+        out << m_value;
+}

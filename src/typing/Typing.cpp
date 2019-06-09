@@ -313,12 +313,9 @@ void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& isBott
             if (ident->name == "inspect") {
                 for (auto it = arguments.begin(); it != arguments.end(); it++) {
                     std::unique_ptr<Expression>& argument = *it++;
-                    auto typeIndex = std::make_unique<uint32_t>(tc.vm().globalConstants.size());
-                    tc.vm().globalConstants.push_back(Value::crash());
                     argument->infer(tc, tmp);
-                    tc.generator().storeGlobalConstant(tmp, *typeIndex);
                     auto type = std::make_unique<SynthesizedTypeExpression>(argument->location);
-                    type->typeIndex = std::move(typeIndex);
+                    type->typeIndex = tc.generator().storeConstant(tmp);
                     it = arguments.emplace(it, std::move(type));
                 }
                 goto result;

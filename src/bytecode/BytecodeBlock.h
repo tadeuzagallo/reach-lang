@@ -28,6 +28,7 @@ public:
 
     const std::string& identifier(uint32_t) const;
     Value constant(uint32_t) const;
+    Value& constant(uint32_t);
     BytecodeBlock& functionBlock(uint32_t) const;
     uint32_t addFunctionBlock(std::unique_ptr<BytecodeBlock>);
     Function* function(uint32_t) const;

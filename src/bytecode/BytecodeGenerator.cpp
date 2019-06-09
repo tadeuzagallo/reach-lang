@@ -49,6 +49,19 @@ void BytecodeGenerator::loadConstant(Register dst, Value value)
     emit<LoadConstant>(dst, m_block->m_constants.size() - 1);
 }
 
+void BytecodeGenerator::loadConstantIndex(Register dst, uint32_t index)
+{
+    emit<LoadConstant>(dst, index);
+}
+
+uint32_t BytecodeGenerator::storeConstant(Register value)
+{
+    uint32_t constantIndex = m_block->m_constants.size();
+    m_block->m_constants.push_back(Value::crash());
+    emit<StoreConstant>(constantIndex, value);
+    return constantIndex;
+}
+
 void BytecodeGenerator::getLocal(Register dst, const Identifier& ident)
 {
     getLocal(dst, ident.name);
@@ -143,16 +156,6 @@ void BytecodeGenerator::jumpIfFalse(Register condition, Label& target)
 void BytecodeGenerator::isEqual(Register dst, Register lhs, Register rhs)
 {
     emit<IsEqual>(dst, lhs, rhs);
-}
-
-void BytecodeGenerator::storeGlobalConstant(Register value, uint32_t constantIndex)
-{
-    emit<StoreGlobalConstant>(value, constantIndex);
-}
-
-void BytecodeGenerator::loadGlobalConstant(Register dst, uint32_t constantIndex)
-{
-    emit<LoadGlobalConstant>(dst, constantIndex);
 }
 
 

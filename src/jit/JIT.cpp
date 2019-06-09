@@ -123,6 +123,11 @@ OP(LoadConstant)
     store(regT0, ip.dst);
 }
 
+OP(StoreConstant)
+{
+    ASSERT(false, "TODO");
+}
+
 OP(GetLocal)
 {
     load(m_block.environmentRegister(), regA0);
@@ -219,16 +224,6 @@ OP(JumpIfFalse)
 }
 
 OP(IsEqual)
-{
-    ASSERT(false, "TODO");
-}
-
-OP(StoreGlobalConstant)
-{
-    ASSERT(false, "TODO");
-}
-
-OP(LoadGlobalConstant)
 {
     ASSERT(false, "TODO");
 }

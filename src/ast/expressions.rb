@@ -118,7 +118,7 @@ ast_node :LiteralExpression < :Expression,
 
 ast_node :SynthesizedTypeExpression < :Expression,
     fields: {
-        typeIndex: "std::unique_ptr<uint32_t>",
+        typeIndex: "uint32_t",
     },
     extra_methods: [
         "virtual void generate(BytecodeGenerator&, Register)",

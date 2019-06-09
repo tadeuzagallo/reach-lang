@@ -15,6 +15,10 @@ instruction :LoadConstant,
     dst: :Register,
     constantIndex: :uint32_t
 
+instruction :StoreConstant,
+    constantIndex: :uint32_t,
+    value: :Register
+
 instruction :GetLocal,
     dst: :Register,
     identifierIndex: :uint32_t
@@ -72,14 +76,6 @@ instruction :IsEqual,
     dst: :Register,
     lhs: :Register,
     rhs: :Register
-
-instruction :StoreGlobalConstant,
-    value: :Register,
-    constantIndex: :uint32_t
-
-instruction :LoadGlobalConstant,
-    dst: :Register,
-    constantIndex: :uint32_t
 
 # Type checking instructions
 instruction :GetType,

@@ -7,6 +7,7 @@
 class Value {
     friend class Heap;
     friend class JIT;
+    friend class SafeDump;
 
 public:
     static Value crash();
@@ -32,7 +33,7 @@ public:
     Cell* asCell() const;
     AbstractValue asAbstractValue() const;
     Type* asType() const;
-    
+
     Type* type(VM&) const;
 
     template<typename T>
@@ -47,6 +48,8 @@ public:
         value.dump(out);
         return out;
     }
+
+    class SafeDump;
 
 private:
     static constexpr int64_t TagTypeAbstractValue = 0b1;
@@ -66,4 +69,19 @@ private:
     Cell* getCell() const;
 
     int64_t m_bits;
+};
+
+class Value::SafeDump {
+public:
+    explicit SafeDump(Value);
+    void dump(std::ostream&) const;
+
+    friend std::ostream& operator<<(std::ostream& out, const SafeDump& value)
+    {
+        value.dump(out);
+        return out;
+    }
+
+private:
+    Value m_value;
 };

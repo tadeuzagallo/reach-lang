@@ -214,7 +214,7 @@ void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register 
 {
     generator.emitLocation(location);
 
-    return generator.loadGlobalConstant(dst, *typeIndex);
+    return generator.loadConstantIndex(dst, typeIndex);
 }
 
 void TypeExpression::generate(BytecodeGenerator& generator, Register dst)
