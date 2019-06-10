@@ -23,7 +23,7 @@ public:
     Environment* globalEnvironment;
     BytecodeBlock* globalBlock;
     const BytecodeBlock* currentBlock;
-    TypeChecker* typeChecker;
+    TypeChecker* typeChecker { nullptr };
 
     Heap heap;
     std::vector<Value> stack;

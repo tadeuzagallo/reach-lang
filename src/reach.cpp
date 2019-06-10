@@ -35,11 +35,7 @@ int main(int argc, const char** argv)
 
     VM vm;
     BytecodeGenerator generator(vm);
-    {
-        TypeChecker tc(generator);
-        tc.check(program);
-    }
-
+    program->typecheck(generator);
     auto bytecode = program->generate(generator);
     vm.globalBlock = bytecode.get();
     Value type = Interpreter::check(vm, *bytecode, vm.globalEnvironment);

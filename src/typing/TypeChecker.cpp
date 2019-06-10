@@ -6,6 +6,12 @@
 #include <sstream>
 #include <limits>
 
+void Program::typecheck(BytecodeGenerator& generator)
+{
+    TypeChecker checker(generator);
+    checker.check(*this);
+}
+
 TypeChecker::TypeChecker(BytecodeGenerator& generator)
     : m_generator(generator)
     //, m_topScope(*this)
@@ -17,19 +23,16 @@ TypeChecker::TypeChecker(BytecodeGenerator& generator)
 
 TypeChecker::~TypeChecker()
 {
+    m_topUnificationScope.finalize();
     vm().typeChecker = m_previousTypeChecker;
 }
 
-void TypeChecker::check(const std::unique_ptr<Program>& program)
+void TypeChecker::check(Program& program)
 {
     Register result = m_generator.newLocal();
-    //unitValue(result);
-    for (const auto& decl : program->declarations) {
+    for (const auto& decl : program.declarations)
         decl->infer(*this, result);
-    }
-    m_generator.getTypeForValue(result, result);
-    m_topUnificationScope.resolve(result, result);
-    m_generator.endTypeChecking(result);
+    endTypeChecking(Mode::Program, result);
 }
 
 void TypeChecker::visit(const std::function<void(Value)>& visitor) const
@@ -52,10 +55,18 @@ BytecodeGenerator& TypeChecker::generator() const
     return m_generator;
 }
 
-std::unique_ptr<BytecodeBlock> TypeChecker::finalize(Register result)
+void TypeChecker::endTypeChecking(Mode mode, Register result)
 {
-    m_topUnificationScope.finalize();
-    return m_generator.finalize(result);
+    switch (mode) {
+    case Mode::Program:
+        m_generator.getTypeForValue(result, result);
+        m_topUnificationScope.resolve(result, result);
+        break;
+    case Mode::Function:
+        m_topUnificationScope.finalize();
+        break;
+    }
+    m_generator.endTypeChecking(result);
 }
 
 
@@ -178,6 +189,7 @@ TypeChecker::UnificationScope::~UnificationScope()
 
 void TypeChecker::UnificationScope::resolve(Register dst, Register type)
 {
+    ASSERT(m_typeChecker, "OOPS");
     m_typeChecker->m_generator.resolveType(dst, type);
 }
 

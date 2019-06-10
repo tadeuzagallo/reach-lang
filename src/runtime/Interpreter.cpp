@@ -303,6 +303,7 @@ OP(PopScope)
     DISPATCH();
 }
 
+static int unificationScopeDepth = 0;
 OP(PushUnificationScope)
 {
     new UnificationScope(m_vm);
@@ -338,7 +339,7 @@ OP(ResolveType)
 
 OP(CheckType)
 {
-    Value value = m_cfr[ip.type].asType();
+    Value value = m_cfr[ip.type];
     bool result;
     switch (ip.expected) {
     case Type::Class::AnyValue:
@@ -352,34 +353,40 @@ OP(CheckType)
     }
     goto storeResult;
 
-specificType: {
-    Type* type = value.asType();
-    switch (ip.expected) {
-    case Type::Class::Type:
-        result = type->is<TypeType>();
-        break;
-    case Type::Class::Bottom:
-        result = type->is<TypeBottom>();
-        break;
-    case Type::Class::Name:
-        result = type->is<TypeName>();
-        break;
-    case Type::Class::Function:
-        result = type->is<TypeFunction>();
-        break;
-    case Type::Class::Array:
-        result = type->is<TypeArray>();
-        break;
-    case Type::Class::Record:
-        result = type->is<TypeRecord>();
-        break;
-    case Type::Class::Var:
-        result = type->is<TypeVar>();
-        break;
-    default:
-        ASSERT_NOT_REACHED();
+specificType:
+    if (!value.isType()) {
+        result = false;
+        goto storeResult;
     }
-}
+
+    {
+        Type* type = value.asType();
+        switch (ip.expected) {
+        case Type::Class::Type:
+            result = type->is<TypeType>();
+            break;
+        case Type::Class::Bottom:
+            result = type->is<TypeBottom>();
+            break;
+        case Type::Class::Name:
+            result = type->is<TypeName>();
+            break;
+        case Type::Class::Function:
+            result = type->is<TypeFunction>();
+            break;
+        case Type::Class::Array:
+            result = type->is<TypeArray>();
+            break;
+        case Type::Class::Record:
+            result = type->is<TypeRecord>();
+            break;
+        case Type::Class::Var:
+            result = type->is<TypeVar>();
+            break;
+        default:
+            ASSERT_NOT_REACHED();
+        }
+    }
 
 storeResult:
     m_cfr[ip.dst] = result;

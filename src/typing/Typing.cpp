@@ -8,6 +8,13 @@ void TypeChecker::inferAsType(T& node, Register result)
 {
     node->check(*this, typeType());
     node->generate(m_generator, result);
+
+    // If the node is not a type, return the unit type so we can continue
+    Register tmp = m_generator.newLocal();
+    m_generator.checkType(tmp, result, Type::Class::AnyType);
+    m_generator.branch(tmp, [&] { }, [&] {
+        m_generator.move(result, unitType());
+    });
 }
 
 
@@ -17,6 +24,7 @@ void Declaration::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
     check(tc, tc.unitType());
+    tc.unitValue(result);
 }
 
 void LexicalDeclaration::check(TypeChecker& tc, Register type)
@@ -36,41 +44,42 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
     Register valueRegister = tc.generator().newLocal();
 
     BytecodeGenerator functionGenerator { tc.generator().vm(), name->name };
-    TypeChecker functionTC { functionGenerator };
-
     Register resultRegister = functionGenerator.newLocal();
-    Register typeRegister = functionGenerator.newLocal();
+    {
+        TypeChecker functionTC { functionGenerator };
+        Register typeRegister = functionGenerator.newLocal();
 
-    std::vector<Register> parameterRegisters;
-    Register returnRegister = functionGenerator.newLocal();
-    for (const auto& _ : parameters)
-        parameterRegisters.emplace_back(functionGenerator.newLocal());
+        std::vector<Register> parameterRegisters;
+        Register returnRegister = functionGenerator.newLocal();
+        for (const auto& _ : parameters)
+            parameterRegisters.emplace_back(functionGenerator.newLocal());
 
-    bool shadowsFunctionName = false;
-    std::function<void(uint32_t)> check = [&](uint32_t i) {
-        TypeChecker::Scope scope(functionTC);
-        if (i < parameters.size()) {
-            if (parameters[i]->name->name == name->name)
-                shadowsFunctionName = true;
-            parameters[i]->infer(functionTC, parameterRegisters[i]);
-            check(i + 1);
-            return;
-        }
+        bool shadowsFunctionName = false;
+        std::function<void(uint32_t)> check = [&](uint32_t i) {
+            TypeChecker::Scope scope(functionTC);
+            if (i < parameters.size()) {
+                if (parameters[i]->name->name == name->name)
+                    shadowsFunctionName = true;
+                parameters[i]->infer(functionTC, parameterRegisters[i]);
+                check(i + 1);
+                return;
+            }
 
-        functionTC.inferAsType(returnType, returnRegister);
-        functionTC.newFunctionType(typeRegister, parameterRegisters, returnRegister);
-        if (!shadowsFunctionName) {
-            functionTC.newValue(resultRegister, typeRegister);
-            functionTC.insert(name->name, resultRegister);
-        }
-        body->check(functionTC, returnRegister);
-    };
+            functionTC.inferAsType(returnType, returnRegister);
+            functionTC.newFunctionType(typeRegister, parameterRegisters, returnRegister);
+            if (!shadowsFunctionName) {
+                functionTC.newValue(resultRegister, typeRegister);
+                functionTC.insert(name->name, resultRegister);
+            }
+            body->check(functionTC, returnRegister);
+        };
 
-    check(0);
+        check(0);
 
-    functionGenerator.endTypeChecking(typeRegister);
+        functionTC.endTypeChecking(TypeChecker::Mode::Function, typeRegister);
+    }
     generateImpl(functionGenerator, resultRegister);
-    auto block = functionTC.finalize(resultRegister);
+    auto block = functionGenerator.finalize(resultRegister);
     functionIndex = tc.generator().newFunction(valueRegister, std::move(block));
     tc.insert(name->name, valueRegister);
 
@@ -538,12 +547,13 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
 
     Register tmp = tc.generator().newLocal();
     tc.generator().checkType(tmp, result, Type::Class::Type);
-    tc.generator().branch(tmp, [&]{
+    tc.generator().branch(tmp, [&] {
         tc.generator().newVarType(result, name->name, inferred);
         tc.insert(name->name, result);
-    }, [&]{
+    }, [&] {
         if (inferred)
             tc.generator().typeError("Only type arguments can be inferred");
+
         tc.generator().newValue(tmp, result);
         tc.insert(name->name, tmp);
     });

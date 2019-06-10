@@ -28,15 +28,17 @@ class TypeChecker {
     friend class UnificationScope;
 
 public:
+    enum class Mode { Function, Program };
+
     TypeChecker(BytecodeGenerator&);
     ~TypeChecker();
 
     VM& vm() const;
     TypeChecker* previousTypeChecker() const;
     BytecodeGenerator& generator() const;
-    std::unique_ptr<BytecodeBlock> finalize(Register);
+    void endTypeChecking(Mode, Register);
 
-    void check(const std::unique_ptr<Program>&);
+    void check(Program&);
     void visit(const std::function<void(Value)>&) const;
 
 #define DECLARE_LAZY_TYPE_GETTER(type) \
