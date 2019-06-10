@@ -15,9 +15,7 @@ public:
 
     void set(const Identifier& key, Value value);
     void set(const std::string& key, Value value);
-    Value get(const std::string& key) const;
-    void setType(const std::string& key, Value value);
-    Value getType(const std::string& key) const;
+    Value get(const std::string& key, bool& success) const;
 
     Environment* parent() const;
     void dump(std::ostream&) const override;

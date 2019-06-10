@@ -7,6 +7,7 @@
 #include "Scope.h"
 #include "Type.h"
 #include "UnificationScope.h"
+#include <sstream>
 
 Value Interpreter::check(VM& vm, BytecodeBlock& block, Environment* parentEnvironment)
 {
@@ -149,8 +150,14 @@ OP(StoreConstant)
 
 OP(GetLocal)
 {
-
-    m_cfr[ip.dst] = m_environment->get(m_block.identifier(ip.identifierIndex));
+    bool success;
+    const std::string& variable = m_block.identifier(ip.identifierIndex);
+    m_cfr[ip.dst] = m_environment->get(variable, success);
+    if (!success) {
+        std::stringstream message;
+        message << "Unknown variable: `" << variable << "`";
+        m_vm.typeError(m_ip.offset(), message.str());
+    }
     DISPATCH();
 }
 
@@ -265,8 +272,14 @@ OP(IsEqual)
 
 OP(GetType)
 {
-
-    m_cfr[ip.dst] = m_environment->get(m_block.identifier(ip.identifierIndex));
+    bool success;
+    const std::string& variable = m_block.identifier(ip.identifierIndex);
+    m_cfr[ip.dst] = m_environment->get(variable, success);
+    if (!success) {
+        std::stringstream message;
+        message << "Unknown variable: `" << variable << "`";
+        m_vm.typeError(m_ip.offset(), message.str());
+    }
     DISPATCH();
 }
 

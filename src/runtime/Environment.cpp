@@ -18,27 +18,18 @@ void Environment::set(const std::string& key, Value value)
     m_map[key] = value;
 }
 
-Value Environment::get(const std::string& key) const
+Value Environment::get(const std::string& key, bool& success) const
 {
     auto it = m_map.find(key);
-    ASSERT(it != m_map.end() || m_parent, "Undefined variable: %s", key.c_str());
+    if (it == m_map.end() && !m_parent) {
+        success = false;
+        return Value::unit();
+    }
+
+    success = true;
     if (it != m_map.end())
         return it->second;
-    return m_parent->get(key);
-}
-
-void Environment::setType(const std::string& key, Value value)
-{
-    m_typeMap[key] = value;
-}
-
-Value Environment::getType(const std::string& key) const
-{
-    auto it = m_typeMap.find(key);
-    ASSERT(it != m_typeMap.end() || m_parent, "Undefined variable: %s", key.c_str());
-    if (it != m_typeMap.end())
-        return it->second;
-    return m_parent->getType(key);
+    return m_parent->get(key, success);
 }
 
 Environment* Environment::parent() const

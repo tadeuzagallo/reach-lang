@@ -299,7 +299,7 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
     });
 }
 
-void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& isBottom)
+void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
 {
     callee->infer(tc, result);
     Register tmp = tc.generator().newLocal();
@@ -323,18 +323,19 @@ void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& isBott
             arg->infer(tc, tmp);
 result:
         tc.bottomValue(result);
-        tc.generator().jump(isBottom);
+        tc.generator().jump(done);
     }, [&] {
         tc.generator().checkValue(tmp, result, Type::Class::Function);
         tc.generator().branch(tmp, [&] {
             tc.generator().getTypeForValue(result, result);
         }, [&] {
             tc.generator().typeError("Callee is not a function");
+            tc.generator().jump(done);
         });
     });
 }
 
-void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeChecker::UnificationScope& scope)
+void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeChecker::UnificationScope& scope, Label& done)
 {
     Register explicitParamCount = tc.generator().newLocal();
     tc.generator().getField(explicitParamCount, calleeType, TypeFunction::explicitParamCountField);
@@ -343,8 +344,9 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeCh
     tc.generator().loadConstant(tmp, static_cast<uint32_t>(arguments.size()));
     tc.generator().isEqual(tmp, tmp, explicitParamCount);
     tc.generator().branch(tmp, [&] {}, [&] {
-        // TODO: location
         tc.generator().typeError("Argument count mismatch");
+        tc.unitValue(calleeType);
+        tc.generator().jump(done);
     });
 
     Register param = tc.generator().newLocal();
@@ -377,13 +379,13 @@ void CallExpression::infer(TypeChecker& tc, Register result)
     tc.generator().emitLocation(location);
 
     TypeChecker::UnificationScope scope(tc);
-    Label isBottom = tc.generator().label();
-    checkCallee(tc, result, isBottom);
-    checkArguments(tc, result, scope);
+    Label done = tc.generator().label();
+    checkCallee(tc, result, done);
+    checkArguments(tc, result, scope, done);
     tc.generator().getField(result, result, TypeFunction::returnTypeField);
     scope.resolve(result, result);
     tc.newValue(result, result);
-    tc.generator().emit(isBottom);
+    tc.generator().emit(done);
 }
 
 void CallExpression::check(TypeChecker& tc, Register type)
