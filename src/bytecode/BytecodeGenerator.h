@@ -17,14 +17,13 @@ public:
     VM& vm() { return m_vm; }
     BytecodeBlock& block() { return *m_block; }
 
-    void emitReturn();
-
     std::unique_ptr<BytecodeBlock> finalize(Register);
     Register newLocal();
     Label label();
     void branch(Register, const std::function<void()>&, const std::function<void()>&);
 
     void emitLocation(const SourceLocation&);
+    void emitPrologue(const std::function<void()>&);
 
     void loadConstant(Register, Value);
     void loadConstantIndex(Register, uint32_t);

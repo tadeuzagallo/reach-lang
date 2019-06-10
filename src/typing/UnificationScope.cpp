@@ -68,9 +68,8 @@ void UnificationScope::checkInferredVariables()
             continue;
         std::stringstream message;
         message << "Unification failure: failed to infer type variable `" << *ib.var << "`";
-        ASSERT(false, "%s", message.str().c_str());
-        // TODO
-        //m_typeChecker.typeError(ib.location, message.str());
+        LOG(ConstraintSolving, message.str());
+        m_vm.typeError(ib.bytecodeOffset, message.str());
     }
 }
 
@@ -87,8 +86,8 @@ void UnificationScope::unifies(const Constraint& constraint)
         if (!var->isRigid()) {
             lhsType = constraint.lhs.asType()->substitute(m_vm, m_substitutions);
             bind(var, lhsType);
-            return;
         }
+        return;
     }
 
     if (*lhsType == *rhsType)
@@ -99,6 +98,7 @@ void UnificationScope::unifies(const Constraint& constraint)
 
     std::stringstream msg;
     msg << "Unification failure: expected `" << *rhsType << "` but found `" << *lhsType << "`";
+    LOG(ConstraintSolving, msg.str());
     m_vm.typeError(constraint.bytecodeOffset, msg.str());
 }
 

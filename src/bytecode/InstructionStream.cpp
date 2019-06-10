@@ -50,6 +50,12 @@ InstructionStream::Offset InstructionStream::WritableRef::offset() const
     return m_instructionOffset;
 }
 
+InstructionStream::WritableRef& InstructionStream::WritableRef::operator+=(int32_t target)
+{
+    m_instructionOffset += target;
+    return *this;
+}
+
 InstructionStream::WritableRef::WritableRef(InstructionStream& instructions, Offset instructionOffset, uint32_t targetOffset)
     : m_instructions(instructions)
     , m_instructionOffset(instructionOffset)
@@ -66,6 +72,11 @@ void InstructionStream::Ref::dump(std::ostream& out) const
 InstructionStream::Ref::Ref(const InstructionStream& instructions, InstructionStream::Offset offset)
     : m_instructions(instructions)
       , m_offset(offset)
+{
+}
+
+InstructionStream::InstructionStream()
+    : m_iterator(m_instructions.end())
 {
 }
 
@@ -87,7 +98,15 @@ InstructionStream::Ref InstructionStream::end() const
 
 void InstructionStream::emit(uint32_t word)
 {
-    m_instructions.push_back(word);
+    m_iterator = m_instructions.emplace(m_iterator, word);
+    ++m_iterator;
+}
+
+void InstructionStream::emitPrologue(const std::function<void()>& functor)
+{
+    m_iterator = m_instructions.begin() + 1; // after Enter
+    functor();
+    m_iterator = m_instructions.end();
 }
 
 void InstructionStream::dump(std::ostream& out) const

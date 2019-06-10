@@ -10,29 +10,9 @@ TypeChecker::TypeChecker(BytecodeGenerator& generator)
     : m_generator(generator)
     //, m_topScope(*this)
     , m_topUnificationScope(*this)
-
-    , m_typeType(generator.newLocal())
-    , m_bottomType(generator.newLocal())
-    , m_unitType(generator.newLocal())
-    , m_boolType(generator.newLocal())
-    , m_numberType(generator.newLocal())
-    , m_stringType(generator.newLocal())
 {
     m_previousTypeChecker = vm().typeChecker;
     vm().typeChecker = this;
-
-    m_generator.loadConstant(m_typeType, vm().typeType);
-    m_generator.loadConstant(m_bottomType, vm().bottomType);
-    m_generator.loadConstant(m_unitType, vm().unitType);
-    m_generator.loadConstant(m_boolType, vm().boolType);
-    m_generator.loadConstant(m_numberType, vm().numberType);
-    m_generator.loadConstant(m_stringType, vm().stringType);
-
-    // No need to insert Type since it's a reserved keyword
-    insert("Void", m_unitType);
-    insert("Bool", m_boolType);
-    insert("Number", m_numberType);
-    insert("String", m_stringType);
 }
 
 TypeChecker::~TypeChecker()
@@ -78,60 +58,30 @@ std::unique_ptr<BytecodeBlock> TypeChecker::finalize(Register result)
     return m_generator.finalize(result);
 }
 
-Register TypeChecker::typeType()
-{
-    return m_typeType;
-}
 
-Register TypeChecker::unitType()
-{
-    return m_unitType;
-}
+#define IMPLEMENT_LAZY_TYPE_GETTER(type) \
+    Register TypeChecker::type##Type() \
+    { \
+        if (!m_##type##Type) { \
+            m_##type##Type = m_generator.newLocal(); \
+            m_generator.emitPrologue([&] { \
+                m_generator.loadConstant(m_##type##Type.value(), vm().type##Type); \
+            }); \
+        } \
+        return m_##type##Type.value(); \
+    } \
 
-Register TypeChecker::boolType()
-{
-    return m_boolType;
-}
+FOR_EACH_BASE_TYPE(IMPLEMENT_LAZY_TYPE_GETTER)
+#undef IMPLEMENT_LAZY_TYPE_GETTER
 
-Register TypeChecker::numberType()
-{
-    return m_numberType;
-}
+#define IMPLEMENT_TYPE_VALUE_GETTER(type) \
+    void TypeChecker::type##Value(Register result) \
+    { \
+        m_generator.newValue(result, type##Type()); \
+    } \
 
-void TypeChecker::typeType(Register result)
-{
-    m_generator.move(result, m_typeType);
-}
-
-void TypeChecker::unitType(Register result)
-{
-    m_generator.move(result, m_unitType);
-}
-
-void TypeChecker::bottomValue(Register result)
-{
-    m_generator.newValue(result, m_bottomType);
-}
-
-void TypeChecker::unitValue(Register result)
-{
-    m_generator.newValue(result, m_unitType);
-}
-
-void TypeChecker::boolValue(Register result)
-{
-    m_generator.newValue(result, m_boolType);
-}
-
-void TypeChecker::numberValue(Register result)
-{
-    m_generator.newValue(result, m_numberType);
-}
-
-void TypeChecker::stringValue(Register result)
-{
-    m_generator.newValue(result, m_stringType);
-}
+FOR_EACH_BASE_TYPE(IMPLEMENT_TYPE_VALUE_GETTER)
+#undef IMPLEMENT_TYPE_VALUE_GETTER
 
 // New value bindings - for constructs that introduces new values, e.g.
 // T : Type -> x : T

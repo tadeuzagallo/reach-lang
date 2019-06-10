@@ -141,3 +141,18 @@ void BytecodeBlock::addLocation(const SourceLocation& location)
     }
     m_locationInfos.emplace_back(LocationInfo { static_cast<uint32_t>(m_instructions.size()), location.start, location.end });
 }
+
+void BytecodeBlock::emitPrologue(const std::function<void()>& functor)
+{
+    size_t initialSize = m_instructions.size();
+    functor();
+    size_t diff = m_instructions.size() - initialSize;
+    m_prologueSize += diff;
+    ASSERT(!m_codeStart, "OOPS");
+}
+
+void BytecodeBlock::adjustOffsets()
+{
+    for (LocationInfo& info : m_locationInfos)
+        info.bytecodeOffset += m_prologueSize;
+}

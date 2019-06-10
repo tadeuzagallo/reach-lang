@@ -11,6 +11,7 @@ BytecodeGenerator::BytecodeGenerator(VM& vm, std::string name)
 std::unique_ptr<BytecodeBlock> BytecodeGenerator::finalize(Register result)
 {
     emit<End>(result);
+    m_block->adjustOffsets();
     if (std::getenv("DUMP_BYTECODE"))
         m_block->dump(std::cout);
     return std::move(m_block);
@@ -41,6 +42,13 @@ void BytecodeGenerator::branch(Register condition, const std::function<void()>& 
 void BytecodeGenerator::emitLocation(const SourceLocation& location)
 {
     m_block->addLocation(location);
+}
+
+void BytecodeGenerator::emitPrologue(const std::function<void()>& functor)
+{
+    m_block->emitPrologue([&] {
+        m_block->instructions().emitPrologue(functor);
+    });
 }
 
 void BytecodeGenerator::loadConstant(Register dst, Value value)
@@ -143,13 +151,13 @@ void BytecodeGenerator::getField(Register dst, Register object, const std::strin
 
 void BytecodeGenerator::jump(Label& target)
 {
-    m_block->instructions().recordJump<Jump>(target);
+    m_block->recordJump<Jump>(target);
     emit<Jump>(0);
 }
 
 void BytecodeGenerator::jumpIfFalse(Register condition, Label& target)
 {
-    m_block->instructions().recordJump<JumpIfFalse>(target);
+    m_block->recordJump<JumpIfFalse>(target);
     emit<JumpIfFalse>(condition, 0);
 }
 
@@ -302,7 +310,7 @@ void BytecodeGenerator::emit(Register reg)
 
 void BytecodeGenerator::emit(Label& label)
 {
-    label.link(m_block->instructions().end());
+    label.link(m_block->m_prologueSize, m_block->instructions().end());
 }
 
 void BytecodeGenerator::emit(uint32_t word)

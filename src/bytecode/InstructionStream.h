@@ -14,6 +14,8 @@ class InstructionStream {
 public:
     using Offset = size_t;
 
+    InstructionStream();
+
     class Ref {
         friend class InstructionStream;
 
@@ -40,6 +42,7 @@ public:
     public:
         void write(uint32_t value);
         Offset offset() const;
+        WritableRef& operator+=(int32_t);
 
     private:
         WritableRef(InstructionStream&, Offset, uint32_t);
@@ -56,16 +59,18 @@ public:
     size_t size() const { return m_instructions.size(); }
 
     template<typename JumpType, typename Label>
-    void recordJump(Label& label)
+    void recordJump(uint32_t prologueSize, Label& label)
     {
         Offset offset = m_instructions.size();
-        label.addReference(offset, WritableRef { *this, offset, OFFSETOF(JumpType, target) >> 2 });
+        label.addReference(offset, prologueSize, WritableRef { *this, offset, OFFSETOF(JumpType, target) >> 2 });
     }
 
     void dump(std::ostream&) const;
 
 private:
     void emit(uint32_t);
+    void emitPrologue(const std::function<void()>&);
 
     std::vector<uint32_t> m_instructions;
+    std::vector<uint32_t>::iterator m_iterator;
 };

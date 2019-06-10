@@ -40,6 +40,15 @@ public:
     void addLocation(const SourceLocation&);
 
 private:
+    void emitPrologue(const std::function<void()>&);
+    void adjustOffsets();
+
+    template<typename JumpType, typename Label>
+    void recordJump(Label& label)
+    {
+        m_instructions.recordJump<JumpType>(m_prologueSize, label);
+    }
+
     struct LocationInfo {
         uint32_t bytecodeOffset;
         SourcePosition start;
@@ -64,6 +73,7 @@ public:
 
 private:
     uint32_t m_numLocals { 0 };
+    uint32_t m_prologueSize { 0 };
     InstructionStream::Offset m_codeStart { 0 };
     Register m_environmentRegister;
     std::string m_name;

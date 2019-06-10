@@ -15,8 +15,15 @@ class BytecodeGenerator;
 class Program;
 class VM;
 
+#define FOR_EACH_BASE_TYPE(macro) \
+    macro(type) \
+    macro(bottom) \
+    macro(unit) \
+    macro(bool) \
+    macro(number) \
+    macro(string) \
+
 class TypeChecker {
-    friend class Scope;
     friend class Scope;
     friend class UnificationScope;
 
@@ -32,19 +39,15 @@ public:
     void check(const std::unique_ptr<Program>&);
     void visit(const std::function<void(Value)>&) const;
 
-    Register typeType();
-    Register unitType();
-    Register boolType();
-    Register numberType();
+#define DECLARE_LAZY_TYPE_GETTER(type) \
+    Register type##Type();
+FOR_EACH_BASE_TYPE(DECLARE_LAZY_TYPE_GETTER)
+#undef DECLARE_LAZY_TYPE_GETTER
 
-    void typeType(Register);
-    void unitType(Register);
-
-    void unitValue(Register);
-    void boolValue(Register);
-    void numberValue(Register);
-    void stringValue(Register);
-    void bottomValue(Register);
+#define DECLARE_TYPE_VALUE_GETTER(type) \
+    void type##Value(Register);
+FOR_EACH_BASE_TYPE(DECLARE_TYPE_VALUE_GETTER)
+#undef DECLARE_TYPE_VALUE_GETTER
 
     void newType(Register result, Register type);
     void newValue(Register result, Register type);
@@ -64,11 +67,9 @@ public:
     void insert(const std::string&, Register);
 
     void unify(const SourceLocation&, Register, Register);
-    //void typeError(const SourceLocation&, const std::string&);
-    //void reportErrors(std::ostream&) const;
 
     template<typename T>
-    void inferAsType(const T&, Register);
+    void inferAsType(T&, Register);
 
     class Scope {
     public:
@@ -104,20 +105,13 @@ private:
         std::string m_message;
     };
 
-    Register m_typeType;
-    Register m_bottomType;
-    Register m_unitType;
-    Register m_boolType;
-    Register m_numberType;
-    Register m_stringType;
+#define DECLARE_TYPE_FIELD(type) \
+    std::optional<Register> m_##type##Type;
+FOR_EACH_BASE_TYPE(DECLARE_TYPE_FIELD)
+#undef DECLARE_TYPE_VALUE_GETTER
 
     BytecodeGenerator& m_generator;
-    //Scope m_topScope;
     UnificationScope m_topUnificationScope;
 
     TypeChecker* m_previousTypeChecker;
-
-    //std::vector<Error> m_errors;
-    //std::vector<std::pair<std::string, const Binding*>> m_environment;
-    //std::vector<Binding*> m_bindings;
 };

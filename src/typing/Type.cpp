@@ -129,8 +129,13 @@ TypeVar* TypeFunction::implicitParam(uint32_t index) const
 Type* TypeFunction::instantiate(VM& vm)
 {
     Substitutions subst;
-    for (Value v : *implicitParams())
-        v.asType()->as<TypeVar>()->fresh(vm, subst);
+    for (Value v : *params()) {
+        if (v.isType()) {
+            Type* type = v.asType();
+            if (type->is<TypeVar>())
+                type->as<TypeVar>()->fresh(vm, subst);
+        }
+    }
     return substitute(vm, subst);
 }
 

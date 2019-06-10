@@ -55,6 +55,11 @@ VM::VM()
 
     addFunction(this, "print", functionPrint, bottomType);
     addFunction(this, "inspect", functionInspect, bottomType);
+
+    globalEnvironment->set("Void", unitType);
+    globalEnvironment->set("Bool", boolType);
+    globalEnvironment->set("Number", numberType);
+    globalEnvironment->set("String", stringType);
 }
 
 void VM::typeError(InstructionStream::Offset bytecodeOffset, const std::string& message)

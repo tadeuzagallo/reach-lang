@@ -4,14 +4,10 @@
 
 
 template<typename T>
-void TypeChecker::inferAsType(const T& node, Register result)
+void TypeChecker::inferAsType(T& node, Register result)
 {
+    node->check(*this, typeType());
     node->generate(m_generator, result);
-
-    unify(node->location, result, typeType());
-    //if (!result.valueIsType())
-        //return unitType();
-    //return result;
 }
 
 
@@ -487,7 +483,7 @@ void TypeExpression::check(TypeChecker& tc, Register result)
     tc.generator().emitLocation(location);
 
     Register tmp = tc.generator().newLocal();
-    tc.typeType(tmp);
+    tc.generator().move(tmp, tc.typeType());
     tc.unify(location, result, tmp);
     infer(tc, tmp);
     tc.unify(location, tmp, result);
@@ -536,8 +532,7 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
 
-    type->check(tc, tc.typeType());
-    type->generate(tc.generator(), result);
+    tc.inferAsType(type, result);
 
     Register tmp = tc.generator().newLocal();
     tc.generator().checkType(tmp, result, Type::Class::Type);
@@ -556,5 +551,5 @@ void ASTTypeType::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
 
-    tc.typeType(result);
+    tc.generator().move(result, tc.typeType());
 }
