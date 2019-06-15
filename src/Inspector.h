@@ -1,13 +1,17 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 
-class Value;
+class Node;
 class Type;
-class Expression;
+class Value;
 
 class Inspector {
+static std::ostream& stdout;
+static std::ostream& stderr;
+
+static void dumpNode(const Node*);
+static void dumpType(const Type*);
 static void dumpValue(const Value&);
-static void dumpType(const Type&);
-static void dumpExpression(const std::unique_ptr<Expression>&);
 };
