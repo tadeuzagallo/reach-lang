@@ -67,7 +67,6 @@ public:
     void newFunctionType(Register, const std::vector<Register>&, Register);
 
     void newValue(Register, Register);
-    void newType(Register, Register);
     void getTypeForValue(Register, Register);
 
     void emit(Instruction::ID);

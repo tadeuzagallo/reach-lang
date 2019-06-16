@@ -397,14 +397,6 @@ OP(NewFunctionType)
 }
 
 // New values from existing types
-
-OP(NewType)
-{
-    // TODO: delete this
-    ASSERT(false, "TODO");
-    DISPATCH();
-}
-
 OP(NewValue)
 {
     Value value = m_cfr[ip.type];

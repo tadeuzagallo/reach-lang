@@ -141,10 +141,6 @@ instruction :NewValue,
     dst: :Register,
     type: :Register
 
-instruction :NewType,
-    dst: :Register,
-    type: :Register
-
 instruction :GetTypeForValue,
     dst: :Register,
     value: :Register

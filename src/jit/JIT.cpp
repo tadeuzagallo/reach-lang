@@ -387,12 +387,6 @@ OP(NewFunctionType)
 
 // New values from existing types
 
-OP(NewType)
-{
-    ASSERT(false, "TODO");
-
-}
-
 OP(NewValue)
 {
     load(ip.type, regT0);

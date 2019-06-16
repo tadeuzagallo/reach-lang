@@ -274,11 +274,6 @@ void BytecodeGenerator::newValue(Register dst, Register type)
     emit<NewValue>(dst, type);
 }
 
-void BytecodeGenerator::newType(Register dst, Register type)
-{
-    emit<NewType>(dst, type);
-}
-
 void BytecodeGenerator::getTypeForValue(Register dst, Register value)
 {
     emit<GetTypeForValue>(dst, value);
