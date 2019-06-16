@@ -12,9 +12,11 @@ static bool isEqualType(Value lhs, Value rhs)
     return lhs == rhs;
 }
 
-Type::Type()
+Type::Type(Class typeClass)
     : Object(0)
+    , m_class(typeClass)
 {
+    ASSERT(typeClass >= Class::SpecificType, "OOPS");
 }
 
 bool Type::operator!=(const Type& other) const
@@ -33,6 +35,11 @@ std::ostream& operator<<(std::ostream& out, const Type& type)
     return out;
 }
 
+TypeType::TypeType()
+    : Type(Type::Class::Type)
+{
+}
+
 Type* TypeType::substitute(VM&, Substitutions&)
 {
     return this;
@@ -46,6 +53,11 @@ bool TypeType::operator==(const Type& other) const
 void TypeType::dump(std::ostream& out) const
 {
     out << "Type";
+}
+
+TypeBottom::TypeBottom()
+    : Type(Type::Class::Bottom)
+{
 }
 
 Type* TypeBottom::substitute(VM&, Substitutions&)
@@ -64,6 +76,7 @@ void TypeBottom::dump(std::ostream& out) const
 }
 
 TypeName::TypeName(const std::string& name)
+    : Type(Type::Class::Name)
 {
     set_name(String::create(vm(), name));
 }
@@ -86,6 +99,7 @@ void TypeName::dump(std::ostream& out) const
 }
 
 TypeFunction::TypeFunction(const Types& params, Value returnType)
+    : Type(Type::Class::Function)
 {
     set_params(Array::create(vm(), params));
     set_returnType(returnType);
@@ -183,6 +197,7 @@ void TypeFunction::dump(std::ostream& out) const
 }
 
 TypeArray::TypeArray(Value itemType)
+    : Type(Type::Class::Array)
 {
     set_itemType(itemType);
 }
@@ -208,6 +223,7 @@ void TypeArray::dump(std::ostream& out) const
 }
 
 TypeRecord::TypeRecord(const Fields& fields)
+    : Type(Type::Class::Record)
 {
     set_fields(Object::create(vm(), fields));
 }
@@ -259,7 +275,8 @@ void TypeRecord::dump(std::ostream& out) const
 uint32_t TypeVar::s_uid = 0;
 
 TypeVar::TypeVar(const std::string& name, bool inferred, bool rigid)
-    : m_isRigid(rigid)
+    : Type(Type::Class::Var)
+    , m_isRigid(rigid)
 {
     set_uid(++s_uid);
     set_inferred(inferred);

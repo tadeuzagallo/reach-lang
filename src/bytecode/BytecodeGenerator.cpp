@@ -203,8 +203,8 @@ void BytecodeGenerator::checkType(Register dst, Register type, Type::Class expec
     emit<CheckType>(dst, type, expected);
 }
 
-void BytecodeGenerator::checkValue(Register dst, Register type, Type::Class expected) {
-    emit<CheckValue>(dst, type, expected);
+void BytecodeGenerator::checkTypeOf(Register dst, Register type, Type::Class expected) {
+    emit<CheckTypeOf>(dst, type, expected);
 }
 
 void BytecodeGenerator::typeError(const char* message)

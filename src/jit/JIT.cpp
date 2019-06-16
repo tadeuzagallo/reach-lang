@@ -269,10 +269,9 @@ OP(ResolveType)
 OP(CheckType)
 {
     ASSERT(false, "TODO");
-
 }
 
-OP(CheckValue)
+OP(CheckTypeOf)
 {
     ASSERT(false, "TODO");
 

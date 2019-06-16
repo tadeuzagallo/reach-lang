@@ -3,6 +3,7 @@
 #include <stddef.h>
 
 class Interpreter;
+class VM;
 
 class Scope {
 public:
@@ -14,4 +15,9 @@ public:
 private:
     Scope* m_parent;
     Interpreter* m_interpreter;
+};
+
+extern "C" {
+void popScope(VM*);
+void pushScope(VM*);
 };

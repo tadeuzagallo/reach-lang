@@ -14,3 +14,12 @@ Scope::~Scope()
     m_interpreter->m_environment = m_interpreter->m_environment->parent();
 }
 
+void pushScope(VM* vm)
+{
+    // TODO
+}
+
+void popScope(VM* vm)
+{
+    // TODO
+}

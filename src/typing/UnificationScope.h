@@ -40,3 +40,8 @@ private:
     std::deque<InferredType> m_inferredTypes;
     Substitutions m_substitutions;
 };
+
+extern "C" {
+void pushUnificationScope(VM*);
+void popUnificationScope(VM*);
+}

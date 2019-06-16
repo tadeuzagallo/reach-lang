@@ -99,7 +99,7 @@ instruction :CheckType,
     type: :Register,
     expected: "Type::Class"
 
-instruction :CheckValue,
+instruction :CheckTypeOf,
     dst: :Register,
     type: :Register,
     expected: "Type::Class"

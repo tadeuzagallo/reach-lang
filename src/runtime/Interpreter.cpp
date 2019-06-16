@@ -287,13 +287,13 @@ OP(PopScope)
 static int unificationScopeDepth = 0;
 OP(PushUnificationScope)
 {
-    new UnificationScope(m_vm);
+    pushUnificationScope(&m_vm);
     DISPATCH();
 }
 
 OP(PopUnificationScope)
 {
-    delete m_vm.unificationScope;
+    popUnificationScope(&m_vm);
 
     if (!m_vm.unificationScope) {
         // We are done type checking!
@@ -322,93 +322,23 @@ OP(CheckType)
 {
     Value value = m_cfr[ip.type];
     bool result;
-    switch (ip.expected) {
-    case Type::Class::AnyValue:
-        result = !value.isType();
-        break;
-    case Type::Class::AnyType:
-        result = value.isType();
-        break;
-    default:
-        goto specificType;
-    }
-    goto storeResult;
-
-specificType:
-    if (!value.isType()) {
-        result = false;
-        goto storeResult;
-    }
-
-    {
-        Type* type = value.asType();
-        switch (ip.expected) {
-        case Type::Class::Type:
-            result = type->is<TypeType>();
-            break;
-        case Type::Class::Bottom:
-            result = type->is<TypeBottom>();
-            break;
-        case Type::Class::Name:
-            result = type->is<TypeName>();
-            break;
-        case Type::Class::Function:
-            result = type->is<TypeFunction>();
-            break;
-        case Type::Class::Array:
-            result = type->is<TypeArray>();
-            break;
-        case Type::Class::Record:
-            result = type->is<TypeRecord>();
-            break;
-        case Type::Class::Var:
-            result = type->is<TypeVar>();
-            break;
-        default:
-            ASSERT_NOT_REACHED();
-        }
-    }
-
-storeResult:
+    static_assert(static_cast<uint8_t>(Type::Class::AnyValue) == 0);
+    static_assert(static_cast<uint8_t>(Type::Class::AnyType) == 1);
+    static_assert(static_cast<uint8_t>(Type::Class::SpecificType) == 2);
+    if (ip.expected < Type::Class::SpecificType)
+        result = static_cast<bool>(ip.expected) == value.isType();
+    else
+        result = value.isType() && ip.expected == value.asType()->typeClass();
     m_cfr[ip.dst] = result;
     DISPATCH();
 }
 
-OP(CheckValue)
+OP(CheckTypeOf)
 {
     Value value = m_cfr[ip.type];
     Type* type = value.type(m_vm);
-    bool result;
-    switch (ip.expected) {
-    case Type::Class::AnyValue:
-        ASSERT_NOT_REACHED();
-        break;
-    case Type::Class::AnyType:
-        result = true;
-        break;
-    case Type::Class::Type:
-        result = type->is<TypeType>();
-        break;
-    case Type::Class::Bottom:
-        result = type->is<TypeBottom>();
-        break;
-    case Type::Class::Name:
-        result = type->is<TypeName>();
-        break;
-    case Type::Class::Function:
-        result = type->is<TypeFunction>();
-        break;
-    case Type::Class::Array:
-        result = type->is<TypeArray>();
-        break;
-    case Type::Class::Record:
-        result = type->is<TypeRecord>();
-        break;
-    case Type::Class::Var:
-        result = type->is<TypeVar>();
-        break;
-    }
-    m_cfr[ip.dst] = result;
+    ASSERT(ip.expected >= Type::Class::SpecificType, "OOPS");
+    m_cfr[ip.dst] = type->typeClass() == ip.expected;
     DISPATCH();
 }
 

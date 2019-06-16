@@ -54,11 +54,14 @@ using Substitutions = std::unordered_map<uint32_t, Type*>;
     FIELD_VALUE_SETTER(__type, __name) \
 
 class Type : public Object {
+    friend class JIT;
+
 public:
     enum class Class : uint8_t {
-        AnyType,
-        AnyValue,
-        Type,
+        AnyValue = 0,
+        AnyType = 1,
+        SpecificType = 2,
+        Type = 2,
         Bottom,
         Name,
         Function,
@@ -68,6 +71,8 @@ public:
     };
 
     CELL_TYPE(Type);
+
+    Class typeClass() const { return m_class; }
 
     template<typename T, typename = std::enable_if_t<std::is_base_of<Type, T>::value>>
     bool is() const;
@@ -86,7 +91,9 @@ public:
     virtual Type* substitute(VM&, Substitutions&) = 0;
 
 protected:
-    Type();
+    Type(Class);
+
+    Class m_class;
 };
 
 class TypeType : public Type {
@@ -96,6 +103,9 @@ public:
     Type* substitute(VM&, Substitutions&) override;
     bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
+
+private:
+    TypeType();
 };
 
 class TypeBottom : public Type {
@@ -105,6 +115,9 @@ public:
     Type* substitute(VM&, Substitutions&) override;
     bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
+
+private:
+    TypeBottom();
 };
 
 class TypeName : public Type {

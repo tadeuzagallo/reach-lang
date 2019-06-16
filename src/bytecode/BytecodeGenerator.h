@@ -54,7 +54,7 @@ public:
     void unify(Register, Register);
     void resolveType(Register, Register);
     void checkType(Register, Register, Type::Class);
-    void checkValue(Register, Register, Type::Class);
+    void checkTypeOf(Register, Register, Type::Class);
     void typeError(const char*);
     void inferImplicitParameters(Register);
     void endTypeChecking(Register);

@@ -298,7 +298,7 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
     tc.generator().emitLocation(location);
 
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkValue(tmp, type, Type::Class::Array);
+    tc.generator().checkType(tmp, type, Type::Class::Array);
     tc.generator().branch(tmp, [&]{
         tc.generator().getField(tmp, type, TypeArray::itemTypeField);
         for (const auto& item : items)
@@ -312,7 +312,7 @@ void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
 {
     callee->infer(tc, result);
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkValue(tmp, result, Type::Class::Bottom);
+    tc.generator().checkTypeOf(tmp, result, Type::Class::Bottom);
     tc.generator().branch(tmp, [&] {
         if (Identifier* ident = dynamic_cast<Identifier*>(callee.get())) {
             if (ident->name == "inspect") {
@@ -334,7 +334,7 @@ result:
         tc.bottomValue(result);
         tc.generator().jump(done);
     }, [&] {
-        tc.generator().checkValue(tmp, result, Type::Class::Function);
+        tc.generator().checkTypeOf(tmp, result, Type::Class::Function);
         tc.generator().branch(tmp, [&] {
             tc.generator().getTypeForValue(result, result);
         }, [&] {
@@ -419,7 +419,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     Register tmp = tc.generator().newLocal();
     index->check(tc, tc.numberType());
 
-    tc.generator().checkValue(tmp, result, Type::Class::Array);
+    tc.generator().checkTypeOf(tmp, result, Type::Class::Array);
     tc.generator().branch(tmp, [&] {
         tc.generator().getTypeForValue(result, result);
         tc.generator().getField(result, result, TypeArray::itemTypeField);
@@ -447,7 +447,7 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
     // FIXME: should check tc against { this->field }
     Register tmp = tc.generator().newLocal();
     object->infer(tc, result);
-    tc.generator().checkValue(tmp, result, Type::Class::Record);
+    tc.generator().checkTypeOf(tmp, result, Type::Class::Record);
     tc.generator().branch(tmp, [&] {
         tc.generator().getTypeForValue(result, result);
         tc.generator().getField(result, result, TypeRecord::fieldsField);
