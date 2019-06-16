@@ -169,18 +169,6 @@ void BytecodeGenerator::isEqual(Register dst, Register lhs, Register rhs)
 
 // Type checking
 
-void BytecodeGenerator::getType(Register dst, const std::string& ident)
-{
-    uint32_t index = uniqueIdentifier(ident);
-    emit<GetType>(dst, index);
-}
-
-void BytecodeGenerator::setType(const std::string& ident, Register src)
-{
-    uint32_t index = uniqueIdentifier(ident);
-    emit<SetType>(index, src);
-}
-
 void BytecodeGenerator::pushScope()
 {
     emit<PushScope>();

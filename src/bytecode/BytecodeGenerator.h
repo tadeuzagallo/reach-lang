@@ -47,8 +47,6 @@ public:
     void isEqual(Register, Register, Register);
 
     // Type checking operations
-    void getType(Register, const std::string&);
-    void setType(const std::string&, Register);
     void pushScope();
     void popScope();
     void pushUnificationScope();

@@ -149,13 +149,12 @@ void TypeChecker::newFunctionType(Register result, const std::vector<Register>& 
 
 void TypeChecker::lookup(Register result, const SourceLocation& location, const std::string& name)
 {
-    // TODO: location
-    m_generator.getType(result, name);
+    m_generator.getLocal(result, name);
 }
 
 void TypeChecker::insert(const std::string& name, Register type)
 {
-    m_generator.setType(name, type);
+    m_generator.setLocal(name, type);
 }
 
 void TypeChecker::unify(const SourceLocation& location, Register lhs, Register rhs)

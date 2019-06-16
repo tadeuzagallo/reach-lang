@@ -270,25 +270,6 @@ OP(IsEqual)
 
 // Type checking
 
-OP(GetType)
-{
-    bool success;
-    const std::string& variable = m_block.identifier(ip.identifierIndex);
-    m_cfr[ip.dst] = m_environment->get(variable, success);
-    if (!success) {
-        std::stringstream message;
-        message << "Unknown variable: `" << variable << "`";
-        m_vm.typeError(m_ip.offset(), message.str());
-    }
-    DISPATCH();
-}
-
-OP(SetType)
-{
-    m_environment->set(m_block.identifier(ip.identifierIndex), m_cfr[ip.src]);
-    DISPATCH();
-}
-
 OP(PushScope)
 {
     m_vm.typingScope = new Scope(this);

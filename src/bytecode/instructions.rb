@@ -78,14 +78,6 @@ instruction :IsEqual,
     rhs: :Register
 
 # Type checking instructions
-instruction :GetType,
-    dst: :Register,
-    identifierIndex: :uint32_t
-
-instruction :SetType,
-    identifierIndex: :uint32_t,
-    src: :Register
-
 instruction :PushScope
 
 instruction :PopScope

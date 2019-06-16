@@ -230,18 +230,6 @@ OP(IsEqual)
 
 // Type checking
 
-OP(GetType)
-{
-    ASSERT(false, "TODO");
-
-}
-
-OP(SetType)
-{
-    ASSERT(false, "TODO");
-
-}
-
 OP(PushScope)
 {
     ASSERT(false, "TODO");
