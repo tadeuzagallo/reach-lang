@@ -43,6 +43,9 @@ private:
     void load(VirtualRegister, Register);
     void load(AddressTag, VirtualRegister, Register);
 
+    // lea(src, dst)
+    void lea(VirtualRegister, Register);
+
     // move(src, dst)
     void move(const void*, Register);
     void move(Value, Register);
@@ -72,10 +75,13 @@ private:
     void lea(Offset, Register);
     void call(void*);
     void compare(Register, Value);
+    void compare(Register, Register);
+    void setEqual(Register dst);
     void sub(Register, Register);
     void sub(int64_t, Register);
     void shiftl(uint8_t, Register);
-    void bit_and(int64_t, Register);
+    void bitAnd(int64_t, Register);
+    void bitOr(int64_t, Register);
     void jump(int32_t);
     void jump(Label&);
     void jumpIfEqual(int32_t);

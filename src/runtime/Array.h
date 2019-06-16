@@ -39,6 +39,11 @@ private:
     {
     }
 
+    Array(uint32_t itemCount, const Value* items)
+        : m_items(items, items + itemCount)
+    {
+    }
+
     std::vector<Value> m_items;
 };
 

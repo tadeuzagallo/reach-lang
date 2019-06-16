@@ -27,11 +27,10 @@ void UnificationScope::unify(InstructionStream::Offset bytecodeOffset, Value lhs
     m_constraints.emplace_back(Constraint { bytecodeOffset, lhs, rhs });
 }
 
-Value UnificationScope::resolve(Value resultType)
+Value UnificationScope::resolve(Type* resultType)
 {
     finalize();
-    ASSERT(resultType.isType(), "OOPS");
-    return resultType.asType()->substitute(m_vm, m_substitutions);
+    return resultType->substitute(m_vm, m_substitutions);
 }
 
 void UnificationScope::infer(InstructionStream::Offset bytecodeOffset, Value value)

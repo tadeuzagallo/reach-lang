@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_map>
 
+class BytecodeBlock;
 class Type;
 
 using Types = std::vector<Value>;
@@ -157,7 +158,7 @@ public:
     VALUE_FIELD(Value, returnType);
 
 private:
-    TypeFunction(const Types&, Value);
+    TypeFunction(uint32_t, const Value*, Value);
 };
 
 class TypeArray : public Type {
@@ -188,6 +189,7 @@ public:
 
 private:
     TypeRecord(const Fields&);
+    TypeRecord(const BytecodeBlock&, uint32_t, const Value*, const Value*);
 };
 
 class TypeVar : public Type {
@@ -236,3 +238,12 @@ const T* Type::as() const
 }
 
 std::ostream& operator<<(std::ostream&, Type::Class);
+
+extern "C" {
+// JIT helpers
+TypeVar* createTypeVar(VM&, const std::string&, bool, bool);
+TypeName* createTypeName(VM&, const std::string&);
+TypeArray* createTypeArray(VM&, Value);
+TypeRecord* createTypeRecord(VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*);
+TypeFunction* createTypeFunction(VM&, uint32_t, const Value*, Value);
+};

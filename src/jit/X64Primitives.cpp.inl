@@ -25,18 +25,21 @@ enum JIT::Register : uint8_t {
     regA1 = rsi,
     regA2 = rdx,
     regA3 = rcx,
+    regA4 = r8,
 
     regR0 = rax,
 
     regT0 = rdi,
     regT1 = rsi,
     regT2 = rdx,
+    regT3 = rcx,
+    regT4 = r8,
 
     regCFR = rbp,
     regSP = rsp,
 };
 
-static constexpr JIT::Register tmpRegister = static_cast<JIT::Register>(r8);
+static constexpr JIT::Register tmpRegister = static_cast<JIT::Register>(r9);
 
 namespace REX {
 static constexpr JIT::Register NoR = static_cast<JIT::Register>(0);
@@ -71,9 +74,11 @@ enum JIT::Opcode : uint8_t {
     OP_RET = 0xC3,
     OP_GROUP2_EvIb = 0xC1,
     OP_AND_EvGv = 0x21,
+    OP_OR_EvGv = 0x09,
 };
 
 static constexpr uint8_t OP2_JCC_rel32 = 0x80;
+static constexpr uint8_t OP2_SETCC = 0x9A;
 static constexpr uint8_t GROUP5_OP_CALLN = 0x2;
 static constexpr uint8_t GROUP2_OP_SHL = 0x4;
 static constexpr uint8_t ConditionE = 0x4;
@@ -125,9 +130,21 @@ void JIT::call(void* target)
 void JIT::compare(Register reg, Value value)
 {
     move(value.m_bits, tmpRegister);
-    emitRex(tmpRegister, REX::NoX, reg);
+    compare(reg, tmpRegister);
+}
+
+void JIT::compare(Register lhs, Register rhs)
+{
+    emitRex(rhs, REX::NoX, lhs);
     emitOpcode(OP_CMP_EvGv);
-    emitModRm(ModRM::Register, tmpRegister, reg);
+    emitModRm(ModRM::Register, rhs, lhs);
+}
+
+void JIT::setEqual(Register dst)
+{
+    emitOpcode(OP_2BYTE_ESCAPE);
+    emitOpcode(OP2_SETCC, ConditionE);
+    emitModRm(ModRM::Register, /* ignored */ 0, dst);
 }
 
 void JIT::sub(int64_t immediate, Register reg)
@@ -151,11 +168,19 @@ void JIT::shiftl(uint8_t immediate, Register reg)
     emitByte(immediate);
 }
 
-void JIT::bit_and(int64_t immediate, Register reg)
+void JIT::bitAnd(int64_t immediate, Register reg)
 {
     move(immediate, tmpRegister);
     emitRex(tmpRegister, REX::NoX, reg);
     emitOpcode(OP_AND_EvGv);
+    emitModRm(ModRM::Register, tmpRegister, reg);
+}
+
+void JIT::bitOr(int64_t immediate, Register reg)
+{
+    move(immediate, tmpRegister);
+    emitRex(tmpRegister, REX::NoX, reg);
+    emitOpcode(OP_OR_EvGv);
     emitModRm(ModRM::Register, tmpRegister, reg);
 }
 

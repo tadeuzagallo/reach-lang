@@ -5,8 +5,15 @@
 #include "Value.h"
 #include <iostream>
 
-std::ostream& Inspector::stdout = std::cout;
-std::ostream& Inspector::stderr = std::cerr;
+std::ostream& Inspector::stdout()
+{
+    return std::cout;
+}
+
+std::ostream& Inspector::stderr()
+{
+    return std::cerr;
+}
 
 void Inspector::dumpNode(const Node* expr)
 {

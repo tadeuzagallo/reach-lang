@@ -48,6 +48,8 @@ protected:
     {
     }
 
+    Object(const BytecodeBlock&, uint32_t, const Value*, const Value*);
+
 private:
     std::unordered_map<std::string, Value> m_fields;
 };

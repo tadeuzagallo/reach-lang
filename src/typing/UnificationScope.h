@@ -12,7 +12,7 @@ public:
     ~UnificationScope();
 
     void unify(InstructionStream::Offset, Value, Value);
-    Value resolve(Value);
+    Value resolve(Type*);
     void infer(InstructionStream::Offset, Value);
 
 private:

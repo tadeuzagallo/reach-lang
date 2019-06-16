@@ -5,10 +5,19 @@
 #include "Environment.h"
 #include "Function.h"
 #include "Object.h"
+#include "Scope.h"
+#include "UnificationScope.h"
 #include "Value.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+
+#ifdef OFFSETOF
+#undef OFFSETOF
+#endif
+
+#define OFFSETOF(__obj, __field) \
+    static_cast<int32_t>(((uintptr_t)&(((__obj*)0xbbadbeef)->__field)) - 0xbbadbeefll)
 
 static int32_t offset(JIT::VirtualRegister r)
 {
@@ -59,6 +68,7 @@ void* JIT::compile()
     for (auto instruction : m_block.instructions()) {
         m_bytecodeOffset = instruction.offset();
         m_bytecodeOffsetMapping.emplace(m_bytecodeOffset, m_buffer.size());
+        std::cout << "BLOCK: " << m_block.name() << ", OFFSET: " << m_bytecodeOffset << std::endl;
         switch (instruction->id) {
             FOR_EACH_INSTRUCTION(CASE)
         }
@@ -130,9 +140,14 @@ OP(StoreConstant)
 
 OP(GetLocal)
 {
+    push(regT2);
+    push(regT3);
     load(m_block.environmentRegister(), regA0);
     move(&m_block.identifier(ip.identifierIndex), regA1);
+    lea(Offset { 0x0, regSP }, regA2);
     call(&Environment::get);
+    pop(regT3);
+    pop(regT2);
     store(regR0, ip.dst);
 }
 
@@ -141,7 +156,7 @@ OP(SetLocal)
     load(m_block.environmentRegister(), regA0);
     move(&m_block.identifier(ip.identifierIndex), regA1);
     load(ip.src, regA2);
-    call<Environment, void, const Identifier&, Value>(&Environment::set);
+    call<Environment, void, const std::string&, Value>(&Environment::set);
 }
 
 OP(NewArray)
@@ -225,100 +240,149 @@ OP(JumpIfFalse)
 
 OP(IsEqual)
 {
-    ASSERT(false, "TODO");
+    load(ip.lhs, regT0);
+    load(ip.rhs, regT1);
+    compare(regT0, regT1);
+    setEqual(regT0);
+    bitOr(Value::TagTypeBool, regT0);
 }
 
 // Type checking
 
 OP(PushScope)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    call<void, VM*>(pushScope);
 }
 
 OP(PopScope)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    call<void, VM*>(popScope);
 }
 
 OP(PushUnificationScope)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    call<void, VM*>(pushUnificationScope);
 }
 
 OP(PopUnificationScope)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    call<void, VM*>(popUnificationScope);
 }
 
 OP(Unify)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    move(Offset { OFFSETOF(VM, unificationScope), regA0 }, regA0);
+    move(m_bytecodeOffset, regA1);
+    load(ip.lhs, regA2);
+    load(ip.rhs, regA3);
+    call<UnificationScope, void, InstructionStream::Offset, Value, Value>(&UnificationScope::unify);
 }
 
 OP(ResolveType)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    move(Offset { OFFSETOF(VM, unificationScope), regA0 }, regA0);
+    load(ip.type, regA1);
+    call<UnificationScope, Value, Type*>(&UnificationScope::resolve);
+    store(regR0, ip.dst);
 }
 
 OP(CheckType)
 {
-    ASSERT(false, "TODO");
+    load(ip.type, regA0);
+    if (ip.expected < Type::Class::SpecificType)
+        call<Value, bool>(&Value::isType);
+    else
+        move(Offset { OFFSETOF(Type, m_class), regA0 }, regR0);
+
+    // TODO: Add support for compare offset, imm
+    compare(regR0, static_cast<uint8_t>(ip.expected));
+    setEqual(regR0);
+    store(regR0, ip.dst);
 }
 
 OP(CheckTypeOf)
 {
-    ASSERT(false, "TODO");
+    ASSERT(ip.expected >= Type::Class::SpecificType, "OOPS");
+
+    load(ip.type, regA0);
+    move(vm(), regA1);
+    call<Value, Type*, VM&>(&Value::type);
+    move(Offset { OFFSETOF(Type, m_class), regR0 }, regR0);
+    compare(regR0, static_cast<uint8_t>(ip.expected));
+    setEqual(regR0);
+    store(regR0, ip.dst);
 
 }
 
 OP(TypeError)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    move(m_bytecodeOffset, regA1);
+    move(&m_block.identifier(ip.messageIndex), regA2);
+    call<VM, void, InstructionStream::Offset, const std::string&>(&VM::typeError);
 }
 
 OP(InferImplicitParameters)
 {
-    ASSERT(false, "TODO");
-
+    // TODO
 }
 
 // Create new types
 
 OP(NewVarType)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    move(&m_block.identifier(ip.nameIndex), regA1);
+    move(ip.isInferred, regA2);
+    move(true, regA3);
+    call<TypeVar*, VM&, const std::string&, bool, bool>(createTypeVar);
+    store(regR0, ip.dst);
 }
 
 OP(NewNameType)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    move(&m_block.identifier(ip.nameIndex), regA1);
+    call<TypeName*, VM&, const std::string&>(createTypeName);
+    store(regR0, ip.dst);
 }
 
 OP(NewArrayType)
 {
-    ASSERT(false, "TODO");
-
+    move(vm(), regA0);
+    load(ip.itemType, regA1);
+    call<TypeArray*, VM&, Value>(createTypeArray);
+    store(regR0, ip.dst);
 }
 
 OP(NewRecordType)
 {
-    ASSERT(false, "TODO");
-
+    VirtualRegister firstKey = VirtualRegister::forLocal(-ip.firstKey.offset() + ip.fieldCount - 1);
+    VirtualRegister firstType = VirtualRegister::forLocal(-ip.firstType.offset() + ip.fieldCount - 1);
+    move(vm(), regA0);
+    move(&m_block, regA1);
+    move(ip.fieldCount, regA2);
+    lea(firstKey, regA3);
+    lea(firstType, regA4);
+    call<TypeRecord*, VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*>(createTypeRecord);
+    store(regR0, ip.dst);
 }
 
 OP(NewFunctionType)
 {
-    ASSERT(false, "TODO");
-
+    VirtualRegister firstParam = VirtualRegister::forLocal(-ip.firstParam.offset() + ip.paramCount - 1);
+    move(vm(), regA0);
+    move(ip.paramCount, regA1);
+    lea(firstParam, regA2);
+    load(ip.returnType, regA3);
+    call<TypeFunction*, VM&, uint32_t, const Value*, Value>(createTypeFunction);
+    store(regR0, ip.dst);
 }
 
 // New values from existing types
@@ -331,14 +395,20 @@ OP(NewType)
 
 OP(NewValue)
 {
-    ASSERT(false, "TODO");
-
+    load(ip.type, regT0);
+    bitOr(Value::TagTypeAbstractValue, regT0);
+    store(regT0, ip.dst);
 }
 
 OP(GetTypeForValue)
 {
-    ASSERT(false, "TODO");
-
+    load(ip.value, regA0);
+    move(vm(), regA1);
+    call<Value, Type*, VM&>(&Value::type);
+    move(regR0, regA0);
+    move(vm(), regA1);
+    call<Type, Type*, VM&>(&Type::instantiate);
+    store(regR0, ip.dst);
 }
 
 
@@ -390,7 +460,7 @@ void JIT::prologue()
     move(regSP, regCFR);
 
     sub(m_block.numLocals() * 8, regSP);
-    bit_and(~0xFLL, regSP);
+    bitAnd(~0xFLL, regSP);
     store(regR0, m_block.environmentRegister());
 }
 
@@ -413,6 +483,13 @@ void JIT::load(VirtualRegister src, Register dst)
 void JIT::load(AddressTag, VirtualRegister src, Register dst)
 {
     // lea src * 8(%cfr), %dst
+    lea(Offset { offset(src), regCFR }, dst);
+}
+
+// lea(src, dst)
+void JIT::lea(VirtualRegister src, Register dst)
+{
+    // mov src * 8(%cfr), %dst
     lea(Offset { offset(src), regCFR }, dst);
 }
 

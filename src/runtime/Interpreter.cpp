@@ -382,29 +382,17 @@ OP(NewArrayType)
 
 OP(NewRecordType)
 {
-    Fields fields;
-    uint32_t firstKeyOffset = -ip.firstKey.offset();
-    uint32_t firstTypeOffset = -ip.firstType.offset();
-    for (uint32_t i = 0; i < ip.fieldCount; i++) {
-        Value keyIndex = m_cfr[Register::forLocal(firstKeyOffset + i)];
-        const std::string& key = m_block.identifier(keyIndex.asNumber());
-        Value type = m_cfr[Register::forLocal(firstTypeOffset + i)];
-        fields.emplace(key, type);
-    }
-    m_cfr[ip.dst] = TypeRecord::create(m_vm, fields);
+    Value* keys = &m_cfr[Register::forLocal(-ip.firstKey.offset() + ip.fieldCount - 1)];
+    Value* types = &m_cfr[Register::forLocal(-ip.firstType.offset() + ip.fieldCount - 1)];
+    m_cfr[ip.dst] = TypeRecord::create(m_vm, m_block, ip.fieldCount, keys, types);
     DISPATCH();
 }
 
 OP(NewFunctionType)
 {
-    Types params;
-    uint32_t firstParamOffset = -ip.firstParam.offset();
-    for (uint32_t i = 0; i < ip.paramCount; i++) {
-        Value param = m_cfr[Register::forLocal(firstParamOffset + i)];
-        params.emplace_back(param);
-    }
+    Value* params = &m_cfr[Register::forLocal(-ip.firstParam.offset() + ip.paramCount - 1)];
     Value returnType = m_cfr[ip.returnType];
-    m_cfr[ip.dst] = TypeFunction::create(m_vm, params, returnType);
+    m_cfr[ip.dst] = TypeFunction::create(m_vm, ip.paramCount, params, returnType);
     DISPATCH();
 }
 
@@ -412,6 +400,7 @@ OP(NewFunctionType)
 
 OP(NewType)
 {
+    // TODO: delete this
     ASSERT(false, "TODO");
     DISPATCH();
 }

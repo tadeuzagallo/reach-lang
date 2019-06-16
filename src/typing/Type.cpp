@@ -98,15 +98,16 @@ void TypeName::dump(std::ostream& out) const
     out << name()->str();
 }
 
-TypeFunction::TypeFunction(const Types& params, Value returnType)
+TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Value returnType)
     : Type(Type::Class::Function)
 {
-    set_params(Array::create(vm(), params));
+    set_params(Array::create(vm(), parameterCount, parameters));
     set_returnType(returnType);
 
     Types implicitParams;
     Types explicitParams;
-    for (Value param : params) {
+    for (uint32_t i = 0; i < parameterCount; i++) {
+        Value param = parameters[0];
         if (param.isType()) {
             Type* paramType = param.asType();
             if (paramType->is<TypeVar>() && paramType->as<TypeVar>()->inferred()) {
@@ -165,7 +166,7 @@ Type* TypeFunction::substitute(VM& vm, Substitutions& subst)
     Value returnType_ = returnType();
     if (returnType_.isType())
         returnType_ = returnType_.asType()->substitute(vm, subst);
-    return TypeFunction::create(vm, params_, returnType_);
+    return TypeFunction::create(vm, params_.size(), &params_[0], returnType_);
 }
 
 bool TypeFunction::operator==(const Type& otherT) const
@@ -175,7 +176,7 @@ bool TypeFunction::operator==(const Type& otherT) const
     const TypeFunction* other = otherT.as<TypeFunction>();
     if (params()->size() != other->params()->size())
         return false;
-    for (unsigned i = 0; i < params()->size(); i++)
+    for (uint32_t i = 0; i < params()->size(); i++)
         if (isEqualType(param(i), other->param(i)))
             return false;
     if (isEqualType(returnType(), other->returnType()))
@@ -228,6 +229,12 @@ TypeRecord::TypeRecord(const Fields& fields)
     set_fields(Object::create(vm(), fields));
 }
 
+TypeRecord::TypeRecord(const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* types)
+    : Type(Type::Class::Record)
+{
+    set_fields(Object::create(vm(), block, fieldCount, keys, types));
+}
+
 Type* TypeRecord::field(const std::string& name) const
 {
     std::optional<Value> field = fields()->tryGet(name);
@@ -239,8 +246,9 @@ Type* TypeRecord::field(const std::string& name) const
 Type* TypeRecord::substitute(VM& vm, Substitutions& subst)
 {
     Fields fields_;
-    for (auto& field : *fields())
+    for (auto& field : *fields()) {
         fields_.emplace(field.first, field.second.asCell<Type>()->substitute(vm, subst));
+    }
     return TypeRecord::create(vm, fields_);
 }
 
@@ -341,4 +349,30 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
         break;
     }
     return out;
+}
+
+// JIT helpers
+TypeVar* createTypeVar(VM& vm, const std::string& name, bool isInferred, bool isRigid)
+{
+    return TypeVar::create(vm, name, isInferred, isRigid);
+}
+
+TypeName* createTypeName(VM& vm, const std::string& name)
+{
+    return TypeName::create(vm, name);
+}
+
+TypeArray* createTypeArray(VM& vm, Value itemType)
+{
+    return TypeArray::create(vm, itemType);
+}
+
+TypeRecord* createTypeRecord(VM& vm, const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* types)
+{
+    return TypeRecord::create(vm, block, fieldCount, keys, types);
+}
+
+TypeFunction* createTypeFunction(VM& vm, uint32_t paramCount, const Value* params, Value returnType)
+{
+    return TypeFunction::create(vm, paramCount, params, returnType);
 }
