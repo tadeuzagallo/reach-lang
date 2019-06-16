@@ -14,7 +14,7 @@ Allocator::Allocator(VM* vm, size_t cellSize)
     *header = Header { vm };
     m_start = reinterpret_cast<uint8_t*>(header + 1);
     m_current = m_start;
-    m_end = m_start + s_blockSize;
+    m_end = m_start + s_blockSize - sizeof(Header);
 }
 
 Allocator::~Allocator()
