@@ -28,12 +28,14 @@ private:
 
     constexpr static uint8_t s_freeMarker = std::numeric_limits<uint8_t>::max();
     static constexpr size_t s_blockSize = 0x4000;
+    static constexpr uintptr_t s_blockMask = s_blockSize - 1;
 
     static std::unordered_map<size_t, Allocator*> s_allocators;
 
     Allocator(VM*, size_t);
 
     size_t m_cellSize;
+    Header* m_header;
     uint8_t* m_start;
     uint8_t* m_end;
     uint8_t* m_current;

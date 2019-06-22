@@ -231,7 +231,7 @@ void JIT::move(Opcode op, Register reg, Offset offset)
 {
     emitRex(reg, REX::NoX, offset.base);
     emitOpcode(op);
-    //ASSERT(base != (Register)rsp, "TODO: SIB");
+    //ASSERT(offset.base != (Register)rsp, "TODO: SIB");
     if (!offset.offset && offset.base != (Register)rbp) {
         emitModRm(ModRM::None, reg, offset.base, offset.index);
     } else if (is8Bit(offset.offset)) {

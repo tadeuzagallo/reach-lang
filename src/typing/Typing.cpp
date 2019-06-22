@@ -205,7 +205,6 @@ void ExpressionStatement::check(TypeChecker& tc, Register result)
 void Identifier::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
-    // TODO: handle unknown variables
     tc.lookup(result, location, name);
 }
 

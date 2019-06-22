@@ -61,7 +61,7 @@ public:
     VM& vm() const
     {
         uintptr_t cell = reinterpret_cast<uintptr_t>(this);
-        cell &= ~(Allocator::s_blockSize - 1);
+        cell &= ~Allocator::s_blockMask;
         return *reinterpret_cast<Allocator::Header*>(cell)->vm;
     }
 

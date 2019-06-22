@@ -77,7 +77,7 @@ bool Value::operator==(const Value& other) const
     CHECK();
     if (m_bits == other.m_bits)
         return true;
-    // TODO: proper equalify for cells
+    // TODO: proper equality for cells
     return false;
 }
 

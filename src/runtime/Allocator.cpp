@@ -8,13 +8,12 @@ std::unordered_map<size_t, Allocator*> Allocator::s_allocators;
 Allocator::Allocator(VM* vm, size_t cellSize)
     : m_cellSize(cellSize)
 {
-    Header* header;
-    int result = posix_memalign(reinterpret_cast<void**>(&header), s_blockSize, s_blockSize);
+    int result = posix_memalign(reinterpret_cast<void**>(&m_header), s_blockSize, s_blockSize);
     ASSERT(!result, "Failed to create allocation block");
-    *header = Header { vm };
-    m_start = reinterpret_cast<uint8_t*>(header + 1);
+    *m_header = Header { vm };
+    m_start = reinterpret_cast<uint8_t*>(m_header + 1);
     m_current = m_start;
-    m_end = m_start + s_blockSize - sizeof(Header);
+    m_end = reinterpret_cast<uint8_t*>(m_header) + s_blockSize;
 }
 
 Allocator::~Allocator()
@@ -77,10 +76,9 @@ void Allocator::free(Cell* cell)
 
 bool Allocator::contains(const Cell* cell)
 {
-    // TODO: quicker check based on alignment
-    const uint8_t* address = reinterpret_cast<const uint8_t*>(cell);
-    if (address < m_start || address >= m_current)
+    if ((reinterpret_cast<uintptr_t>(cell) & ~s_blockMask) != reinterpret_cast<uintptr_t>(m_header))
         return false;
+    const uint8_t* address = reinterpret_cast<const uint8_t*>(cell);
     if ((address - m_start) % m_cellSize)
         return false;
     return true;
