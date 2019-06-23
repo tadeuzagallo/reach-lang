@@ -261,7 +261,6 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
     for (auto& pair : fields) {
         Register type = fieldRegisters[i++].second;
         pair.second->infer(tc, type);
-        //tc.generator().getTypeForValue(type, type);
     }
 
     tc.newRecordValue(result, fieldRegisters);
@@ -374,28 +373,30 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeCh
 
     if (Identifier* ident = dynamic_cast<Identifier*>(callee.get())) {
         if (auto signature = tc.currentScope().getFunction(ident->name)) {
-            auto it = arguments.begin();
-            std::vector<Register> inferredArguments;
-            std::vector<SynthesizedTypeExpression*> synthesizedTypes;
-            for (uint32_t i = 0; i < signature->size(); i++) {
-                if (!signature->at(i)) {
-                    ++it;
-                    continue;
+            if (arguments.size() < signature->size()) {
+                auto it = arguments.begin();
+                std::vector<Register> inferredArguments;
+                std::vector<SynthesizedTypeExpression*> synthesizedTypes;
+                for (uint32_t i = 0; i < signature->size(); i++) {
+                    if (!signature->at(i)) {
+                        ++it;
+                        continue;
+                    }
+
+                    Register tmp = tc.generator().newLocal();
+                    auto argument = std::make_unique<SynthesizedTypeExpression>(location);
+                    inferredArguments.emplace_back(tmp);
+                    synthesizedTypes.emplace_back(argument.get());
+                    it = ++arguments.emplace(it, std::move(argument));
                 }
+                ASSERT(it == arguments.end(), "OOPS");
+                ASSERT(inferredArguments.size(), "OOPS");
+                ASSERT(inferredArguments.size() == synthesizedTypes.size(), "OOPS");
+                tc.generator().inferImplicitParameters(calleeType, inferredArguments);
 
-                Register tmp = tc.generator().newLocal();
-                auto argument = std::make_unique<SynthesizedTypeExpression>(location);
-                inferredArguments.emplace_back(tmp);
-                synthesizedTypes.emplace_back(argument.get());
-                it = ++arguments.emplace(it, std::move(argument));
+                for (unsigned i = 0; i < inferredArguments.size(); i++)
+                    synthesizedTypes[i]->typeIndex = tc.generator().storeConstant(inferredArguments[i]);
             }
-            ASSERT(it == arguments.end(), "OOPS");
-            ASSERT(inferredArguments.size(), "OOPS");
-            ASSERT(inferredArguments.size() == synthesizedTypes.size(), "OOPS");
-            tc.generator().inferImplicitParameters(calleeType, inferredArguments);
-
-            for (unsigned i = 0; i < inferredArguments.size(); i++)
-                synthesizedTypes[i]->typeIndex = tc.generator().storeConstant(inferredArguments[i]);
         }
     }
 }
@@ -418,13 +419,15 @@ void CallExpression::check(TypeChecker& tc, Register type)
 {
     tc.generator().emitLocation(location);
 
-    // TODO
-    //TypeChecker::UnificationScope scope(tc);
-    //const TypeFunction* calleeTypeFunction = checkCallee(tc);
-    //if (!calleeTypeFunction)
-        //return;
-    //tc.unify(location, tc.newValue(calleeTypeFunction->returnType()), type);
-    //checkArguments(tc, *calleeTypeFunction, scope);
+    TypeChecker::UnificationScope scope(tc);
+    Register tmp = tc.generator().newLocal();
+    Label done = tc.generator().label();
+    checkCallee(tc, tmp, done);
+    checkArguments(tc, tmp, scope, done);
+    tc.generator().getField(tmp, tmp, TypeFunction::returnTypeField);
+    tc.newValue(tmp, tmp);
+    tc.unify(location, tmp, type);
+    tc.generator().emit(done);
 }
 
 void SubscriptExpression::infer(TypeChecker& tc, Register result)
@@ -432,10 +435,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     tc.generator().emitLocation(location);
 
     target->infer(tc, result);
-
     Register tmp = tc.generator().newLocal();
-    index->check(tc, tc.numberType());
-
     tc.generator().checkTypeOf(tmp, result, Type::Class::Array);
     tc.generator().branch(tmp, [&] {
         tc.generator().getTypeForValue(result, result);
@@ -444,17 +444,18 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
         tc.generator().typeError("Trying to subscript non-array");
     });
 
-
+    index->check(tc, tc.numberType());
 }
 
 void SubscriptExpression::check(TypeChecker& tc, Register itemType)
 {
     tc.generator().emitLocation(location);
 
-    //Register tmp = tc.generator().newLocal();
-    //index->check(tc, tc.numberType());
-    //tc.generator().newArrayValue(itemType);
-    //target->check(tc, itemType);
+    Register tmp = tc.generator().newLocal();
+    tc.generator().newArrayType(tmp, itemType);
+    target->check(tc, tmp);
+
+    index->check(tc, tc.numberType());
 }
 
 void MemberExpression::infer(TypeChecker& tc, Register result)

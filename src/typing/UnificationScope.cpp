@@ -65,14 +65,14 @@ void UnificationScope::solveConstraints()
 
 void UnificationScope::unifies(const Constraint& constraint)
 {
-    Type* lhsType = constraint.lhs.type(m_vm);
+    Type* lhsType = constraint.lhs.type(m_vm)->substitute(m_vm, m_substitutions);
     Type* rhsType = constraint.rhs.asType()->substitute(m_vm, m_substitutions);
 
     LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " U " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
 
     if (rhsType->is<TypeVar>()) {
         TypeVar* var = rhsType->as<TypeVar>();
-        if (var->inferred()) {
+        if (var->inferred() && !var->isRigid()) {
             ASSERT(!var->isRigid(), "OOPS");
             bind(var, lhsType->substitute(m_vm, m_substitutions));
             return;
@@ -92,7 +92,7 @@ void UnificationScope::unifies(const Constraint& constraint)
     if (*lhsType == *rhsType)
         return;
 
-    if (rhsType->is<TypeVar>())
+    if (rhsType->is<TypeVar>() && !rhsType->as<TypeVar>()->isRigid())
         rhsType = m_vm.typeType;
 
     std::stringstream msg;
