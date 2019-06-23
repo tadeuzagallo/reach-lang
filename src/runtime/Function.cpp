@@ -24,8 +24,3 @@ Value Function::call(VM& vm, std::vector<Value> args)
 
     return Interpreter::run(vm, *m_block, m_parentEnvironment, args);
 }
-
-Function* createFunction(VM& vm, BytecodeBlock& block, Environment* parentEnvironment, Type* type)
-{
-    return Function::create(vm, block, parentEnvironment, type);
-}

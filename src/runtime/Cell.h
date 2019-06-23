@@ -41,8 +41,8 @@ public:
         Array = 0x4,
         Function = 0x8,
         Environment = 0x10,
-        InvalidCell = 0x20,
-        Type = 0x40 | Object,
+        Type = 0x20 | Object,
+        InvalidCell = 0x22,
     };
 
     template<typename T>

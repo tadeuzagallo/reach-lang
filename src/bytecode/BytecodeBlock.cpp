@@ -21,13 +21,7 @@ const std::string& BytecodeBlock::identifier(uint32_t index) const
     return *std::next(m_identifiers.begin(), index);
 }
 
-Value BytecodeBlock::constant(uint32_t index) const
-{
-    ASSERT(index < m_constants.size(), "Constant out of bounds");
-    return m_constants[index];
-}
-
-Value& BytecodeBlock::constant(uint32_t index)
+Value& BytecodeBlock::constant(uint32_t index) const
 {
     ASSERT(index < m_constants.size(), "Constant out of bounds");
     return m_constants[index];

@@ -39,8 +39,6 @@ int main(int argc, const char** argv)
     auto bytecode = program->generate(generator);
     vm.globalBlock = bytecode.get();
     Value type = Interpreter::check(vm, *bytecode, vm.globalEnvironment);
-    // Increase hit count for global code, in case we are eagerly JIT'ing
-    bytecode->optimize(vm);
     Value result = Interpreter::run(vm, *bytecode, vm.globalEnvironment);
     std::cout << "End: " << result << " : " << type << std::endl;
 

@@ -65,7 +65,7 @@ void* JIT::compile()
         emit##Instruction(*reinterpret_cast<const Instruction*>(instruction.get())); \
         break;
 
-    for (auto instruction : m_block.instructions()) {
+    for (auto instruction = m_block.instructions().at(m_block.codeStart()); instruction != m_block.instructions().end(); ++instruction) {
         m_bytecodeOffset = instruction.offset();
         m_bytecodeOffsetMapping.emplace(m_bytecodeOffset, m_buffer.size());
         switch (instruction->id) {
@@ -184,11 +184,12 @@ OP(GetArrayIndex)
 
 OP(NewFunction)
 {
-    move(vm(), regA0);
-    move(&m_block.functionBlock(ip.functionIndex), regA1);
-    load(m_block.environmentRegister(), regA2);
-    call<Function*, VM&, BytecodeBlock&, Environment*, Type*>(createFunction);
-    store(regR0, ip.dst);
+    move(m_block.function(ip.functionIndex), regA0);
+    load(m_block.environmentRegister(), regA1);
+    call<Function, void, Environment*>(&Function::setParentEnvironment);
+
+    move(m_block.function(ip.functionIndex), regT0);
+    store(regT0, ip.dst);
 }
 
 OP(Call)
@@ -196,7 +197,7 @@ OP(Call)
     move(vm(), regA0);
     load(ip.callee, regA1);
     move(ip.argc, regA2);
-    load(Address, ip.firstArg, regA3);
+    lea(ip.firstArg, regA3);
     call<Value, VM&, Function*, uint32_t, Value*>(&JIT::trampoline);
     store(regR0, ip.dst);
 }
