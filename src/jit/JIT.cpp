@@ -293,11 +293,13 @@ OP(ResolveType)
 
 OP(CheckType)
 {
-    load(ip.type, regA0);
-    if (ip.expected < Type::Class::SpecificType)
+    if (ip.expected < Type::Class::SpecificType) {
+        lea(ip.type, regA0);
         call<Value, bool>(&Value::isType);
-    else
+    } else {
+        load(ip.type, regA0);
         move(Offset { OFFSETOF(Type, m_class), regA0 }, regR0);
+    }
 
     // TODO: Add support for compare offset, imm
     compare(regR0, static_cast<uint8_t>(ip.expected));
@@ -309,7 +311,7 @@ OP(CheckTypeOf)
 {
     ASSERT(ip.expected >= Type::Class::SpecificType, "OOPS");
 
-    load(ip.type, regA0);
+    lea(ip.type, regA0);
     move(vm(), regA1);
     call<Value, Type*, VM&>(&Value::type);
     move(Offset { OFFSETOF(Type, m_class), regR0 }, regR0);

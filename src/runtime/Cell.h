@@ -42,7 +42,7 @@ public:
         Function = 0x8,
         Environment = 0x10,
         InvalidCell = 0x20,
-        Type = 0x41,
+        Type = 0x40 | Object,
     };
 
     template<typename T>
