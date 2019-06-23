@@ -134,7 +134,7 @@ OP(LoadConstant)
 
 OP(StoreConstant)
 {
-    ASSERT(false, "TODO");
+    ASSERT(false, "StoreConstant should only be used during type checking, and type checking shouldn't JIT");
 }
 
 OP(GetLocal)
@@ -247,178 +247,28 @@ OP(IsEqual)
     bitOr(Value::TagTypeBool, regT0);
 }
 
-// Type checking
+#define TYPE_OP(Instruction) \
+    OP(Instruction) { ASSERT(false, "JIT should not be doing type checking"); }
 
-OP(PushScope)
-{
-    move(vm(), regA0);
-    call<void, VM*>(pushScope);
-}
+TYPE_OP(PushScope)
+TYPE_OP(PopScope)
+TYPE_OP(PushUnificationScope)
+TYPE_OP(PopUnificationScope)
+TYPE_OP(Unify)
+TYPE_OP(ResolveType)
+TYPE_OP(CheckType)
+TYPE_OP(CheckTypeOf)
+TYPE_OP(TypeError)
+TYPE_OP(InferImplicitParameters)
+TYPE_OP(NewVarType)
+TYPE_OP(NewNameType)
+TYPE_OP(NewArrayType)
+TYPE_OP(NewRecordType)
+TYPE_OP(NewFunctionType)
+TYPE_OP(NewValue)
+TYPE_OP(GetTypeForValue)
 
-OP(PopScope)
-{
-    move(vm(), regA0);
-    call<void, VM*>(popScope);
-}
-
-OP(PushUnificationScope)
-{
-    move(vm(), regA0);
-    call<void, VM*>(pushUnificationScope);
-}
-
-OP(PopUnificationScope)
-{
-    move(vm(), regA0);
-    call<void, VM*>(popUnificationScope);
-}
-
-OP(Unify)
-{
-    move(vm(), regA0);
-    move(Offset { OFFSETOF(VM, unificationScope), regA0 }, regA0);
-    move(m_bytecodeOffset, regA1);
-    load(ip.lhs, regA2);
-    load(ip.rhs, regA3);
-    call<UnificationScope, void, InstructionStream::Offset, Value, Value>(&UnificationScope::unify);
-}
-
-OP(ResolveType)
-{
-    move(vm(), regA0);
-    move(Offset { OFFSETOF(VM, unificationScope), regA0 }, regA0);
-    load(ip.type, regA1);
-    call<UnificationScope, Value, Type*>(&UnificationScope::resolve);
-    store(regR0, ip.dst);
-}
-
-OP(CheckType)
-{
-    if (ip.expected < Type::Class::SpecificType) {
-        lea(ip.type, regA0);
-        call<Value, bool>(&Value::isType);
-    } else {
-        load(ip.type, regA0);
-        move(Offset { OFFSETOF(Type, m_class), regA0 }, regR0);
-    }
-
-    // TODO: Add support for compare offset, imm
-    compare(regR0, static_cast<uint8_t>(ip.expected));
-    setEqual(regR0);
-    store(regR0, ip.dst);
-}
-
-OP(CheckTypeOf)
-{
-    ASSERT(ip.expected >= Type::Class::SpecificType, "OOPS");
-
-    lea(ip.type, regA0);
-    move(vm(), regA1);
-    call<Value, Type*, VM&>(&Value::type);
-    move(Offset { OFFSETOF(Type, m_class), regR0 }, regR0);
-    compare(regR0, static_cast<uint8_t>(ip.expected));
-    setEqual(regR0);
-    store(regR0, ip.dst);
-
-}
-
-OP(TypeError)
-{
-    move(vm(), regA0);
-    move(m_bytecodeOffset, regA1);
-    move(&m_block.identifier(ip.messageIndex), regA2);
-    call<VM, void, InstructionStream::Offset, const std::string&>(&VM::typeError);
-}
-
-OP(InferImplicitParameters)
-{
-    uint32_t firstParameterOffset = -ip.firstParameter.offset();
-    for (uint32_t i = 0; i < ip.parameterCount; i++) {
-        load(ip.function, regA0);
-        move(i, regA1);
-        call<TypeFunction, TypeVar*, uint32_t>(&TypeFunction::implicitParam);
-        move(m_vm.unificationScope, regA0);
-        move(m_bytecodeOffset, regA1);
-        move(regR0, regA2);
-        call<UnificationScope, Type*, InstructionStream::Offset, TypeVar*>(&UnificationScope::infer);
-        store(regR0, VirtualRegister::forLocal(firstParameterOffset + i));
-    }
-}
-
-// Create new types
-
-OP(NewVarType)
-{
-    move(vm(), regA0);
-    move(&m_block.identifier(ip.nameIndex), regA1);
-    move(ip.isInferred, regA2);
-    move(true, regA3);
-    call<TypeVar*, VM&, const std::string&, bool, bool>(createTypeVar);
-    store(regR0, ip.dst);
-}
-
-OP(NewNameType)
-{
-    move(vm(), regA0);
-    move(&m_block.identifier(ip.nameIndex), regA1);
-    call<TypeName*, VM&, const std::string&>(createTypeName);
-    store(regR0, ip.dst);
-}
-
-OP(NewArrayType)
-{
-    move(vm(), regA0);
-    load(ip.itemType, regA1);
-    call<TypeArray*, VM&, Value>(createTypeArray);
-    store(regR0, ip.dst);
-}
-
-OP(NewRecordType)
-{
-    VirtualRegister firstKey = VirtualRegister::forLocal(-ip.firstKey.offset() + ip.fieldCount - 1);
-    VirtualRegister firstType = VirtualRegister::forLocal(-ip.firstType.offset() + ip.fieldCount - 1);
-    move(vm(), regA0);
-    move(&m_block, regA1);
-    move(ip.fieldCount, regA2);
-    lea(firstKey, regA3);
-    lea(firstType, regA4);
-    call<TypeRecord*, VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*>(createTypeRecord);
-    store(regR0, ip.dst);
-}
-
-OP(NewFunctionType)
-{
-    VirtualRegister firstParam = VirtualRegister::forLocal(-ip.firstParam.offset() + ip.paramCount - 1);
-    move(vm(), regA0);
-    move(ip.paramCount, regA1);
-    lea(firstParam, regA2);
-    load(ip.returnType, regA3);
-    move(ip.inferredParameters, regA4);
-    call<TypeFunction*, VM&, uint32_t, const Value*, Value, uint32_t>(createTypeFunction);
-    store(regR0, ip.dst);
-}
-
-// New values from existing types
-
-OP(NewValue)
-{
-    load(ip.type, regT0);
-    bitOr(Value::TagTypeAbstractValue, regT0);
-    store(regT0, ip.dst);
-}
-
-OP(GetTypeForValue)
-{
-    load(ip.value, regA0);
-    move(vm(), regA1);
-    call<Value, Type*, VM&>(&Value::type);
-    move(regR0, regA0);
-    move(vm(), regA1);
-    call<Type, Type*, VM&>(&Type::instantiate);
-    store(regR0, ip.dst);
-}
-
-
+#undef TYPE_OP
 #undef OP
 
 Value JIT::trampoline(VM& vm, Function* function, uint32_t argc, Value* argv)
