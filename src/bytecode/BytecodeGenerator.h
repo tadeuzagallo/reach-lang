@@ -56,7 +56,7 @@ public:
     void checkType(Register, Register, Type::Class);
     void checkTypeOf(Register, Register, Type::Class);
     void typeError(const char*);
-    void inferImplicitParameters(Register);
+    void inferImplicitParameters(Register, const std::vector<Register>&);
     void endTypeChecking(Register);
 
     // Types
@@ -64,7 +64,7 @@ public:
     void newNameType(Register, const std::string&);
     void newArrayType(Register, Register);
     void newRecordType(Register, const std::vector<std::pair<std::string, Register>>&);
-    void newFunctionType(Register, const std::vector<Register>&, Register);
+    void newFunctionType(Register, const std::vector<Register>&, Register, uint32_t);
 
     void newValue(Register, Register);
     void getTypeForValue(Register, Register);

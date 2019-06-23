@@ -14,9 +14,10 @@ void Program::typecheck(BytecodeGenerator& generator)
 
 TypeChecker::TypeChecker(BytecodeGenerator& generator)
     : m_generator(generator)
-    //, m_topScope(*this)
+    , m_topScope(*this, false)
     , m_topUnificationScope(*this)
 {
+    m_currentScope = &m_topScope;
     m_previousTypeChecker = vm().typeChecker;
     vm().typeChecker = this;
 }
@@ -50,6 +51,11 @@ TypeChecker* TypeChecker::previousTypeChecker() const
     return m_previousTypeChecker;
 }
 
+auto TypeChecker::currentScope() const -> Scope&
+{
+    return *m_currentScope;
+}
+
 BytecodeGenerator& TypeChecker::generator() const
 {
     return m_generator;
@@ -63,9 +69,9 @@ void TypeChecker::endTypeChecking(Mode mode, Register result)
         m_topUnificationScope.resolve(result, result);
         break;
     case Mode::Function:
-        m_topUnificationScope.finalize();
         break;
     }
+    m_topUnificationScope.finalize();
     m_generator.endTypeChecking(result);
 }
 
@@ -101,12 +107,6 @@ void TypeChecker::newValue(Register result, Register type)
     m_generator.newValue(result, type);
 }
 
-void TypeChecker::newFunctionValue(Register result, const std::vector<Register>& params, Register returnType)
-{
-    newFunctionType(result, params, returnType);
-    m_generator.newValue(result, result);
-}
-
 void TypeChecker::newArrayValue(Register result, Register itemType)
 {
     newArrayType(result, itemType);
@@ -127,11 +127,6 @@ void TypeChecker::newNameType(Register result, const std::string& name)
     m_generator.newNameType(result, name);
 }
 
-void TypeChecker::newVarType(Register result, const std::string& name, bool inferred)
-{
-    m_generator.newVarType(result, name, inferred);
-}
-
 void TypeChecker::newArrayType(Register result, Register itemType)
 {
     m_generator.newArrayType(result, itemType);
@@ -140,11 +135,6 @@ void TypeChecker::newArrayType(Register result, Register itemType)
 void TypeChecker::newRecordType(Register result, const std::vector<std::pair<std::string, Register>>& fields)
 {
     m_generator.newRecordType(result, fields);
-}
-
-void TypeChecker::newFunctionType(Register result, const std::vector<Register>& params, Register returnType)
-{
-    m_generator.newFunctionType(result, params, returnType);
 }
 
 void TypeChecker::lookup(Register result, const SourceLocation& location, const std::string& name)
@@ -163,15 +153,45 @@ void TypeChecker::unify(const SourceLocation& location, Register lhs, Register r
     m_generator.unify(lhs, rhs);
 }
 
-TypeChecker::Scope::Scope(TypeChecker& typeChecker)
+TypeChecker::Scope::Scope(TypeChecker& typeChecker, bool shouldGenerateBytecode)
     : m_typeChecker(typeChecker)
+    , m_shouldGenerateBytecode(shouldGenerateBytecode)
 {
-    m_typeChecker.m_generator.pushScope();
+    m_previousScope = m_typeChecker.m_currentScope;
+    m_typeChecker.m_currentScope = this;
+    if (m_shouldGenerateBytecode)
+        m_typeChecker.m_generator.pushScope();
 }
 
 TypeChecker::Scope::~Scope()
 {
-    m_typeChecker.m_generator.popScope();
+    m_typeChecker.m_currentScope = m_previousScope;
+    if (m_shouldGenerateBytecode)
+        m_typeChecker.m_generator.popScope();
+}
+
+void TypeChecker::Scope::addFunction(const FunctionDeclaration& decl)
+{
+    std::vector<bool> parameters(decl.parameters.size(), false);
+    bool hasInferredArguments = false;
+    for (uint32_t i = 0; i < decl.parameters.size(); i++) {
+        if (decl.parameters[i]->inferred) {
+            parameters[i] = true;
+            hasInferredArguments = true;
+        }
+    }
+    if (hasInferredArguments)
+        m_functions.emplace(decl.name->name, std::move(parameters));
+}
+
+std::optional<std::vector<bool>> TypeChecker::Scope::getFunction(const std::string& name)
+{
+    const auto& it = m_functions.find(name);
+    if (it != m_functions.end())
+        return it->second;
+    if (m_previousScope)
+        return m_previousScope->getFunction(name);
+    return std::nullopt;
 }
 
 TypeChecker::UnificationScope::UnificationScope(TypeChecker& typeChecker)

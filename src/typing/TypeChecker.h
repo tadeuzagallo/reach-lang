@@ -12,6 +12,7 @@
 
 class Binding;
 class BytecodeGenerator;
+class FunctionDeclaration;
 class Program;
 class VM;
 
@@ -24,10 +25,12 @@ class VM;
     macro(string) \
 
 class TypeChecker {
-    friend class Scope;
-    friend class UnificationScope;
-
 public:
+    class Scope;
+    class UnificationScope;
+    friend Scope;
+    friend UnificationScope;
+
     enum class Mode { Function, Program };
 
     TypeChecker(BytecodeGenerator&);
@@ -36,6 +39,7 @@ public:
     VM& vm() const;
     TypeChecker* previousTypeChecker() const;
     BytecodeGenerator& generator() const;
+    TypeChecker::Scope& currentScope() const;
     void endTypeChecking(Mode, Register);
 
     void check(Program&);
@@ -75,11 +79,17 @@ FOR_EACH_BASE_TYPE(DECLARE_TYPE_VALUE_GETTER)
 
     class Scope {
     public:
-        Scope(TypeChecker&);
+        Scope(TypeChecker&, bool shouldGenerateBytecode = true);
         ~Scope();
 
+        void addFunction(const FunctionDeclaration&);
+        std::optional<std::vector<bool>> getFunction(const std::string&);
+
     private:
+        bool m_shouldGenerateBytecode;
+        Scope* m_previousScope;
         TypeChecker& m_typeChecker;
+        std::unordered_map<std::string, std::vector<bool>> m_functions;
     };
 
     class UnificationScope {
@@ -113,7 +123,8 @@ FOR_EACH_BASE_TYPE(DECLARE_TYPE_FIELD)
 #undef DECLARE_TYPE_VALUE_GETTER
 
     BytecodeGenerator& m_generator;
+    Scope* m_currentScope { nullptr };
+    Scope m_topScope;
     UnificationScope m_topUnificationScope;
-
     TypeChecker* m_previousTypeChecker;
 };

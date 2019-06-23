@@ -98,8 +98,9 @@ void TypeName::dump(std::ostream& out) const
     out << name()->str();
 }
 
-TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Value returnType)
+TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Value returnType, uint32_t inferredParameters)
     : Type(Type::Class::Function)
+    , m_inferredParameters(inferredParameters)
 {
     set_params(Array::create(vm(), parameterCount, parameters));
     set_returnType(returnType);
@@ -107,16 +108,11 @@ TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Val
     Types implicitParams;
     Types explicitParams;
     for (uint32_t i = 0; i < parameterCount; i++) {
-        Value param = parameters[0];
-        if (param.isType()) {
-            Type* paramType = param.asType();
-            if (paramType->is<TypeVar>() && paramType->as<TypeVar>()->inferred()) {
-                implicitParams.emplace_back(param);
-                continue;
-            }
-        }
-
-        explicitParams.emplace_back(param);
+        Value param = parameters[i];
+        if (inferredParameters & (1 << i))
+            implicitParams.emplace_back(param);
+        else
+            explicitParams.emplace_back(param);
     }
     set_explicitParamCount(explicitParams.size());
     set_implicitParamCount(implicitParams.size());
@@ -166,7 +162,7 @@ Type* TypeFunction::substitute(VM& vm, Substitutions& subst)
     Value returnType_ = returnType();
     if (returnType_.isType())
         returnType_ = returnType_.asType()->substitute(vm, subst);
-    return TypeFunction::create(vm, params_.size(), &params_[0], returnType_);
+    return TypeFunction::create(vm, params_.size(), &params_[0], returnType_, m_inferredParameters);
 }
 
 bool TypeFunction::operator==(const Type& otherT) const
@@ -297,7 +293,7 @@ void TypeVar::fresh(VM& vm, Substitutions& subst) const
     subst.emplace(uid(), newVar);
 }
 
-Type* TypeVar::substitute(VM&, Substitutions& subst)
+Type* TypeVar::substitute(VM& vm, Substitutions& subst)
 {
     const auto it = subst.find(uid());
     if (it != subst.end())
@@ -372,7 +368,7 @@ TypeRecord* createTypeRecord(VM& vm, const BytecodeBlock& block, uint32_t fieldC
     return TypeRecord::create(vm, block, fieldCount, keys, types);
 }
 
-TypeFunction* createTypeFunction(VM& vm, uint32_t paramCount, const Value* params, Value returnType)
+TypeFunction* createTypeFunction(VM& vm, uint32_t paramCount, const Value* params, Value returnType, uint32_t inferredParameters)
 {
-    return TypeFunction::create(vm, paramCount, params, returnType);
+    return TypeFunction::create(vm, paramCount, params, returnType, inferredParameters);
 }

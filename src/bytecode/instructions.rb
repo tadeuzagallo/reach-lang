@@ -108,7 +108,9 @@ instruction :TypeError,
     messageIndex: :uint32_t
 
 instruction :InferImplicitParameters,
-    function: :Register
+    function: :Register,
+    parameterCount: :uint32_t,
+    firstParameter: :Register
 
 # Create new types
 instruction :NewVarType,
@@ -134,7 +136,8 @@ instruction :NewFunctionType,
     dst: :Register,
     paramCount: :uint32_t,
     firstParam: :Register,
-    returnType: :Register
+    returnType: :Register,
+    inferredParameters: :uint32_t
 
 # Create new values from types
 instruction :NewValue,

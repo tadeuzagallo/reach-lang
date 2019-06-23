@@ -352,8 +352,15 @@ OP(TypeError)
 OP(InferImplicitParameters)
 {
     TypeFunction* function = m_cfr[ip.function].asCell<TypeFunction>();
-    for (uint32_t i = 0; i < function->implicitParamCount(); i++)
-        m_vm.unificationScope->infer(m_ip.offset(), function->implicitParam(i));
+    uint32_t firstParameterOffset = -ip.firstParameter.offset();
+    for (uint32_t i = 0; i < ip.parameterCount; i++) {
+        Value param = function->implicitParam(i);
+        ASSERT(param.isType(), "OOPS");
+        Type* type = param.asType();
+        ASSERT(type->is<TypeVar>(), "OOPS");
+        Type* result = m_vm.unificationScope->infer(m_ip.offset(), type->as<TypeVar>());
+        m_cfr[Register::forLocal(firstParameterOffset + i)] = result;
+    }
     DISPATCH();
 }
 
@@ -362,7 +369,8 @@ OP(InferImplicitParameters)
 OP(NewVarType)
 {
     const std::string& name = m_block.identifier(ip.nameIndex);
-    m_cfr[ip.dst] = TypeVar::create(m_vm, name, ip.isInferred, true);
+    TypeVar* var = TypeVar::create(m_vm, name, ip.isInferred, true);
+    m_cfr[ip.dst] = var;
     DISPATCH();
 }
 
@@ -392,7 +400,7 @@ OP(NewFunctionType)
 {
     Value* params = &m_cfr[Register::forLocal(-ip.firstParam.offset() + ip.paramCount - 1)];
     Value returnType = m_cfr[ip.returnType];
-    m_cfr[ip.dst] = TypeFunction::create(m_vm, ip.paramCount, params, returnType);
+    m_cfr[ip.dst] = TypeFunction::create(m_vm, ip.paramCount, params, returnType, ip.inferredParameters);
     DISPATCH();
 }
 

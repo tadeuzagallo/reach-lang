@@ -158,7 +158,9 @@ public:
     VALUE_FIELD(Value, returnType);
 
 private:
-    TypeFunction(uint32_t, const Value*, Value);
+    TypeFunction(uint32_t, const Value*, Value, uint32_t);
+
+    uint32_t m_inferredParameters;
 };
 
 class TypeArray : public Type {
@@ -245,5 +247,5 @@ TypeVar* createTypeVar(VM&, const std::string&, bool, bool);
 TypeName* createTypeName(VM&, const std::string&);
 TypeArray* createTypeArray(VM&, Value);
 TypeRecord* createTypeRecord(VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*);
-TypeFunction* createTypeFunction(VM&, uint32_t, const Value*, Value);
+TypeFunction* createTypeFunction(VM&, uint32_t, const Value*, Value, uint32_t);
 };

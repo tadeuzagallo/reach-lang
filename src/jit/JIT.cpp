@@ -68,7 +68,6 @@ void* JIT::compile()
     for (auto instruction : m_block.instructions()) {
         m_bytecodeOffset = instruction.offset();
         m_bytecodeOffsetMapping.emplace(m_bytecodeOffset, m_buffer.size());
-        std::cout << "BLOCK: " << m_block.name() << ", OFFSET: " << m_bytecodeOffset << std::endl;
         switch (instruction->id) {
             FOR_EACH_INSTRUCTION(CASE)
         }
@@ -330,7 +329,17 @@ OP(TypeError)
 
 OP(InferImplicitParameters)
 {
-    // TODO
+    uint32_t firstParameterOffset = -ip.firstParameter.offset();
+    for (uint32_t i = 0; i < ip.parameterCount; i++) {
+        load(ip.function, regA0);
+        move(i, regA1);
+        call<TypeFunction, TypeVar*, uint32_t>(&TypeFunction::implicitParam);
+        move(m_vm.unificationScope, regA0);
+        move(m_bytecodeOffset, regA1);
+        move(regR0, regA2);
+        call<UnificationScope, Type*, InstructionStream::Offset, TypeVar*>(&UnificationScope::infer);
+        store(regR0, VirtualRegister::forLocal(firstParameterOffset + i));
+    }
 }
 
 // Create new types
@@ -381,7 +390,8 @@ OP(NewFunctionType)
     move(ip.paramCount, regA1);
     lea(firstParam, regA2);
     load(ip.returnType, regA3);
-    call<TypeFunction*, VM&, uint32_t, const Value*, Value>(createTypeFunction);
+    move(ip.inferredParameters, regA4);
+    call<TypeFunction*, VM&, uint32_t, const Value*, Value, uint32_t>(createTypeFunction);
     store(regR0, ip.dst);
 }
 

@@ -39,6 +39,7 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
 
 void FunctionDeclaration::check(TypeChecker& tc, Register result)
 {
+    tc.currentScope().addFunction(*this);
     tc.generator().emitLocation(location);
 
     Register valueRegister = tc.generator().newLocal();
@@ -54,19 +55,24 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
         for (const auto& _ : parameters)
             parameterRegisters.emplace_back(functionGenerator.newLocal());
 
+        uint32_t inferredParameters = 0;
+        ASSERT(parameters.size() < 32, "OOPS");
         bool shadowsFunctionName = false;
         std::function<void(uint32_t)> check = [&](uint32_t i) {
             TypeChecker::Scope scope(functionTC);
             if (i < parameters.size()) {
-                if (parameters[i]->name->name == name->name)
+                auto& parameter = parameters[i];
+                if (parameter->name->name == name->name)
                     shadowsFunctionName = true;
-                parameters[i]->infer(functionTC, parameterRegisters[i]);
+                parameter->infer(functionTC, parameterRegisters[parameters.size() - i - 1]);
+                if (parameter->inferred)
+                    inferredParameters |= 1 << i;
                 check(i + 1);
                 return;
             }
 
             functionTC.inferAsType(returnType, returnRegister);
-            functionTC.newFunctionType(typeRegister, parameterRegisters, returnRegister);
+            functionTC.generator().newFunctionType(typeRegister, parameterRegisters, returnRegister, inferredParameters);
             if (!shadowsFunctionName) {
                 functionTC.newValue(resultRegister, typeRegister);
                 functionTC.insert(name->name, resultRegister);
@@ -365,21 +371,33 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeCh
         tc.generator().getArrayIndex(param, tmp, index);
         arguments[i]->check(tc, param);
     }
-    tc.generator().inferImplicitParameters(calleeType);
 
-    //auto it = arguments.begin();
-    //for (uint32_t i = 0; i < calleeTypeFunction.paramCount(); i++) {
-        //Register param = calleeTypeFunction.param(i);
-        //if (!param.inferred()) {
-            //++it;
-            //continue;
-        //}
+    if (Identifier* ident = dynamic_cast<Identifier*>(callee.get())) {
+        if (auto signature = tc.currentScope().getFunction(ident->name)) {
+            auto it = arguments.begin();
+            std::vector<Register> inferredArguments;
+            std::vector<SynthesizedTypeExpression*> synthesizedTypes;
+            for (uint32_t i = 0; i < signature->size(); i++) {
+                if (!signature->at(i)) {
+                    ++it;
+                    continue;
+                }
 
-        //const Type& inferredType = scope.resolve(param.valueAsType());
-        //auto argument = std::make_unique<SynthesizedTypeExpression>(location);
-        //it = ++arguments.emplace(it, std::move(argument));
-    //}
-    //ASSERT(it == arguments.end(), "");
+                Register tmp = tc.generator().newLocal();
+                auto argument = std::make_unique<SynthesizedTypeExpression>(location);
+                inferredArguments.emplace_back(tmp);
+                synthesizedTypes.emplace_back(argument.get());
+                it = ++arguments.emplace(it, std::move(argument));
+            }
+            ASSERT(it == arguments.end(), "OOPS");
+            ASSERT(inferredArguments.size(), "OOPS");
+            ASSERT(inferredArguments.size() == synthesizedTypes.size(), "OOPS");
+            tc.generator().inferImplicitParameters(calleeType, inferredArguments);
+
+            for (unsigned i = 0; i < inferredArguments.size(); i++)
+                synthesizedTypes[i]->typeIndex = tc.generator().storeConstant(inferredArguments[i]);
+        }
+    }
 }
 
 void CallExpression::infer(TypeChecker& tc, Register result)
@@ -552,7 +570,6 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
     }, [&] {
         if (inferred)
             tc.generator().typeError("Only type arguments can be inferred");
-
         tc.generator().newValue(tmp, result);
         tc.insert(name->name, tmp);
     });

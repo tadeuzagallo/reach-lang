@@ -33,12 +33,17 @@ Value UnificationScope::resolve(Type* resultType)
     return resultType->substitute(m_vm, m_substitutions);
 }
 
-void UnificationScope::infer(InstructionStream::Offset bytecodeOffset, Value value)
+Type* UnificationScope::infer(InstructionStream::Offset bytecodeOffset, TypeVar* var)
 {
-    ASSERT(value.isType(), "OOPS");
-    Type* type = value.asType();
-    ASSERT(type->is<TypeVar>(), "OOPS");
-    m_inferredTypes.emplace_back(InferredType { bytecodeOffset, type->as<TypeVar>() });
+    finalize();
+    auto it = m_substitutions.find(var->uid());
+    if (it != m_substitutions.end())
+        return it->second;
+    std::stringstream message;
+    message << "Unification failure: failed to infer type variable `" << *var << "`";
+    LOG(ConstraintSolving, message.str());
+    m_vm.typeError(bytecodeOffset, message.str());
+    return m_vm.unitType;
 }
 
 void UnificationScope::finalize()
@@ -47,7 +52,6 @@ void UnificationScope::finalize()
         return;
     m_finalized = true;
     solveConstraints();
-    checkInferredVariables();
 }
 
 void UnificationScope::solveConstraints()
@@ -59,19 +63,6 @@ void UnificationScope::solveConstraints()
     }
 }
 
-void UnificationScope::checkInferredVariables()
-{
-    for (const InferredType& ib : m_inferredTypes) {
-        auto it = m_substitutions.find(ib.var->uid());
-        if (it != m_substitutions.end())
-            continue;
-        std::stringstream message;
-        message << "Unification failure: failed to infer type variable `" << *ib.var << "`";
-        LOG(ConstraintSolving, message.str());
-        m_vm.typeError(ib.bytecodeOffset, message.str());
-    }
-}
-
 void UnificationScope::unifies(const Constraint& constraint)
 {
     Type* lhsType = constraint.lhs.type(m_vm);
@@ -79,14 +70,23 @@ void UnificationScope::unifies(const Constraint& constraint)
 
     LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " U " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
 
-    if (lhsType->is<TypeType>() && rhsType->is<TypeVar>()) {
-        ASSERT(constraint.lhs.isType(), "OOPS");
+    if (rhsType->is<TypeVar>()) {
         TypeVar* var = rhsType->as<TypeVar>();
-        if (!var->isRigid()) {
-            lhsType = constraint.lhs.asType()->substitute(m_vm, m_substitutions);
-            bind(var, lhsType);
+        if (var->inferred()) {
+            ASSERT(!var->isRigid(), "OOPS");
+            bind(var, lhsType->substitute(m_vm, m_substitutions));
+            return;
         }
-        return;
+
+        if (lhsType->is<TypeType>()) {
+            ASSERT(constraint.lhs.isType(), "OOPS");
+            TypeVar* var = rhsType->as<TypeVar>();
+            if (!var->isRigid()) {
+                lhsType = constraint.lhs.asType()->substitute(m_vm, m_substitutions);
+                bind(var, lhsType);
+            }
+            return;
+        }
     }
 
     if (*lhsType == *rhsType)

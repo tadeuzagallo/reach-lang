@@ -4,8 +4,8 @@ function g(x: Number, y: Number, z: Number) -> Number {
     inspect([x, y, z]) // CHECK-L: [7, 13, 42] : Number[]
     x
 }
-function f(x: Number, y: Number, z: Number) -> Number {
+function f(_: String, x: Number, y: Number, z: Number) -> Number {
     g(x, y, z)
 }
 
-f(7, 13, 42) // CHECK: 7 : Number
+f("", 7, 13, 42) // CHECK: 7 : Number

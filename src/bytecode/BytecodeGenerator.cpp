@@ -213,9 +213,10 @@ void BytecodeGenerator::typeError(const char* message)
     emit<TypeError>(messageIndex);
 }
 
-void BytecodeGenerator::inferImplicitParameters(Register function)
+void BytecodeGenerator::inferImplicitParameters(Register function, const std::vector<Register>& parameters)
 {
-    emit<InferImplicitParameters>(function);
+    ASSERT(parameters.size(), "OOPS");
+    emit<InferImplicitParameters>(function, parameters.size(), parameters[0]);
 }
 
 void BytecodeGenerator::endTypeChecking(Register type)
@@ -262,11 +263,11 @@ void BytecodeGenerator::newRecordType(Register result, const std::vector<std::pa
     emit<NewRecordType>(result, fieldCount, firstKey, firstType);
 }
 
-void BytecodeGenerator::newFunctionType(Register result, const std::vector<Register>& params, Register returnType)
+void BytecodeGenerator::newFunctionType(Register result, const std::vector<Register>& params, Register returnType, uint32_t inferredParameters)
 {
     uint32_t paramCount = params.size();
     Register firstParam = paramCount ? params[0] : Register::forParameter(0);
-    emit<NewFunctionType>(result, paramCount, firstParam, returnType);
+    emit<NewFunctionType>(result, paramCount, firstParam, returnType, inferredParameters);
 }
 
 void BytecodeGenerator::newValue(Register dst, Register type)

@@ -11,7 +11,7 @@ public:
 
     void set(const std::string& field, Value value)
     {
-        m_fields.emplace(field, value);
+        m_fields[field] = value;
     }
 
     Value get(const std::string& field) const
