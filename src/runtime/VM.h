@@ -2,6 +2,7 @@
 
 #include "Heap.h"
 #include "InstructionStream.h"
+#include "LocationInfo.h"
 #include "Value.h"
 #include <vector>
 
@@ -41,7 +42,7 @@ public:
 
 private:
     struct TypeError {
-        InstructionStream::Offset bytecodeOffset;
+        LocationInfoWithFile locationInfo;
         std::string message;
     };
 

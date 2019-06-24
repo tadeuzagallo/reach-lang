@@ -51,6 +51,7 @@ private:
     };
 
     VM& m_vm;
+    const BytecodeBlock* m_lastBlock;
     BytecodeBlock& m_block;
     Environment* m_environment;
     Mode m_mode { Mode::Run };

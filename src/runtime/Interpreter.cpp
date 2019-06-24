@@ -39,12 +39,14 @@ Interpreter::Interpreter(VM& vm, BytecodeBlock& block, InstructionStream::Offset
     , m_ip(m_block.instructions().at(bytecodeOffset))
     , m_result(Value::crash())
 {
-    vm.currentBlock = &block;
+    m_lastBlock = vm.currentBlock;
+    m_vm.currentBlock = &block;
     m_environment = Environment::create(vm, parentEnvironment ?: vm.globalEnvironment);
 }
 
 Interpreter::~Interpreter()
 {
+    m_vm.currentBlock = m_lastBlock;
 }
 
 Value Interpreter::run(const Values& args, const Callback& callback)

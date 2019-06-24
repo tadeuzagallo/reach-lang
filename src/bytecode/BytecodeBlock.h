@@ -38,6 +38,8 @@ public:
 
     void addLocation(const SourceLocation&);
 
+    LocationInfoWithFile locationInfo(InstructionStream::Offset) const;
+
 private:
     void emitPrologue(const std::function<void()>&);
     void adjustOffsets();
@@ -48,29 +50,6 @@ private:
         m_instructions.recordJump<JumpType>(m_prologueSize, label);
     }
 
-    struct LocationInfo {
-        uint32_t bytecodeOffset;
-        SourcePosition start;
-        SourcePosition end;
-    };
-
-    struct LocationInfoWithFile {
-        void dump(std::ostream&) const;
-
-        friend std::ostream& operator<<(std::ostream& out, const LocationInfoWithFile& info)
-        {
-            info.dump(out);
-            return out;
-        }
-
-        const char* filename;
-        const LocationInfo& info;
-    };
-
-public:
-    LocationInfoWithFile locationInfo(InstructionStream::Offset) const;
-
-private:
     uint32_t m_numLocals { 0 };
     uint32_t m_prologueSize { 0 };
     InstructionStream::Offset m_codeStart { 0 };

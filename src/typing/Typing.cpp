@@ -196,6 +196,7 @@ void ForStatement::check(TypeChecker& tc, Register)
 
 void ExpressionStatement::infer(TypeChecker& tc, Register result)
 {
+    tc.generator().emitLocation(location);
     expression->infer(tc, result);
 }
 
@@ -211,6 +212,7 @@ void ExpressionStatement::check(TypeChecker& tc, Register result)
 void Identifier::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
+
     tc.lookup(result, location, name);
 }
 

@@ -99,11 +99,6 @@ void* BytecodeBlock::jitCode() const
     return m_jitCode;
 }
 
-void BytecodeBlock::LocationInfoWithFile::dump(std::ostream& out) const
-{
-    out << filename << ":" << info.start.line << ":" << info.start.column;
-}
-
 auto BytecodeBlock::locationInfo(InstructionStream::Offset bytecodeOffset) const -> LocationInfoWithFile
 {
     int low = 0;
@@ -132,8 +127,10 @@ void BytecodeBlock::addLocation(const SourceLocation& location)
         const LocationInfo& info = m_locationInfos.back();
         if (info.start == location.start && info.end == location.end)
             return;
+        if (info.bytecodeOffset == m_instructions.size())
+            return;
     }
-    m_locationInfos.emplace_back(LocationInfo { static_cast<uint32_t>(m_instructions.size()), location.start, location.end });
+    m_locationInfos.emplace_back(LocationInfo { static_cast<uint32_t>(m_instructions.size()) - m_prologueSize, location.start, location.end });
 }
 
 void BytecodeBlock::emitPrologue(const std::function<void()>& functor)
@@ -147,6 +144,18 @@ void BytecodeBlock::emitPrologue(const std::function<void()>& functor)
 
 void BytecodeBlock::adjustOffsets()
 {
-    for (LocationInfo& info : m_locationInfos)
-        info.bytecodeOffset += m_prologueSize;
+    LocationInfo* lastInfo = nullptr;
+    for (LocationInfo& info : m_locationInfos) {
+        ASSERT(!lastInfo || lastInfo->bytecodeOffset <= info.bytecodeOffset, "Inconsistent location info");
+        lastInfo = &info;
+    }
+    for (LocationInfo& info : m_locationInfos) {
+        if (info.bytecodeOffset > m_prologueSize)
+            info.bytecodeOffset += m_prologueSize;
+    }
+    lastInfo = nullptr;
+    for (LocationInfo& info : m_locationInfos) {
+        ASSERT(!lastInfo || lastInfo->bytecodeOffset <= info.bytecodeOffset, "Inconsistent location info");
+        lastInfo = &info;
+    }
 }

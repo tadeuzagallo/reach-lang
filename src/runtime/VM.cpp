@@ -64,7 +64,7 @@ VM::VM()
 
 void VM::typeError(InstructionStream::Offset bytecodeOffset, const std::string& message)
 {
-    m_typeErrors.emplace_back(TypeError { bytecodeOffset, message });
+    m_typeErrors.emplace_back(TypeError { currentBlock->locationInfo(bytecodeOffset), message });
 }
 
 bool VM::reportTypeErrors()
@@ -73,7 +73,7 @@ bool VM::reportTypeErrors()
         return false;
 
     for (const auto& typeError : m_typeErrors)
-        std::cerr << currentBlock->locationInfo(typeError.bytecodeOffset) << ": " << typeError.message << std::endl;
+        std::cerr << typeError.locationInfo << ": " << typeError.message << std::endl;
     m_typeErrors.clear();
     return true;
 }

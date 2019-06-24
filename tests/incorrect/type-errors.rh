@@ -1,17 +1,17 @@
 // RUN: %not %reach | %check
 
 function f(x: Number) -> Number {
-    "asd" // CHECK: expected `Number` but found `String`
+    "asd" // CHECK: 4:5: Unification failure: expected `Number` but found `String`
 }
-g; // CHECK: Unknown variable: `g`
-f(1,2); // CHECK: Argument count mismatch
-f("asd"); // CHECK: expected `Number` but found `String`
+g; // CHECK: :6:1: Unknown variable: `g`
+f(1,2); // CHECK: 7:5: Argument count mismatch
+f("asd"); // CHECK: 8:3: Unification failure: expected `Number` but found `String`
 
 let x = 1;
-x(); // CHECK: Callee is not a function
+x(); // CHECK: 11:1: Callee is not a function
 
 function g(x: Number[]) -> Number[] {
     x
 }
 // TODO: better error message
-g([""]) // CHECK-L: expected `Number` but found `String`
+g([""]) // CHECK-L: 17:4: Unification failure: expected `Number` but found `String`
