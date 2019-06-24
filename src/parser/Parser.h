@@ -31,7 +31,7 @@ public:
 
     std::unique_ptr<Expression> parseSuffixExpression(std::unique_ptr<Expression>, bool*);
     std::unique_ptr<CallExpression> parseCallExpression(std::unique_ptr<Expression>);
-    std::unique_ptr<SubscriptExpression> parseSubscriptExpression(std::unique_ptr<Expression>);
+    std::unique_ptr<Expression> parseSubscriptExpression(std::unique_ptr<Expression>);
     std::unique_ptr<MemberExpression> parseMemberExpression(std::unique_ptr<Expression>);
     std::unique_ptr<CallExpression> parseMethodCallExpression(std::unique_ptr<Expression>);
 

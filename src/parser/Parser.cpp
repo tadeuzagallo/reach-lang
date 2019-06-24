@@ -221,14 +221,21 @@ std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expr
     return call;
 }
 
-std::unique_ptr<SubscriptExpression> Parser::parseSubscriptExpression(std::unique_ptr<Expression> target)
+std::unique_ptr<Expression> Parser::parseSubscriptExpression(std::unique_ptr<Expression> target)
 {
-    CONSUME(Token::L_SQUARE);
+    auto firstToken = m_lexer.next();
+    CHECK(firstToken, Token::L_SQUARE);
+    auto tok = m_lexer.next();
+    if (tok.type == Token::R_SQUARE) {
+        auto array = std::make_unique<ArrayTypeExpression>(tok);
+        array->itemType = std::move(target);
+        return std::move(array);
+    }
     auto subscript = std::make_unique<SubscriptExpression>(std::move(target));
-    subscript->index = parseExpression(m_lexer.next());
+    subscript->index = parseExpression(tok);
     CONSUME(Token::R_SQUARE);
 
-    return subscript;
+    return std::move(subscript);
 }
 
 std::unique_ptr<MemberExpression> Parser::parseMemberExpression(std::unique_ptr<Expression> object)

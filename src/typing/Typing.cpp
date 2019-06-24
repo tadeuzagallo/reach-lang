@@ -285,15 +285,14 @@ void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
 
-    Register tmp = tc.generator().newLocal();
     if (items.size()) {
         items[0]->infer(tc, result);
-        tc.generator().getTypeForValue(tmp, result);
+        tc.generator().getTypeForValue(result, result);
     } else
-        tc.unitValue(result);
+        tc.generator().move(result, tc.unitType());
 
     for (uint32_t i = 1; i < items.size(); i++)
-        items[i]->check(tc, tmp);
+        items[i]->check(tc, result);
 
     tc.newArrayValue(result, result);
 }
@@ -313,16 +312,30 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
     });
 }
 
+void ArrayTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    tc.generator().emitLocation(location);
+
+    itemType->check(tc, tc.typeType());
+    tc.generator().newValue(result, tc.typeType());
+}
+
+void ArrayTypeExpression::check(TypeChecker& tc, Register type)
+{
+    tc.unify(location, tc.typeType(), type);
+    itemType->check(tc, tc.typeType());
+}
+
 void ObjectTypeExpression::infer(TypeChecker& tc, Register result)
 {
     for (auto& field : fields)
         field.second->check(tc, tc.typeType());
-    tc.generator().move(result, tc.typeType());
+    tc.generator().newValue(result, tc.typeType());
 }
 
 void ObjectTypeExpression::check(TypeChecker& tc, Register type)
 {
-    tc.unify(location, type, tc.typeType());
+    tc.unify(location, tc.typeType(), type);
     for (auto& field : fields)
         field.second->check(tc, tc.typeType());
 }
@@ -455,6 +468,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     tc.generator().branch(tmp, [&] {
         tc.generator().getTypeForValue(result, result);
         tc.generator().getField(result, result, TypeArray::itemTypeField);
+        tc.generator().newValue(result, result);
     }, [&] {
         tc.generator().typeError("Trying to subscript non-array");
     });

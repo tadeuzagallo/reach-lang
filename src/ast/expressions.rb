@@ -76,6 +76,16 @@ ast_node :ArrayLiteralExpression < :Expression,
     "virtual void check(TypeChecker&, Register)",
   ]
 
+ast_node :ArrayTypeExpression < :Expression,
+  fields: {
+    itemType: "std::unique_ptr<Expression>",
+  },
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register)",
+  ]
+
 ast_node :CallExpression < :Expression,
   fields: {
     callee: "std::unique_ptr<Expression>",

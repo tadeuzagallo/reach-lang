@@ -185,6 +185,14 @@ void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst
     }
 }
 
+void ArrayTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.emitLocation(location);
+
+    itemType->generate(generator, dst);
+    generator.newArrayType(dst, dst);
+}
+
 void CallExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.emitLocation(location);

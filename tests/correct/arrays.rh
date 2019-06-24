@@ -3,3 +3,18 @@
 let x = [1, 2, 3];
 inspect(x); // CHECK-L: [1, 2, 3] : Number[]
 inspect(x[0]) // CHECK: 1 : Number
+
+function f() -> Number[] {
+    x
+}
+inspect(f()) // CHECK-L: [1, 2, 3] : Number[]
+
+function g() -> Void[] {
+    []
+}
+inspect(g()) // CHECK-L: [] : Void[]
+
+function h(x: Number[]) -> Number[] {
+    x
+}
+inspect(h([])) // CHECK-L: [] : Number[]

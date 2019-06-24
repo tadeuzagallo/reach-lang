@@ -216,7 +216,7 @@ bool TypeArray::operator==(const Type& other) const
 
 void TypeArray::dump(std::ostream& out) const
 {
-    out << *itemType().type(vm()) << "[]";
+    out << itemType() << "[]";
 }
 
 TypeRecord::TypeRecord(const Fields& fields)
