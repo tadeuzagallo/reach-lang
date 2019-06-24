@@ -56,6 +56,16 @@ ast_node :ObjectLiteralExpression < :Expression,
     "virtual void check(TypeChecker&, Register)",
   ]
 
+ast_node :ObjectTypeExpression < :Expression,
+  fields: {
+    fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",
+  },
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register)",
+  ]
+
 ast_node :ArrayLiteralExpression < :Expression,
   fields: {
     items: "std::vector<std::unique_ptr<Expression>>",

@@ -186,16 +186,16 @@ void Lexer::checkKeyword()
     }
 
     KEYWORD(if, IF)
-        KEYWORD(else, ELSE)
-        KEYWORD(let, LET)
-        KEYWORD(const, CONST)
-        KEYWORD(for, FOR)
-        KEYWORD(while, WHILE)
-        KEYWORD(function, FUNCTION)
-        KEYWORD(return, RETURN)
-        KEYWORD(true, TRUE)
-        KEYWORD(false, FALSE)
-        KEYWORD(Type, TYPE)
+    KEYWORD(else, ELSE)
+    KEYWORD(let, LET)
+    KEYWORD(const, CONST)
+    KEYWORD(for, FOR)
+    KEYWORD(while, WHILE)
+    KEYWORD(function, FUNCTION)
+    KEYWORD(return, RETURN)
+    KEYWORD(true, TRUE)
+    KEYWORD(false, FALSE)
+    KEYWORD(Type, TYPE)
 
 #undef KEYWORD
 }

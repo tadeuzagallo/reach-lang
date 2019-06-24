@@ -261,6 +261,7 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
     for (auto& pair : fields) {
         Register type = fieldRegisters[i++].second;
         pair.second->infer(tc, type);
+        tc.generator().getTypeForValue(type, type);
     }
 
     tc.newRecordValue(result, fieldRegisters);
@@ -310,6 +311,20 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
     }, [&] {
         tc.generator().typeError("Unexpected array");
     });
+}
+
+void ObjectTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    for (auto& field : fields)
+        field.second->check(tc, tc.typeType());
+    tc.generator().move(result, tc.typeType());
+}
+
+void ObjectTypeExpression::check(TypeChecker& tc, Register type)
+{
+    tc.unify(location, type, tc.typeType());
+    for (auto& field : fields)
+        field.second->check(tc, tc.typeType());
 }
 
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
@@ -470,6 +485,7 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
         tc.generator().getTypeForValue(result, result);
         tc.generator().getField(result, result, TypeRecord::fieldsField);
         tc.generator().getField(result, result, property->name);
+        tc.generator().newValue(result, result);
     }, [&] {
         tc.generator().typeError("Trying to acess field of non-record");
     });
@@ -511,9 +527,8 @@ void TypeExpression::check(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);
 
+    tc.unify(location, result, tc.typeType());
     Register tmp = tc.generator().newLocal();
-    tc.generator().move(tmp, tc.typeType());
-    tc.unify(location, result, tmp);
     infer(tc, tmp);
     tc.unify(location, tmp, result);
 }

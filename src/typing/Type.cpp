@@ -270,9 +270,11 @@ void TypeRecord::dump(std::ostream& out) const
     for (auto& pair : *fields()) {
         if (!isFirst)
             out << ", ";
-        out << pair.first << ": " << *pair.second.type(vm());
+        out << pair.first << ": " << pair.second;
         isFirst = false;
     }
+    if (isFirst)
+        out << ":";
     out << "}";
 }
 

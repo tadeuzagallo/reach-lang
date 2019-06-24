@@ -285,24 +285,47 @@ std::unique_ptr<ArrayLiteralExpression> Parser::parseArrayLiteralExpression(cons
     return array;
 }
 
-std::unique_ptr<ObjectLiteralExpression> Parser::parseObjectLiteralExpression(const Token& t)
+std::unique_ptr<Expression> Parser::parseObjectLiteralExpression(const Token& t)
 {
     CHECK(t, Token::L_BRACE);
-    auto record = std::make_unique<ObjectLiteralExpression>(t);
+
     Token tok = m_lexer.next();
-    while (tok.type != Token::R_BRACE) {
-        auto name = parseIdentifier(tok);
-        CONSUME(Token::EQUAL);
-        auto value = parseExpression(m_lexer.next());
-        record->fields[std::move(name)] = std::move(value);
-        tok = m_lexer.next();
-        if (tok.type == Token::COMMA)
-            tok = m_lexer.next();
-        else
-            break;
+    if (tok.type == Token::R_BRACE)
+        return std::make_unique<ObjectLiteralExpression>(t);
+    if (tok.type == Token::COLON) {
+        CONSUME(Token::R_BRACE);
+        return std::make_unique<ObjectTypeExpression>(t);
     }
-    CHECK(tok, Token::R_BRACE);
-    return record;
+
+    auto name = parseIdentifier(tok);
+    auto parse = [&](Token::Type separator, auto&& object) -> std::unique_ptr<Expression> {
+        CHECK(tok, separator);
+        for (;;) {
+            auto value = parseExpression(m_lexer.next());
+            object->fields[std::move(name)] = std::move(value);
+            tok = m_lexer.next();
+            if (tok.type != Token::COMMA)
+                break;
+            tok = m_lexer.next();
+            if (tok.type == Token::R_BRACE)
+                break;
+            name = parseIdentifier(tok);
+            CONSUME(separator);
+        }
+        CHECK(tok, Token::R_BRACE);
+        return std::move(object);
+    };
+
+    tok = m_lexer.next();
+    switch (tok.type) {
+    case Token::COLON:
+        return parse(Token::COLON, std::make_unique<ObjectTypeExpression>(t));
+    case Token::EQUAL:
+        return parse(Token::EQUAL, std::make_unique<ObjectLiteralExpression>(t));
+    default:
+        unexpectedToken(tok);
+        return nullptr;
+    }
 }
 
 std::unique_ptr<ParenthesizedExpression> Parser::parseParenthesizedExpression(const Token& t)

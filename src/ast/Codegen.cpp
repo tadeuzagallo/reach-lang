@@ -152,10 +152,24 @@ void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register ds
 
     // TODO: add concept of structures
     generator.newObject(dst, fields.size());
+    Register tmp = generator.newLocal();
     for (const auto& field : fields) {
-        Register tmp = generator.newLocal();
         field.second->generate(generator, tmp);
         generator.setField(dst, field.first->name, tmp);
+    }
+}
+
+void ObjectTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.emitLocation(location);
+
+    generator.newRecordType(dst, {});
+    Register fieldsRegister = generator.newLocal();
+    Register tmp = generator.newLocal();
+    generator.getField(fieldsRegister, dst, TypeRecord::fieldsField);
+    for (const auto& field : fields) {
+        field.second->generate(generator, tmp);
+        generator.setField(fieldsRegister, field.first->name, tmp);
     }
 }
 
