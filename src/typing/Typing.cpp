@@ -22,17 +22,23 @@ void TypeChecker::inferAsType(T& node, Register result)
 
 void Declaration::infer(TypeChecker& tc, Register result)
 {
-    tc.generator().emitLocation(location);
     check(tc, tc.unitType());
+
+    tc.generator().emitLocation(location);
     tc.unitValue(result);
 }
 
 void LexicalDeclaration::check(TypeChecker& tc, Register type)
 {
     tc.generator().emitLocation(location);
+    Register initType = tc.generator().newLocal();
     Register tmp = tc.generator().newLocal();
-    (*initializer)->infer(tc, tmp);
-    tc.insert(name->name, tmp);
+    (*initializer)->infer(tc, initType);
+    tc.generator().checkTypeOf(tmp, initType, Type::Class::Type);
+    tc.generator().branch(tmp, [&]{
+        (*initializer)->generate(tc.generator(), initType);
+    }, [&] { });
+    tc.insert(name->name, initType);
     tc.newValue(tmp, type);
     tc.unify(location, tmp, tc.unitType());
 }

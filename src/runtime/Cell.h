@@ -49,7 +49,7 @@ public:
     template<typename T>
     bool is()
     {
-        return static_cast<uint8_t>(m_kind) & static_cast<uint8_t>(T::kind());
+        return (static_cast<uint8_t>(m_kind) & static_cast<uint8_t>(T::kind())) == static_cast<uint8_t>(T::kind());
     }
 
     template<typename T>

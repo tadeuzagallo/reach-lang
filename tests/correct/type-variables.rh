@@ -8,3 +8,20 @@ inspect(id(42)); // CHECK: 42 : Number
 
 function infer(%I: Type, x: I) -> Type { I }
 inspect(infer(4)) // CHECK: Number : Type
+
+let Person = {
+    name: String,
+    age: Number,
+};
+
+inspect(Person) // CHECK: {age: Number, name: String} : Type
+
+function name(person: Person) -> String
+{
+    person.name
+}
+inspect(name) // CHECK-L: <function name> : ({age: Number, name: String}) -> String
+
+let john = { name = "Tom", age = 35 };
+inspect(john) // CHECK-L: {age = 35, name = "Tom"} : {name: String, age: Number}
+inspect(john->name()) // CHECK: "Tom" : String

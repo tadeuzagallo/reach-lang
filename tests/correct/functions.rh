@@ -8,10 +8,3 @@ inspect(f(42)) // CHECK: 42 : Number
 
 function g(x: Number, y: Number) -> Number { y }
 inspect(g(1, 2)) // CHECK: 2 : Number
-
-function h() -> (Number, Number) -> Number
-{
-    g
-}
-
-h()(13, 7) // CHECK: 7 : Number
