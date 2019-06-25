@@ -36,6 +36,9 @@ public:
     void newArray(Register, unsigned);
     void setArrayIndex(Register, unsigned, Register);
     void getArrayIndex(Register, Register, Register);
+    void newTuple(Register, unsigned);
+    void setTupleIndex(Register, unsigned, Register);
+    void getTupleIndex(Register, Register, Register);
     uint32_t newFunction(Register, std::unique_ptr<BytecodeBlock>);
     void newFunction(Register, uint32_t);
     void move(Register dst, Register src);
@@ -63,6 +66,7 @@ public:
     void newVarType(Register, const std::string&, bool);
     void newNameType(Register, const std::string&);
     void newArrayType(Register, Register);
+    void newTupleType(Register, unsigned);
     void newRecordType(Register, const std::vector<std::pair<std::string, Register>>&);
     void newFunctionType(Register, const std::vector<Register>&, Register, uint32_t);
 

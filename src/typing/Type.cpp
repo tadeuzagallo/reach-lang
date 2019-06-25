@@ -219,6 +219,58 @@ void TypeArray::dump(std::ostream& out) const
     out << itemType() << "[]";
 }
 
+TypeTuple::TypeTuple(uint32_t itemCount)
+    : Type(Type::Class::Tuple)
+{
+    set_itemsTypes(Array::create(vm(), itemCount));
+}
+
+Type* TypeTuple::substitute(VM& vm, Substitutions& subst)
+{
+    Array* types = itemsTypes();
+    size_t size = types->size();
+    TypeTuple* newTuple = TypeTuple::create(vm, size);
+    Array* newTypes = newTuple->itemsTypes();
+    for (uint32_t i = 0; i < size; i++) {
+        auto type = types->getIndex(i);
+        newTypes->setIndex(i, type.isType()
+            ? type.asType()->substitute(vm, subst)
+            : type);
+    }
+    return newTuple;
+}
+
+bool TypeTuple::operator==(const Type& other) const
+{
+    if (!other.is<TypeTuple>())
+        return false;
+
+    const TypeTuple* otherTuple = other.as<TypeTuple>();
+    Array* types = itemsTypes();
+    uint32_t size = types->size();
+    Array* otherTypes = otherTuple->itemsTypes();
+    if (size != otherTypes->size())
+        return false;
+
+    for (uint32_t i = 0; i < size; i++) {
+        if (!isEqualType(types->getIndex(i), otherTypes->getIndex(i)))
+            return false;
+    }
+
+    return true;
+}
+
+void TypeTuple::dump(std::ostream& out) const
+{
+    bool first = true;
+    for (const auto& type : *itemsTypes()) {
+        if (!first)
+            out << " * ";
+        first = false;
+        out << type;
+    }
+}
+
 TypeRecord::TypeRecord(const Fields& fields)
     : Type(Type::Class::Record)
 {
@@ -344,6 +396,9 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
         break;
     case Type::Class::Var:
         out << "Type::Class::Var";
+        break;
+    case Type::Class::Tuple:
+        out << "Type::Class::Tuple";
         break;
     }
     return out;

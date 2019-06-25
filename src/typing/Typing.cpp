@@ -314,6 +314,36 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
     });
 }
 
+void TupleExpression::infer(TypeChecker& tc, Register result)
+{
+    tc.generator().emitLocation(location);
+
+    tc.generator().newTupleType(result, items.size());
+    Register itemsTypes = tc.generator().newLocal();
+    tc.generator().getField(itemsTypes, result, TypeTuple::itemsTypesField);
+    Register tmp = tc.generator().newLocal();
+    for (uint32_t i = 0; i < items.size(); i++) {
+        items[i]->infer(tc, tmp);
+        tc.generator().getTypeForValue(tmp, tmp);
+        tc.generator().setArrayIndex(itemsTypes, i, tmp);
+    }
+
+    tc.generator().newValue(result, result);
+}
+
+void TupleExpression::check(TypeChecker& tc, Register type)
+{
+    tc.generator().emitLocation(location);
+
+    Register tmp = tc.generator().newLocal();
+    tc.generator().checkType(tmp, type, Type::Class::Tuple);
+    tc.generator().branch(tmp, [&]{
+        tc.generator().typeError("TODO");
+    }, [&] {
+        tc.generator().typeError("Unexpected array");
+    });
+}
+
 void ArrayTypeExpression::infer(TypeChecker& tc, Register result)
 {
     tc.generator().emitLocation(location);

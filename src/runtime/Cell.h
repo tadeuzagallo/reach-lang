@@ -42,7 +42,8 @@ public:
         Function = 0x8,
         Environment = 0x10,
         Type = 0x20 | Object,
-        InvalidCell = 0x22,
+        Tuple = 0x40,
+        InvalidCell = 0x41,
     };
 
     template<typename T>

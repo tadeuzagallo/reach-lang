@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "Object.h"
 #include "Scope.h"
+#include "Tuple.h"
 #include "Type.h"
 #include "UnificationScope.h"
 #include <sstream>
@@ -188,6 +189,29 @@ OP(GetArrayIndex)
     Array* array = m_cfr[ip.array].asCell<Array>();
     Value index = m_cfr[ip.index];
     Value result = array->getIndex(index);
+    m_cfr[ip.dst] = result;
+    DISPATCH();
+}
+
+OP(NewTuple)
+{
+    m_cfr[ip.dst] = Value { Tuple::create(vm(), ip.initialSize) };
+    DISPATCH();
+}
+
+OP(SetTupleIndex)
+{
+    Tuple* tuple = m_cfr[ip.tuple].asCell<Tuple>();
+    Value value = m_cfr[ip.value];
+    tuple->setIndex(ip.index, value);
+    DISPATCH();
+}
+
+OP(GetTupleIndex)
+{
+    Tuple* tuple = m_cfr[ip.tuple].asCell<Tuple>();
+    Value index = m_cfr[ip.index];
+    Value result = tuple->getIndex(index);
     m_cfr[ip.dst] = result;
     DISPATCH();
 }
@@ -387,6 +411,12 @@ OP(NewArrayType)
 {
     Value itemType = m_cfr[ip.itemType];
     m_cfr[ip.dst] = TypeArray::create(m_vm, itemType);
+    DISPATCH();
+}
+
+OP(NewTupleType)
+{
+    m_cfr[ip.dst] = TypeTuple::create(m_vm, ip.itemCount);
     DISPATCH();
 }
 

@@ -185,6 +185,18 @@ void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst
     }
 }
 
+void TupleExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.emitLocation(location);
+
+    generator.newTuple(dst, items.size());
+    for (unsigned i = 0; i < items.size(); i++) {
+        Register tmp = generator.newLocal();
+        items[i]->generate(generator, tmp);
+        generator.setTupleIndex(dst, i, tmp);
+    }
+}
+
 void ArrayTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.emitLocation(location);

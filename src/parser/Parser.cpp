@@ -263,7 +263,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
     case Token::L_BRACE:
         return parseObjectLiteralExpression(t);
     case Token::L_PAREN:
-        return parseParenthesizedExpression(t);
+        return parseParenthesizedExpressionOrTuple(t);
     //case Token::FUNCTION:
         //return parseFunctionExpression(t);
     case Token::IDENTIFIER:
@@ -335,13 +335,34 @@ std::unique_ptr<Expression> Parser::parseObjectLiteralExpression(const Token& t)
     }
 }
 
-std::unique_ptr<ParenthesizedExpression> Parser::parseParenthesizedExpression(const Token& t)
+std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const Token& t)
 {
     CHECK(t, Token::L_PAREN);
-    auto expr = std::make_unique<ParenthesizedExpression>(t);
-    expr->expression = parseExpression(m_lexer.next());
-    CONSUME(Token::R_PAREN);
-    return expr;
+    auto expr = parseExpression(m_lexer.next());
+
+    auto tok = m_lexer.next();
+    switch (tok.type) {
+    case Token::R_PAREN: {
+        auto parenthesizedExpression = std::make_unique<ParenthesizedExpression>(t);
+        parenthesizedExpression->expression = std::move(expr);
+        return std::move(parenthesizedExpression);
+    }
+    case Token::COMMA: {
+        auto tuple = std::make_unique<TupleExpression>(t);
+        tuple->items.emplace_back(std::move(expr));
+        for (;;) {
+            tuple->items.emplace_back(parseExpression(m_lexer.next()));
+            if (m_lexer.peek().type != Token::COMMA)
+                break;
+            CONSUME(Token::COMMA);
+        }
+        CONSUME(Token::R_PAREN);
+        return std::move(tuple);
+    }
+    default:
+        unexpectedToken(tok);
+    }
+    return nullptr;
 }
 
 std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)

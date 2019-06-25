@@ -40,7 +40,7 @@ public:
     std::unique_ptr<ArrayLiteralExpression> parseArrayLiteralExpression(const Token&);
     std::unique_ptr<TypeExpression> parseTypeExpression(const Token&);
     std::unique_ptr<Expression> parseObjectLiteralExpression(const Token&);
-    std::unique_ptr<ParenthesizedExpression> parseParenthesizedExpression(const Token&);
+    std::unique_ptr<Expression> parseParenthesizedExpressionOrTuple(const Token&);
 
     std::unique_ptr<Literal> parseLiteral(const Token&);
     std::unique_ptr<NumericLiteral> parseNumericLiteral(const Token&);

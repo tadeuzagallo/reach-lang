@@ -1,0 +1,5 @@
+//RUN: %reach | %check
+
+inspect((1)) // CHECK-L: 1 : Number
+inspect((1, 2)) // CHECK-L: (1, 2) : Number * Number
+inspect((1, "2")) // CHECK-L: (1, "2") : Number * String

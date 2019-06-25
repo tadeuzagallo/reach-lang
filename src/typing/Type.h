@@ -69,6 +69,7 @@ public:
         Array,
         Record,
         Var,
+        Tuple,
     };
 
     CELL_TYPE(Type);
@@ -175,6 +176,20 @@ public:
 
 private:
     TypeArray(Value);
+};
+
+class TypeTuple : public Type {
+public:
+    CELL_CREATE(TypeTuple);
+
+    Type* substitute(VM&, Substitutions&) override;
+    bool operator==(const Type&) const override;
+    void dump(std::ostream&) const override;
+
+    CELL_FIELD(Array, itemsTypes);
+
+private:
+    TypeTuple(uint32_t);
 };
 
 class TypeRecord : public Type {

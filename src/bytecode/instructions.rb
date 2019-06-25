@@ -41,6 +41,20 @@ instruction :GetArrayIndex,
     array: :Register,
     index: :Register
 
+instruction :NewTuple,
+    dst: :Register,
+    initialSize: :uint32_t
+
+instruction :SetTupleIndex,
+    tuple: :Register,
+    index: :uint32_t,
+    value: :Register
+
+instruction :GetTupleIndex,
+    dst: :Register,
+    tuple: :Register,
+    index: :Register
+
 instruction :NewFunction,
     dst: :Register,
     functionIndex: :uint32_t
@@ -125,6 +139,10 @@ instruction :NewNameType,
 instruction :NewArrayType,
     dst: :Register,
     itemType: :Register
+
+instruction :NewTupleType,
+    dst: :Register,
+    itemCount: :uint32_t
 
 instruction :NewRecordType,
     dst: :Register,

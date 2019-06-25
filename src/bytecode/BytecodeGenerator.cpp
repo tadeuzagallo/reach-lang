@@ -113,6 +113,21 @@ void BytecodeGenerator::getArrayIndex(Register dst, Register array, Register ind
     emit<GetArrayIndex>(dst, array, index);
 }
 
+void BytecodeGenerator::newTuple(Register dst, unsigned size)
+{
+    emit<NewTuple>(dst, size);
+}
+
+void BytecodeGenerator::setTupleIndex(Register src, unsigned offset, Register value)
+{
+    emit<SetTupleIndex>(src, offset, value);
+}
+
+void BytecodeGenerator::getTupleIndex(Register dst, Register tuple, Register index)
+{
+    emit<GetTupleIndex>(dst, tuple, index);
+}
+
 uint32_t BytecodeGenerator::newFunction(Register dst, std::unique_ptr<BytecodeBlock> block)
 {
     uint32_t functionIndex = m_block->addFunctionBlock(std::move(block));
@@ -242,6 +257,11 @@ void BytecodeGenerator::newNameType(Register result, const std::string& name)
 void BytecodeGenerator::newArrayType(Register result, Register itemType)
 {
     emit<NewArrayType>(result, itemType);
+}
+
+void BytecodeGenerator::newTupleType(Register result, uint32_t itemCount)
+{
+    emit<NewTupleType>(result, itemCount);
 }
 
 void BytecodeGenerator::newRecordType(Register result, const std::vector<std::pair<std::string, Register>>& fields)

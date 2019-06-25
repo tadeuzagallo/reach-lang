@@ -6,6 +6,7 @@
 #include "Function.h"
 #include "Object.h"
 #include "Scope.h"
+#include "Tuple.h"
 #include "UnificationScope.h"
 #include "Value.h"
 #include <fcntl.h>
@@ -182,6 +183,30 @@ OP(GetArrayIndex)
     store(regR0, ip.dst);
 }
 
+OP(NewTuple)
+{
+    move(vm(), regA0);
+    move(ip.initialSize, regA1);
+    call<Tuple*, VM&, uint32_t>(&createTuple);
+    store(regR0, ip.dst);
+}
+
+OP(SetTupleIndex)
+{
+    load(ip.tuple, regA0);
+    move(ip.index, regA1);
+    load(ip.value, regA2);
+    call(&Tuple::setIndex);
+}
+
+OP(GetTupleIndex)
+{
+    load(ip.tuple, regA0);
+    load(ip.index, regA1);
+    call(&Tuple::getIndex);
+    store(regR0, ip.dst);
+}
+
 OP(NewFunction)
 {
     move(m_block.function(ip.functionIndex), regA0);
@@ -263,6 +288,7 @@ TYPE_OP(InferImplicitParameters)
 TYPE_OP(NewVarType)
 TYPE_OP(NewNameType)
 TYPE_OP(NewArrayType)
+TYPE_OP(NewTupleType)
 TYPE_OP(NewRecordType)
 TYPE_OP(NewFunctionType)
 TYPE_OP(NewValue)
