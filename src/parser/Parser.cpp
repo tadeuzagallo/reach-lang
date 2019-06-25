@@ -243,12 +243,19 @@ std::unique_ptr<Expression> Parser::parseSubscriptExpression(std::unique_ptr<Exp
     return std::move(subscript);
 }
 
-std::unique_ptr<MemberExpression> Parser::parseMemberExpression(std::unique_ptr<Expression> object)
+std::unique_ptr<Expression> Parser::parseMemberExpression(std::unique_ptr<Expression> object)
 {
     CONSUME(Token::DOT);
+
+    if (m_lexer.peek().type == Token::L_PAREN) {
+        auto parenthesizedExpression = std::make_unique<ParenthesizedExpression>(object->location);
+        parenthesizedExpression->expression = std::move(object);
+        return parseCallExpression(std::move(parenthesizedExpression));
+    }
+
     auto expr = std::make_unique<MemberExpression>(std::move(object));
     expr->property = parseIdentifier(m_lexer.next());
-    return expr;
+    return std::move(expr);
 }
 
 std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
