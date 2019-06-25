@@ -139,6 +139,7 @@ void TypeChecker::newRecordType(Register result, const std::vector<std::pair<std
 
 void TypeChecker::lookup(Register result, const SourceLocation& location, const std::string& name)
 {
+    m_generator.emitLocation(location);
     m_generator.getLocal(result, name);
 }
 

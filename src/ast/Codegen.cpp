@@ -4,7 +4,6 @@
 
 std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) const
 {
-    generator.emitLocation(location);
     Register result = Register::invalid();
     for (const auto& decl : declarations) {
         result = generator.newLocal();
@@ -18,8 +17,6 @@ std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) c
 // Declarations
 void LexicalDeclaration::generate(BytecodeGenerator& generator, Register result)
 {
-    generator.emitLocation(location);
-
     //ASSERT(!isConst, "TODO");
     (*initializer)->generate(generator, result);
     generator.setLocal(*name, result);
@@ -34,28 +31,22 @@ void FunctionDeclaration::generateImpl(BytecodeGenerator& generator, Register re
 
 void FunctionDeclaration::generate(BytecodeGenerator& generator, Register result)
 {
-    generator.emitLocation(location);
     generator.newFunction(result, functionIndex);
     generator.setLocal(name->name, result);
 }
 
 void StatementDeclaration::generate(BytecodeGenerator& generator, Register result)
 {
-    generator.emitLocation(location);
-
     statement->generate(generator, result);
 }
 
 // Statements
 void EmptyStatement::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
 }
 
 void BlockStatement::generate(BytecodeGenerator& generator, Register result)
 {
-    generator.emitLocation(location);
-
     Register localResult = Register::invalid();
     for (const auto& decl : declarations) {
         localResult = generator.newLocal();
@@ -68,13 +59,10 @@ void BlockStatement::generate(BytecodeGenerator& generator, Register result)
 
 void ReturnStatement::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
 }
 
 void IfStatement::generate(BytecodeGenerator& generator, Register out)
 {
-    generator.emitLocation(location);
-
     Label alt = generator.label();
     Label end = generator.label();
 
@@ -97,59 +85,46 @@ void IfStatement::generate(BytecodeGenerator& generator, Register out)
 
 void BreakStatement::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
     ASSERT_NOT_REACHED();
 }
 
 void ContinueStatement::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
     ASSERT_NOT_REACHED();
 }
 
 void WhileStatement::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
     ASSERT_NOT_REACHED();
 }
 
 void ForStatement::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
     ASSERT_NOT_REACHED();
 }
 
 void ExpressionStatement::generate(BytecodeGenerator& generator, Register result)
 {
-    generator.emitLocation(location);
-
     expression->generate(generator, result);
 }
 
 // Expressions
 void Identifier::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     generator.getLocal(dst, *this);
 }
 
 void BinaryExpression::generate(BytecodeGenerator& generator, Register)
 {
-    generator.emitLocation(location);
 }
 
 void ParenthesizedExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     expression->generate(generator, dst);
 }
 
 void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     // TODO: add concept of structures
     generator.newObject(dst, fields.size());
     Register tmp = generator.newLocal();
@@ -161,8 +136,6 @@ void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register ds
 
 void ObjectTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     generator.newRecordType(dst, {});
     Register fieldsRegister = generator.newLocal();
     Register tmp = generator.newLocal();
@@ -175,8 +148,6 @@ void ObjectTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void TupleTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     generator.newTupleType(dst, items.size());
     Register itemsTypes = generator.newLocal();
     generator.getField(itemsTypes, dst, TypeTuple::itemsTypesField);
@@ -189,8 +160,6 @@ void TupleTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     generator.newArray(dst, items.size());
     for (unsigned i = 0; i < items.size(); i++) {
         Register tmp = generator.newLocal();
@@ -201,8 +170,6 @@ void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst
 
 void TupleExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     generator.newTuple(dst, items.size());
     for (unsigned i = 0; i < items.size(); i++) {
         Register tmp = generator.newLocal();
@@ -213,16 +180,12 @@ void TupleExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void ArrayTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     itemType->generate(generator, dst);
     generator.newArrayType(dst, dst);
 }
 
 void CallExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     Register calleeReg = generator.newLocal();
     callee->generate(generator, calleeReg);
     std::vector<Register> args;
@@ -235,8 +198,6 @@ void CallExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void SubscriptExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     target->generate(generator, dst);
     Register tmp = generator.newLocal();
     index->generate(generator, tmp);
@@ -245,30 +206,22 @@ void SubscriptExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void MemberExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     object->generate(generator, dst);
     generator.getField(dst, dst, property->name);
 }
 
 void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     return literal->generate(generator, dst);
 }
 
 void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     return generator.loadConstantIndex(dst, typeIndex);
 }
 
 void TypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     type->generate(generator, dst);
 }
 
@@ -277,22 +230,16 @@ void TypeExpression::generate(BytecodeGenerator& generator, Register dst)
 
 void BooleanLiteral::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     return generator.loadConstant(dst, value);
 }
 
 void NumericLiteral::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     return generator.loadConstant(dst, value);
 }
 
 void StringLiteral::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     String* string = String::create(generator.vm(), value);
     return generator.loadConstant(dst, string);
 }
@@ -302,7 +249,5 @@ void StringLiteral::generate(BytecodeGenerator& generator, Register dst)
 
 void ASTTypeType::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.emitLocation(location);
-
     generator.loadConstant(dst, generator.vm().typeType);
 }
