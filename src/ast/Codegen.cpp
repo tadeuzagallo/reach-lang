@@ -173,6 +173,20 @@ void ObjectTypeExpression::generate(BytecodeGenerator& generator, Register dst)
     }
 }
 
+void TupleTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.emitLocation(location);
+
+    generator.newTupleType(dst, items.size());
+    Register itemsTypes = generator.newLocal();
+    generator.getField(itemsTypes, dst, TypeTuple::itemsTypesField);
+    Register tmp = generator.newLocal();
+    for (uint32_t i = 0; i < items.size(); i++) {
+        items[i]->generate(generator, tmp);
+        generator.setArrayIndex(itemsTypes, i, tmp);
+    }
+}
+
 void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.emitLocation(location);

@@ -91,6 +91,8 @@ Token::Type Lexer::nextTokenType()
         SIMPLE_CASE('}', R_BRACE);
         SIMPLE_CASE('[', L_SQUARE);
         SIMPLE_CASE(']', R_SQUARE);
+        SIMPLE_CASE('<', L_ANGLE);
+        SIMPLE_CASE('>', R_ANGLE);
 
         default:
         if (m_nextChar == '/') {

@@ -183,6 +183,17 @@ OP(GetArrayIndex)
     store(regR0, ip.dst);
 }
 
+OP(GetArrayLength)
+{
+    ASSERT(false, "TODO");
+    /*
+    load(ip.array, regA0);
+    call(&Array::size);
+    boxInt32(regR0, regR0);
+    store(regR0, ip.dst);
+    */
+}
+
 OP(NewTuple)
 {
     move(vm(), regA0);

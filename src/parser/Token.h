@@ -42,6 +42,8 @@ public:
     R_BRACE,
     L_SQUARE,
     R_SQUARE,
+    L_ANGLE,
+    R_ANGLE,
 
     // multi-char fixed-width tokens
     EQUAL,

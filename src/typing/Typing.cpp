@@ -285,7 +285,7 @@ void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
         // TODO: actual check
     }, [&] {
         infer(tc, type);
-        tc.generator().typeError("Unexpected record");
+        tc.generator().typeError(location, "Unexpected record");
     });
 }
 
@@ -316,7 +316,7 @@ void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
         for (const auto& item : items)
             item->check(tc, tmp);
     }, [&] {
-        tc.generator().typeError("Unexpected array");
+        tc.generator().typeError(location, "Unexpected array");
     });
 }
 
@@ -344,9 +344,24 @@ void TupleExpression::check(TypeChecker& tc, Register type)
     Register tmp = tc.generator().newLocal();
     tc.generator().checkType(tmp, type, Type::Class::Tuple);
     tc.generator().branch(tmp, [&]{
-        tc.generator().typeError("TODO");
+        Register itemsTypes = tc.generator().newLocal();
+        tc.generator().getField(itemsTypes, type, TypeTuple::itemsTypesField);
+        tc.generator().getArrayLength(tmp, itemsTypes);
+        size_t size = items.size();
+        Register tmp2 = tc.generator().newLocal();
+        tc.generator().loadConstant(tmp2, static_cast<uint32_t>(size));
+        tc.generator().isEqual(tmp, tmp, tmp2);
+        tc.generator().branch(tmp, [&] {
+            for (uint32_t i = 0; i < items.size(); i++) {
+                tc.generator().loadConstant(tmp, i);
+                tc.generator().getArrayIndex(tmp, itemsTypes, tmp);
+                items[i]->check(tc, tmp);
+            }
+        }, [&] {
+            tc.generator().typeError(location, "Wrong tuple length");
+        });
     }, [&] {
-        tc.generator().typeError("Unexpected array");
+        tc.generator().typeError(location, "Unexpected tuple");
     });
 }
 
@@ -376,6 +391,20 @@ void ObjectTypeExpression::check(TypeChecker& tc, Register type)
     tc.unify(location, tc.typeType(), type);
     for (auto& field : fields)
         field.second->check(tc, tc.typeType());
+}
+
+void TupleTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    for (auto& item : items)
+        item->check(tc, tc.typeType());
+    tc.generator().newValue(result, tc.typeType());
+}
+
+void TupleTypeExpression::check(TypeChecker& tc, Register type)
+{
+    tc.unify(location, tc.typeType(), type);
+    for (auto& item : items)
+        item->check(tc, tc.typeType());
 }
 
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
@@ -408,7 +437,7 @@ result:
         tc.generator().branch(tmp, [&] {
             tc.generator().getTypeForValue(result, result);
         }, [&] {
-            tc.generator().typeError("Callee is not a function");
+            tc.generator().typeError(location, "Callee is not a function");
             tc.generator().jump(done);
         });
     });
@@ -423,7 +452,7 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeCh
     tc.generator().loadConstant(tmp, static_cast<uint32_t>(arguments.size()));
     tc.generator().isEqual(tmp, tmp, explicitParamCount);
     tc.generator().branch(tmp, [&] {}, [&] {
-        tc.generator().typeError("Argument count mismatch");
+        tc.generator().typeError(location, "Argument count mismatch");
         tc.unitValue(calleeType);
         tc.generator().jump(done);
     });
@@ -508,7 +537,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
         tc.generator().getField(result, result, TypeArray::itemTypeField);
         tc.generator().newValue(result, result);
     }, [&] {
-        tc.generator().typeError("Trying to subscript non-array");
+        tc.generator().typeError(location, "Trying to subscript non-array");
     });
 
     index->check(tc, tc.numberType());
@@ -539,7 +568,7 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
         tc.generator().getField(result, result, property->name);
         tc.generator().newValue(result, result);
     }, [&] {
-        tc.generator().typeError("Trying to acess field of non-record");
+        tc.generator().typeError(location, "Trying to acess field of non-record");
     });
 }
 
@@ -589,14 +618,14 @@ void SynthesizedTypeExpression::infer(TypeChecker& tc, Register)
 {
     tc.generator().emitLocation(location);
 
-    tc.generator().typeError("Should not infer type for SynthesizedTypeExpression");
+    tc.generator().typeError(location, "Should not infer type for SynthesizedTypeExpression");
 }
 
 void SynthesizedTypeExpression::check(TypeChecker& tc, Register)
 {
     tc.generator().emitLocation(location);
 
-    tc.generator().typeError("Should not type check SynthesizedTypeExpression");
+    tc.generator().typeError(location, "Should not type check SynthesizedTypeExpression");
 }
 
 
@@ -637,7 +666,7 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
         tc.insert(name->name, result);
     }, [&] {
         if (inferred)
-            tc.generator().typeError("Only type arguments can be inferred");
+            tc.generator().typeError(location, "Only type arguments can be inferred");
         tc.generator().newValue(tmp, result);
         tc.insert(name->name, tmp);
     });

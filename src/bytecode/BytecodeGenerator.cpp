@@ -113,6 +113,11 @@ void BytecodeGenerator::getArrayIndex(Register dst, Register array, Register ind
     emit<GetArrayIndex>(dst, array, index);
 }
 
+void BytecodeGenerator::getArrayLength(Register dst, Register array)
+{
+    emit<GetArrayLength>(dst, array);
+}
+
 void BytecodeGenerator::newTuple(Register dst, unsigned size)
 {
     emit<NewTuple>(dst, size);
@@ -222,8 +227,9 @@ void BytecodeGenerator::checkTypeOf(Register dst, Register type, Type::Class exp
     emit<CheckTypeOf>(dst, type, expected);
 }
 
-void BytecodeGenerator::typeError(const char* message)
+void BytecodeGenerator::typeError(const SourceLocation& location, const char* message)
 {
+    emitLocation(location);
     uint32_t messageIndex = uniqueIdentifier(message);
     emit<TypeError>(messageIndex);
 }

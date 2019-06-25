@@ -193,6 +193,13 @@ OP(GetArrayIndex)
     DISPATCH();
 }
 
+OP(GetArrayLength)
+{
+    Array* array = m_cfr[ip.array].asCell<Array>();
+    m_cfr[ip.dst] = static_cast<uint32_t>(array->size());
+    DISPATCH();
+}
+
 OP(NewTuple)
 {
     m_cfr[ip.dst] = Value { Tuple::create(vm(), ip.initialSize) };

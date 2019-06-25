@@ -36,6 +36,7 @@ public:
     void newArray(Register, unsigned);
     void setArrayIndex(Register, unsigned, Register);
     void getArrayIndex(Register, Register, Register);
+    void getArrayLength(Register, Register);
     void newTuple(Register, unsigned);
     void setTupleIndex(Register, unsigned, Register);
     void getTupleIndex(Register, Register, Register);
@@ -58,7 +59,7 @@ public:
     void resolveType(Register, Register);
     void checkType(Register, Register, Type::Class);
     void checkTypeOf(Register, Register, Type::Class);
-    void typeError(const char*);
+    void typeError(const SourceLocation&, const char*);
     void inferImplicitParameters(Register, const std::vector<Register>&);
     void endTypeChecking(Register);
 

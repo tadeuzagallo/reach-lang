@@ -41,6 +41,7 @@ public:
     std::unique_ptr<TypeExpression> parseTypeExpression(const Token&);
     std::unique_ptr<Expression> parseObjectLiteralExpression(const Token&);
     std::unique_ptr<Expression> parseParenthesizedExpressionOrTuple(const Token&);
+    std::unique_ptr<TupleTypeExpression> parseTupleTypeExpression(const Token&);
 
     std::unique_ptr<Literal> parseLiteral(const Token&);
     std::unique_ptr<NumericLiteral> parseNumericLiteral(const Token&);
@@ -50,6 +51,7 @@ public:
     std::unique_ptr<ASTType> parseType(const Token&);
     std::unique_ptr<ASTTypeType> parseTypeType(const Token&);
 
+    void parseError(const Token&, const std::string&);
     void unexpectedToken(const Token&);
     void unexpectedToken(const Token&, Token::Type);
     void reportErrors(std::ostream&);

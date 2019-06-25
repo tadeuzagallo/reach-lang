@@ -1,0 +1,4 @@
+// RUN: %not %reach | %check
+
+<>; // CHECK-L: Tuple type should have at least two members
+<Number>; // CHECK-L: Tuple type should have at least two members

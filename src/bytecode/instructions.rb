@@ -41,6 +41,10 @@ instruction :GetArrayIndex,
     array: :Register,
     index: :Register
 
+instruction :GetArrayLength,
+    dst: :Register,
+    array: :Register
+
 instruction :NewTuple,
     dst: :Register,
     initialSize: :uint32_t

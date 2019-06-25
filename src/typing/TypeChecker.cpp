@@ -150,6 +150,7 @@ void TypeChecker::insert(const std::string& name, Register type)
 void TypeChecker::unify(const SourceLocation& location, Register lhs, Register rhs)
 {
     LOG(ConstraintSolving, "unify: " << location << ": " << lhs << " U " << rhs);
+    m_generator.emitLocation(location);
     m_generator.unify(lhs, rhs);
 }
 

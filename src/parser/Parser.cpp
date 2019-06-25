@@ -264,6 +264,8 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
         return parseObjectLiteralExpression(t);
     case Token::L_PAREN:
         return parseParenthesizedExpressionOrTuple(t);
+    case Token::L_ANGLE:
+        return parseTupleTypeExpression(t);
     //case Token::FUNCTION:
         //return parseFunctionExpression(t);
     case Token::IDENTIFIER:
@@ -363,6 +365,22 @@ std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const To
         unexpectedToken(tok);
     }
     return nullptr;
+}
+
+std::unique_ptr<TupleTypeExpression> Parser::parseTupleTypeExpression(const Token& t)
+{
+    CHECK(t, Token::L_ANGLE);
+    auto tupleType = std::make_unique<TupleTypeExpression>(t);
+    while (m_lexer.peek().type != Token::R_ANGLE) {
+        tupleType->items.push_back(parseExpression(m_lexer.next()));
+        if (m_lexer.peek().type != Token::COMMA)
+            break;
+        m_lexer.next();
+    }
+    CONSUME(Token::R_ANGLE);
+    if (tupleType->items.size() < 2)
+        parseError(t, "Tuple type should have at least two members");
+    return tupleType;
 }
 
 std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)
@@ -467,6 +485,14 @@ void Parser::unexpectedToken(const Token& t)
     m_errors.emplace_back(Error {
         t.location,
         message.str(),
+    });
+}
+
+void Parser::parseError(const Token& t, const std::string& message)
+{
+    m_errors.emplace_back(Error {
+        t.location,
+        message,
     });
 }
 

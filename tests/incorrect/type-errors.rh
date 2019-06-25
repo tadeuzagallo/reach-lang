@@ -4,7 +4,7 @@ function f(x: Number) -> Number {
     "asd" // CHECK: 4:5: Unification failure: expected `Number` but found `String`
 }
 g; // CHECK: :6:1: Unknown variable: `g`
-f(1,2); // CHECK: 7:5: Argument count mismatch
+f(1,2); // CHECK: 7:1: Argument count mismatch
 f("asd"); // CHECK: 8:3: Unification failure: expected `Number` but found `String`
 
 let x = 1;
@@ -15,3 +15,16 @@ function g(x: Number[]) -> Number[] {
 }
 // TODO: better error message
 g([""]) // CHECK-L: 17:4: Unification failure: expected `Number` but found `String`
+
+function f(x: <String, Number, Number>) -> <String, Number> {
+    x // CHECK-L: 20:5: Unification failure: expected `<String, Number>` but found `<String, Number, Number>`
+}
+
+function f(x: <String, Number, Number>) -> <String, Number, Number> {
+    x
+}
+f((1, 2, 3)) // CHECK-L: 26:4: Unification failure: expected `String` but found `Number`
+
+// TODO: better error messages
+f(("1", 2)) // CHECK-L: 29:3: Wrong tuple length
+f(("1", 2, 3, 4)) // CHECK-L: 30:3: Wrong tuple length

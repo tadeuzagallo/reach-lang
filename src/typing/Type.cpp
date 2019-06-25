@@ -262,13 +262,15 @@ bool TypeTuple::operator==(const Type& other) const
 
 void TypeTuple::dump(std::ostream& out) const
 {
+    out << "<";
     bool first = true;
     for (const auto& type : *itemsTypes()) {
         if (!first)
-            out << " * ";
+            out << ", ";
         first = false;
         out << type;
     }
+    out << ">";
 }
 
 TypeRecord::TypeRecord(const Fields& fields)
