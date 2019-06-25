@@ -197,8 +197,6 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
         return parseSubscriptExpression(std::move(expr));
     case Token::DOT:
         return parseMemberExpression(std::move(expr));
-    case Token::ARROW:
-        return parseMethodCallExpression(std::move(expr));
     default:
         *stop = true;
         return expr;
@@ -208,7 +206,14 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
 std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expression> callee)
 {
     CONSUME(Token::L_PAREN);
-    auto call = std::make_unique<CallExpression>(std::move(callee));
+
+    std::unique_ptr<CallExpression> call;
+    if (auto* memberExpression = dynamic_cast<MemberExpression*>(callee.get())) {
+        call = std::make_unique<CallExpression>(std::move(memberExpression->property));
+        call->arguments.emplace_back(std::move(memberExpression->object));
+    } else
+        call = std::make_unique<CallExpression>(std::move(callee));
+
     while (m_lexer.peek().type != Token::R_PAREN) {
         call->arguments.emplace_back(parseExpression(m_lexer.next()));
         if (m_lexer.peek().type == Token::COMMA)
@@ -244,15 +249,6 @@ std::unique_ptr<MemberExpression> Parser::parseMemberExpression(std::unique_ptr<
     auto expr = std::make_unique<MemberExpression>(std::move(object));
     expr->property = parseIdentifier(m_lexer.next());
     return expr;
-}
-
-std::unique_ptr<CallExpression> Parser::parseMethodCallExpression(std::unique_ptr<Expression> object)
-{
-    CONSUME(Token::ARROW);
-    std::unique_ptr<Identifier> callee = parseIdentifier(m_lexer.next());
-    std::unique_ptr<CallExpression> call = parseCallExpression(std::move(callee));
-    call->arguments.emplace(call->arguments.begin(), std::move(object));
-    return call;
 }
 
 std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)

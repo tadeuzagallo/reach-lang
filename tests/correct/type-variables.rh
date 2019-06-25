@@ -24,4 +24,4 @@ inspect(name) // CHECK-L: <function name> : ({age: Number, name: String}) -> Str
 
 let john = { name = "Tom", age = 35 };
 inspect(john) // CHECK-L: {age = 35, name = "Tom"} : {name: String, age: Number}
-inspect(john->name()) // CHECK: "Tom" : String
+inspect(john.name()) // CHECK: "Tom" : String

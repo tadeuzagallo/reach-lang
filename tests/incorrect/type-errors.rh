@@ -28,3 +28,8 @@ f((1, 2, 3)) // CHECK-L: 26:4: Unification failure: expected `String` but found 
 // TODO: better error messages
 f(("1", 2)) // CHECK-L: 29:3: Wrong tuple length
 f(("1", 2, 3, 4)) // CHECK-L: 30:3: Wrong tuple length
+
+function id(x: Number) -> Number { x }
+function f() -> Number { 13 }
+let x = { id = f };
+inspect(x.id()) // CHECK-L: 35:9: Unification failure: expected `Number` but found `{id: () -> Number}`

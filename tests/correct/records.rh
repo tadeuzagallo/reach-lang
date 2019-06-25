@@ -6,7 +6,7 @@ inspect(x.y) // CHECK: 42 : Number
 
 function f() -> Number { 13 }
 let x = { x = f };
-inspect(x.x()) // CHECK: 13 : Number
+inspect((x.x)()) // CHECK: 13 : Number
 
 function g() -> { x: Number } {
     { x = 7 }
