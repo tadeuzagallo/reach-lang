@@ -106,13 +106,3 @@ void UnificationScope::bind(TypeVar* var, Type* type)
     LOG(ConstraintSolving, "Type " << *var << " to " << *type);
     m_substitutions.emplace(var->uid(), type);
 }
-
-void pushUnificationScope(VM* vm)
-{
-    new UnificationScope(*vm);
-}
-
-void popUnificationScope(VM* vm)
-{
-    delete vm->unificationScope;
-}

@@ -10,8 +10,8 @@ static uint32_t optimizationThreshold()
 }
 
 BytecodeBlock::BytecodeBlock(std::string name)
-    : m_name(name)
-    , m_environmentRegister(Register::forLocal(++m_numLocals))
+    : m_environmentRegister(Register::forLocal(++m_numLocals))
+    , m_name(name)
 {
 }
 

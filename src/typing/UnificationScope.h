@@ -33,8 +33,3 @@ private:
     std::deque<Constraint> m_constraints;
     Substitutions m_substitutions;
 };
-
-extern "C" {
-void pushUnificationScope(VM*);
-void popUnificationScope(VM*);
-}

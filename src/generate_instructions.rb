@@ -41,7 +41,7 @@ class Instruction < Struct.new(:name, :fields)
     <<-EOS
     void dump(std::ostream& out) const
     {
-        unsigned idx = 0;
+        #{fields.empty? ? 'UNUSED(out)' : 'unsigned idx = 0'};
         #{fields.map { |name, _| "if (idx++) out << \", \"; out << \"#{name}: \" << #{name};" }.join("\n")}
     }
     EOS

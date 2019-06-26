@@ -14,3 +14,6 @@
 
 #define ASSERT_NOT_REACHED() \
     ASSERT(false, "Should not be reached")
+
+#define UNUSED(variable) \
+    ((void)variable)

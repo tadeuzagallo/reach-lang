@@ -349,7 +349,7 @@ void TypeVar::fresh(VM& vm, Substitutions& subst) const
     subst.emplace(uid(), newVar);
 }
 
-Type* TypeVar::substitute(VM& vm, Substitutions& subst)
+Type* TypeVar::substitute(VM&, Substitutions& subst)
 {
     const auto it = subst.find(uid());
     if (it != subst.end())

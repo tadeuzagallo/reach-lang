@@ -3,7 +3,6 @@
 #include "BytecodeBlock.h"
 #include "Cell.h"
 #include "Environment.h"
-#include "TypeChecker.h"
 #include "VM.h"
 
 Heap::Heap(VM* vm)
@@ -38,8 +37,6 @@ void Heap::markFromRoots()
     m_vm->globalEnvironment->visit(markRoot);
     if (m_vm->globalBlock)
         m_vm->globalBlock->visit(markRoot);
-    for (TypeChecker* typeChecker = m_vm->typeChecker; typeChecker; typeChecker = typeChecker->previousTypeChecker())
-        typeChecker->visit(markRoot);
 
     markNativeStack(markRoot);
     markInterpreterStack(markRoot);

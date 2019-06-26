@@ -35,7 +35,7 @@ dumpValue(std::ostream& out, unsigned indentation, const std::unique_ptr<T>& val
 
 template <typename T>
 std::enable_if_t<std::is_integral_v<T>, void>
-dumpValue(std::ostream& out, unsigned indentation, const std::unique_ptr<T>& value)
+dumpValue(std::ostream& out, unsigned, const std::unique_ptr<T>& value)
 {
     out << *value;
 }
@@ -97,7 +97,8 @@ void dumpField(std::ostream& out, unsigned indentation, std::string name, const 
   out << "," << std::endl;
 }
 
-struct Node {
+class Node {
+public:
   Node(const Token& token)
     : location(token.location)
     , typeRegister(Register::invalid())

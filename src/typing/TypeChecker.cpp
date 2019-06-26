@@ -36,11 +36,6 @@ void TypeChecker::check(Program& program)
     endTypeChecking(Mode::Program, result);
 }
 
-void TypeChecker::visit(const std::function<void(Value)>& visitor) const
-{
-    // TODO
-}
-
 VM& TypeChecker::vm() const
 {
     return m_generator.vm();
@@ -156,8 +151,8 @@ void TypeChecker::unify(const SourceLocation& location, Register lhs, Register r
 }
 
 TypeChecker::Scope::Scope(TypeChecker& typeChecker, bool shouldGenerateBytecode)
-    : m_typeChecker(typeChecker)
-    , m_shouldGenerateBytecode(shouldGenerateBytecode)
+    : m_shouldGenerateBytecode(shouldGenerateBytecode)
+    , m_typeChecker(typeChecker)
 {
     m_previousScope = m_typeChecker.m_currentScope;
     m_typeChecker.m_currentScope = this;

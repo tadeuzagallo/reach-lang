@@ -41,7 +41,7 @@ void StatementDeclaration::generate(BytecodeGenerator& generator, Register resul
 }
 
 // Statements
-void EmptyStatement::generate(BytecodeGenerator& generator, Register)
+void EmptyStatement::generate(BytecodeGenerator&, Register)
 {
 }
 
@@ -57,8 +57,9 @@ void BlockStatement::generate(BytecodeGenerator& generator, Register result)
     }
 }
 
-void ReturnStatement::generate(BytecodeGenerator& generator, Register)
+void ReturnStatement::generate(BytecodeGenerator&, Register)
 {
+    ASSERT_NOT_REACHED();
 }
 
 void IfStatement::generate(BytecodeGenerator& generator, Register out)
@@ -83,22 +84,22 @@ void IfStatement::generate(BytecodeGenerator& generator, Register out)
     generator.emit(end);
 }
 
-void BreakStatement::generate(BytecodeGenerator& generator, Register)
+void BreakStatement::generate(BytecodeGenerator&, Register)
 {
     ASSERT_NOT_REACHED();
 }
 
-void ContinueStatement::generate(BytecodeGenerator& generator, Register)
+void ContinueStatement::generate(BytecodeGenerator&, Register)
 {
     ASSERT_NOT_REACHED();
 }
 
-void WhileStatement::generate(BytecodeGenerator& generator, Register)
+void WhileStatement::generate(BytecodeGenerator&, Register)
 {
     ASSERT_NOT_REACHED();
 }
 
-void ForStatement::generate(BytecodeGenerator& generator, Register)
+void ForStatement::generate(BytecodeGenerator&, Register)
 {
     ASSERT_NOT_REACHED();
 }
@@ -114,8 +115,9 @@ void Identifier::generate(BytecodeGenerator& generator, Register dst)
     generator.getLocal(dst, *this);
 }
 
-void BinaryExpression::generate(BytecodeGenerator& generator, Register)
+void BinaryExpression::generate(BytecodeGenerator&, Register)
 {
+    ASSERT_NOT_REACHED();
 }
 
 void ParenthesizedExpression::generate(BytecodeGenerator& generator, Register dst)

@@ -1,7 +1,8 @@
 class ASTNode < Struct.new(:name, :parent, :fields, :extra_methods)
     def cpp_struct
         <<-EOS
-        struct #{name} : public #{parent} {
+        class #{name} : public #{parent} {
+        public:
             using #{parent}::#{parent};
 
             #{constructor}
@@ -94,7 +95,7 @@ def generate_file(file)
     class BytecodeGenerator;
     #{$includes.join("\n")}
 
-    #{$declarations.map { |t| "struct #{t.to_s};" }.join("\n")}
+    #{$declarations.map { |t| "class #{t.to_s};" }.join("\n")}
 
     #{$ast_nodes.map(&:cpp_struct).join("\n\n")}
     EOS

@@ -11,7 +11,7 @@ static void addFunction(VM* vm, const char* name, NativeFunction fn, Type* type)
     vm->globalEnvironment->set(name, Value { builtinFunction });
 }
 
-static Value functionPrint(VM& vm, std::vector<Value> args)
+static Value functionPrint(VM&, std::vector<Value> args)
 {
     bool isFirst = true;
     for (auto arg : args) {
@@ -39,8 +39,8 @@ static Value functionInspect(VM& vm, std::vector<Value> args)
 }
 
 VM::VM()
-    : heap(this)
-    , typeChecker(nullptr)
+    : typeChecker(nullptr)
+    , heap(this)
     , typeType(TypeType::create(*this))
     , bottomType(TypeBottom::create(*this))
     , unitType(TypeName::create(*this, "Void"))

@@ -43,7 +43,6 @@ public:
     void endTypeChecking(Mode, Register);
 
     void check(Program&);
-    void visit(const std::function<void(Value)>&) const;
 
 #define DECLARE_LAZY_TYPE_GETTER(type) \
     Register type##Type();

@@ -120,6 +120,7 @@ Value Interpreter::reg(Register r) const
 
 OP(Enter)
 {
+    UNUSED(ip);
     m_vm.stack.insert(m_vm.stack.begin(), m_block.numLocals(), Value::crash());
     m_cfr = Stack { &vm().stack[m_block.numLocals()] };
     DISPATCH();
@@ -305,28 +306,31 @@ OP(IsEqual)
 
 OP(PushScope)
 {
+    UNUSED(ip);
     m_vm.typingScope = new Scope(this);
     DISPATCH();
 }
 
 OP(PopScope)
 {
+    UNUSED(ip);
     Scope* topScope = m_vm.typingScope;
     m_vm.typingScope = topScope->parent();
     delete topScope;
     DISPATCH();
 }
 
-static int unificationScopeDepth = 0;
 OP(PushUnificationScope)
 {
-    pushUnificationScope(&m_vm);
+    UNUSED(ip);
+    new UnificationScope(m_vm);
     DISPATCH();
 }
 
 OP(PopUnificationScope)
 {
-    popUnificationScope(&m_vm);
+    UNUSED(ip);
+    delete m_vm.unificationScope;
 
     if (!m_vm.unificationScope) {
         // We are done type checking!

@@ -108,11 +108,12 @@ JIT::Label JIT::label()
 
 OP(Enter)
 {
+    UNUSED(ip);
     prologue();
     move(Value::crash(), regT0);
     // skip environmentRegister register
     for (uint32_t i = 2; i <= m_block.numLocals(); i++)
-        store(regT0, regCFR, -i);
+        store(regT0, regCFR, -static_cast<int32_t>(i));
 }
 
 OP(End)
@@ -135,6 +136,7 @@ OP(LoadConstant)
 
 OP(StoreConstant)
 {
+    UNUSED(ip);
     ASSERT(false, "StoreConstant should only be used during type checking, and type checking shouldn't JIT");
 }
 
@@ -185,13 +187,8 @@ OP(GetArrayIndex)
 
 OP(GetArrayLength)
 {
-    ASSERT(false, "TODO");
-    /*
-    load(ip.array, regA0);
-    call(&Array::size);
-    boxInt32(regR0, regR0);
-    store(regR0, ip.dst);
-    */
+    UNUSED(ip);
+    ASSERT(false, "GetArrayLength is only used during type checking");
 }
 
 OP(NewTuple)
@@ -284,7 +281,10 @@ OP(IsEqual)
 }
 
 #define TYPE_OP(Instruction) \
-    OP(Instruction) { ASSERT(false, "JIT should not be doing type checking"); }
+    OP(Instruction) { \
+        UNUSED(ip); \
+        ASSERT(false, "JIT should not be doing type checking"); \
+    }
 
 TYPE_OP(PushScope)
 TYPE_OP(PopScope)
@@ -311,8 +311,8 @@ TYPE_OP(GetTypeForValue)
 Value JIT::trampoline(VM& vm, Function* function, uint32_t argc, Value* argv)
 {
     std::vector<Value> args(argc);
-    for (int32_t i = 0; i < argc; ++i)
-        args[i] = argv[-i];
+    for (uint32_t i = 0; i < argc; ++i)
+        args[i] = argv[-static_cast<int32_t>(i)];
     return function->call(vm, args);
 }
 

@@ -1,6 +1,6 @@
 CXX := clang++
 LDFLAGS := -Wl,-no_pie
-CXXFLAGS := -std=c++17 -g
+CXXFLAGS := -std=c++17 -g -Wall -Wextra -Werror
 
 SRCS := $(shell find src -name '*.cpp')
 OBJS := $(patsubst src/%.cpp,build/%.o,$(SRCS))

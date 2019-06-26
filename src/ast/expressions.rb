@@ -117,7 +117,7 @@ ast_node :CallExpression < :Expression,
     "virtual void infer(TypeChecker&, Register)",
     "virtual void check(TypeChecker&, Register)",
     "void checkCallee(TypeChecker&, Register, Label&)",
-    "void checkArguments(TypeChecker&, Register, TypeChecker::UnificationScope&, Label&)",
+    "void checkArguments(TypeChecker&, Register, Label&)",
   ]
 
 ast_node :SubscriptExpression < :Expression,

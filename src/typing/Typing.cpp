@@ -55,7 +55,7 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
 
         std::vector<Register> parameterRegisters;
         Register returnRegister = functionGenerator.newLocal();
-        for (const auto& _ : parameters)
+        for (uint32_t i = 0; i < parameters.size(); i++)
             parameterRegisters.emplace_back(functionGenerator.newLocal());
 
         uint32_t inferredParameters = 0;
@@ -115,9 +115,9 @@ void Statement::infer(TypeChecker& tc, Register result)
     tc.unitValue(result);
 }
 
-void EmptyStatement::check(TypeChecker& tc, Register)
+void EmptyStatement::check(TypeChecker&, Register)
 {
-    // nothing to do here
+    ASSERT_NOT_REACHED();
 }
 
 void BlockStatement::check(TypeChecker& tc, Register result)
@@ -134,9 +134,9 @@ void BlockStatement::check(TypeChecker& tc, Register result)
     }
 }
 
-void ReturnStatement::check(TypeChecker& tc, Register)
+void ReturnStatement::check(TypeChecker&, Register)
 {
-    // TODO
+    ASSERT_NOT_REACHED();
 }
 
 void IfStatement::infer(TypeChecker& tc, Register result)
@@ -154,7 +154,6 @@ void IfStatement::infer(TypeChecker& tc, Register result)
 
 void IfStatement::check(TypeChecker& tc, Register type)
 {
-    Register tmp = tc.generator().newLocal();
     condition->check(tc, tc.boolType());
     if (alternate) {
         consequent->check(tc, type);
@@ -165,24 +164,24 @@ void IfStatement::check(TypeChecker& tc, Register type)
     }
 }
 
-void BreakStatement::check(TypeChecker& tc, Register)
+void BreakStatement::check(TypeChecker&, Register)
 {
-    // TODO
+    ASSERT_NOT_REACHED();
 }
 
-void ContinueStatement::check(TypeChecker& tc, Register)
+void ContinueStatement::check(TypeChecker&, Register)
 {
-    // TODO
+    ASSERT_NOT_REACHED();
 }
 
-void WhileStatement::check(TypeChecker& tc, Register)
+void WhileStatement::check(TypeChecker&, Register)
 {
-    // TODO
+    ASSERT_NOT_REACHED();
 }
 
-void ForStatement::check(TypeChecker& tc, Register)
+void ForStatement::check(TypeChecker&, Register)
 {
-    // TODO
+    ASSERT_NOT_REACHED();
 }
 
 void ExpressionStatement::infer(TypeChecker& tc, Register result)
@@ -211,15 +210,14 @@ void Identifier::check(TypeChecker& tc, Register type)
     tc.unify(location, tmp, type);
 }
 
-void BinaryExpression::infer(TypeChecker& tc, Register result)
+void BinaryExpression::infer(TypeChecker&, Register)
 {
-    // TODO
-    tc.unitValue(result);
+    ASSERT_NOT_REACHED();
 }
 
-void BinaryExpression::check(TypeChecker& tc, Register)
+void BinaryExpression::check(TypeChecker&, Register)
 {
-    // TODO
+    ASSERT_NOT_REACHED();
 }
 
 void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
@@ -405,7 +403,7 @@ result:
     });
 }
 
-void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, TypeChecker::UnificationScope& scope, Label& done)
+void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, Label& done)
 {
     Register explicitParamCount = tc.generator().newLocal();
     tc.generator().getField(explicitParamCount, calleeType, TypeFunction::explicitParamCountField);
@@ -463,7 +461,7 @@ void CallExpression::infer(TypeChecker& tc, Register result)
     TypeChecker::UnificationScope scope(tc);
     Label done = tc.generator().label();
     checkCallee(tc, result, done);
-    checkArguments(tc, result, scope, done);
+    checkArguments(tc, result, done);
     tc.generator().getField(result, result, TypeFunction::returnTypeField);
     scope.resolve(result, result);
     tc.newValue(result, result);
@@ -476,7 +474,7 @@ void CallExpression::check(TypeChecker& tc, Register type)
     Register tmp = tc.generator().newLocal();
     Label done = tc.generator().label();
     checkCallee(tc, tmp, done);
-    checkArguments(tc, tmp, scope, done);
+    checkArguments(tc, tmp, done);
     tc.generator().getField(tmp, tmp, TypeFunction::returnTypeField);
     tc.newValue(tmp, tmp);
     tc.unify(location, tmp, type);
@@ -524,12 +522,12 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
     });
 }
 
-void MemberExpression::check(TypeChecker& tc, Register result)
+void MemberExpression::check(TypeChecker& tc, Register type)
 {
     // TODO: do we need something custom here?
-    //Register tmp = tc.generator().newLocal();
-    //infer(tc, tmp);
-    //tc.unify(location, tmp, type);
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void LiteralExpression::infer(TypeChecker& tc, Register result)
