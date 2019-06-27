@@ -36,6 +36,7 @@ public:
 
     std::unique_ptr<Expression> parsePrimaryExpression(const Token&);
     std::unique_ptr<Identifier> parseIdentifier(const Token&);
+    std::unique_ptr<Identifier> parseOperator(const Token&);
     std::unique_ptr<ArrayLiteralExpression> parseArrayLiteralExpression(const Token&);
     std::unique_ptr<TypeExpression> parseTypeExpression(const Token&);
     std::unique_ptr<Expression> parseObjectLiteralExpression(const Token&);

@@ -10,6 +10,9 @@ public:
   Token next();
   const Token& peek() const;
 
+  Token getOperator();
+  bool peekIsOperator();
+
 private:
   void checkKeyword();
 

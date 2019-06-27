@@ -81,7 +81,11 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
     CHECK(t, Token::FUNCTION);
 
     auto fn = std::make_unique<FunctionDeclaration>(t);
-    fn->name = parseIdentifier(m_lexer.next());
+
+    if (m_lexer.peek().type == Token::IDENTIFIER)
+        fn->name = parseIdentifier(m_lexer.next());
+    else
+        fn->name = parseOperator(m_lexer.getOperator());
 
     CONSUME(Token::L_PAREN);
     while (m_lexer.peek().type != Token::R_PAREN) {
@@ -343,8 +347,14 @@ std::unique_ptr<Expression> Parser::parseObjectLiteralExpression(const Token& t)
 std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const Token& t)
 {
     CHECK(t, Token::L_PAREN);
-    auto expr = parseExpression(m_lexer.next());
 
+    if (m_lexer.peekIsOperator()) {
+        auto op = parseOperator(m_lexer.getOperator());
+        CONSUME(Token::R_PAREN);
+        return std::move(op);
+    }
+
+    auto expr = parseExpression(m_lexer.next());
     auto tok = m_lexer.next();
     switch (tok.type) {
     case Token::R_PAREN: {
@@ -389,6 +399,12 @@ std::unique_ptr<TupleTypeExpression> Parser::parseTupleTypeExpression(const Toke
 std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)
 {
     CHECK(t, Token::IDENTIFIER);
+    return std::make_unique<Identifier>(t);
+}
+
+std::unique_ptr<Identifier> Parser::parseOperator(const Token& t)
+{
+    CHECK(t, Token::OPERATOR);
     return std::make_unique<Identifier>(t);
 }
 

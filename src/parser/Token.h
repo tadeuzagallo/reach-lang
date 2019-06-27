@@ -8,6 +8,7 @@ public:
   enum Type {
     // need lexeme
     IDENTIFIER,
+    OPERATOR,
     STRING,
     NUMBER,
 

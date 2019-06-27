@@ -51,6 +51,54 @@ void Lexer::resetPosition()
     m_token.location.start = m_lastPosition;
 }
 
+static bool isValidOperatorChar(char c) {
+    switch (c) {
+    case '!':
+    case '#':
+    case '%':
+    case '&':
+    case '*':
+    case '+':
+    case '.':
+    case '/':
+    case '<':
+    case '=':
+    case '>':
+    case '?':
+    case '@':
+    case '\\':
+    case '^':
+    case '|':
+    case '-':
+    case '~':
+        return true;
+    default:
+        return false;
+    }
+};
+
+
+bool Lexer::peekIsOperator() {
+    return isValidOperatorChar(m_sourceFile.source[m_token.location.start.offset]);
+}
+
+Token Lexer::getOperator() {
+    m_position = m_token.location.start;
+    nextChar();
+    skipWhitespaces();
+    resetPosition();
+    if (!isValidOperatorChar(m_nextChar))
+        m_token.type = nextTokenType();
+    else {
+        do nextChar();
+        while (isValidOperatorChar(m_nextChar));
+        m_token.type = Token::OPERATOR;
+    }
+
+    m_token.location.end = m_lastPosition;
+    return next();
+}
+
 void Lexer::nextChar()
 {
     if (eof()) {
