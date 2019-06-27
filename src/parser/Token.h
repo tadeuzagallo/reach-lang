@@ -6,56 +6,58 @@
 class Token {
 public:
   enum Type {
-    // need lexeme
-    IDENTIFIER,
-    OPERATOR,
-    STRING,
-    NUMBER,
+      UNKNOWN,
 
-    // keywords
-    IF,
-    ELSE,
-    LET,
-    CONST,
-    FOR,
-    WHILE,
-    FUNCTION,
-    RETURN,
-    TRUE,
-    FALSE,
-    TYPE,
+      // need lexeme
+      IDENTIFIER,
+      OPERATOR,
+      STRING,
+      NUMBER,
 
-    // simple tokens
-    END_OF_FILE,
-    DOT,
-    COMMA,
-    COLON,
-    SEMICOLON,
+      // keywords
+      IF,
+      ELSE,
+      LET,
+      CONST,
+      FOR,
+      WHILE,
+      FUNCTION,
+      RETURN,
+      TRUE,
+      FALSE,
+      TYPE,
 
-    MOD,
-    PLUS,
-    MINUS,
-    DIVIDE,
+      // simple tokens
+      END_OF_FILE,
+      DOT,
+      COMMA,
+      COLON,
+      SEMICOLON,
 
-    L_PAREN,
-    R_PAREN,
-    L_BRACE,
-    R_BRACE,
-    L_SQUARE,
-    R_SQUARE,
-    L_ANGLE,
-    R_ANGLE,
+      MOD,
+      PLUS,
+      MINUS,
+      DIVIDE,
 
-    // multi-char fixed-width tokens
-    EQUAL,
-    EQUAL_EQUAL,
-    BANG,
-    NOT_EQUAL,
-    TIMES,
-    POWER,
-    AND,
-    OR,
-    ARROW,
+      L_PAREN,
+      R_PAREN,
+      L_BRACE,
+      R_BRACE,
+      L_SQUARE,
+      R_SQUARE,
+      L_ANGLE,
+      R_ANGLE,
+
+      // multi-char fixed-width tokens
+      EQUAL,
+      EQUAL_EQUAL,
+      BANG,
+      NOT_EQUAL,
+      TIMES,
+      POWER,
+      AND,
+      OR,
+      ARROW,
   };
 
   std::string lexeme() const

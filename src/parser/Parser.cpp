@@ -104,7 +104,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
     if (m_lexer.peek().type == Token::IDENTIFIER)
         fn->name = parseIdentifier(m_lexer.next());
     else
-        fn->name = parseOperator(m_lexer.getOperator(Token::END_OF_FILE));
+        fn->name = parseOperator(m_lexer.getOperator(Token::UNKNOWN));
 
     CONSUME(Token::L_PAREN);
     while (m_lexer.peek().type != Token::R_PAREN) {

@@ -73,7 +73,7 @@ private:
     class EndsWith;
     friend EndsWith;
 
-    Token::Type m_endsWithToken;
+    Token::Type m_endsWithToken { Token::UNKNOWN };
     Lexer& m_lexer;
     std::vector<Error> m_errors;
 };

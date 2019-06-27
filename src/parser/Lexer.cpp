@@ -113,7 +113,7 @@ Token Lexer::getOperator(Token::Type conflictingType) {
         case Token::R_PAREN:
         case Token::R_SQUARE:
         case Token::R_BRACE:
-        case Token::END_OF_FILE:
+        case Token::UNKNOWN:
             break;
         default:
             ASSERT_NOT_REACHED();
@@ -230,8 +230,9 @@ Token::Type Lexer::nextTokenType()
         do { \
             if (m_nextChar == __chars[0]) { \
                 nextChar(); \
-                ASSERT(m_nextChar == __chars[1], "Expected `%c` after `%c`, but found `%c`\n", __chars[1], __chars[0], m_nextChar); \
-                return Token::__type; \
+                if (m_nextChar == __chars[1]) \
+                    return Token::__type; \
+                return Token::UNKNOWN; \
             } \
         } while (false)
 
@@ -240,8 +241,7 @@ Token::Type Lexer::nextTokenType()
 
 #undef TOKEN2
 
-        ASSERT(false, "Unknown token: `%c` (%d)\n", m_nextChar, m_nextChar);
-        return Token::END_OF_FILE;
+        return Token::UNKNOWN;
     };
 
 #undef SIMPLE_CASE
