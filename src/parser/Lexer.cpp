@@ -82,9 +82,14 @@ bool Lexer::peekIsOperator() {
     return isValidOperatorChar(m_sourceFile.source[m_token.location.start.offset]);
 }
 
-Token Lexer::getOperator() {
-    m_position = m_token.location.start;
+void Lexer::rewind(const Token& t)
+{
+    m_position = t.location.start;
     nextChar();
+}
+
+Token Lexer::getOperator(Token::Type conflictingType) {
+    rewind(m_token);
     skipWhitespaces();
     resetPosition();
     if (!isValidOperatorChar(m_nextChar))
@@ -94,8 +99,27 @@ Token Lexer::getOperator() {
         while (isValidOperatorChar(m_nextChar));
         m_token.type = Token::OPERATOR;
     }
-
     m_token.location.end = m_lastPosition;
+
+    if (m_lastPosition.offset - m_token.location.start.offset == 1) {
+        switch (conflictingType) {
+        case Token::R_ANGLE:
+            if (m_sourceFile.source[m_token.location.start.offset] == '>') {
+                rewind(m_token);
+                nextToken();
+                return peek();
+            }
+            break;
+        case Token::R_PAREN:
+        case Token::R_SQUARE:
+        case Token::R_BRACE:
+        case Token::END_OF_FILE:
+            break;
+        default:
+            ASSERT_NOT_REACHED();
+        }
+    }
+
     return next();
 }
 

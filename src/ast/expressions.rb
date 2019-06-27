@@ -14,9 +14,10 @@ ast_node :Expression < :Node,
 ast_node :Identifier < :Expression,
   fields: {
     name: "std::string",
+    isOperator: "bool",
   },
   extra_methods: [
-    "Identifier(const Token&)",
+    "Identifier(const Token&, bool isOperator = false)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "bool operator<(const Identifier&) const",
     "friend std::ostream& operator<<(std::ostream&, const Identifier&)",

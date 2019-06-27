@@ -23,6 +23,25 @@ static std::unique_ptr<T> wrap(std::unique_ptr<U> wrapped)
     return std::make_unique<T>(std::move(wrapped));
 }
 
+class Parser::EndsWith {
+public:
+    EndsWith(Parser& parser, Token::Type tokenType)
+        : m_parser(parser)
+        , m_lastEndsWith(parser.m_endsWithToken)
+    {
+        parser.m_endsWithToken = tokenType;
+    }
+
+    ~EndsWith()
+    {
+        m_parser.m_endsWithToken = m_lastEndsWith;
+    }
+
+private:
+    Parser& m_parser;
+    Token::Type m_lastEndsWith;
+};
+
 Parser::Parser(Lexer& lexer)
     : m_lexer(lexer)
 { }
@@ -85,7 +104,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
     if (m_lexer.peek().type == Token::IDENTIFIER)
         fn->name = parseIdentifier(m_lexer.next());
     else
-        fn->name = parseOperator(m_lexer.getOperator());
+        fn->name = parseOperator(m_lexer.getOperator(Token::END_OF_FILE));
 
     CONSUME(Token::L_PAREN);
     while (m_lexer.peek().type != Token::R_PAREN) {
@@ -202,6 +221,9 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
     case Token::DOT:
         return parseMemberExpression(std::move(expr));
     default:
+        if (m_lexer.peekIsOperator())
+            return parseBinaryExpression(std::move(expr), stop);
+
         *stop = true;
         return expr;
     }
@@ -262,17 +284,39 @@ std::unique_ptr<Expression> Parser::parseMemberExpression(std::unique_ptr<Expres
     return std::move(expr);
 }
 
+std::unique_ptr<Expression> Parser::parseBinaryExpression(std::unique_ptr<Expression> lhs, bool* stop)
+{
+    auto op = m_lexer.getOperator(m_endsWithToken);
+    if (op.type != Token::OPERATOR) {
+        *stop = true;
+        return lhs;
+    }
+
+    auto expr = std::make_unique<CallExpression>(parseOperator(op));
+    expr->arguments.emplace_back(std::move(lhs));
+    expr->arguments.emplace_back(parseExpression(m_lexer.next()));
+    return expr;
+}
+
 std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
 {
     switch (t.type) {
-    case Token::L_SQUARE:
+    case Token::L_SQUARE: {
+        EndsWith endsWith(*this, Token::R_SQUARE);
         return parseArrayLiteralExpression(t);
-    case Token::L_BRACE:
+    }
+    case Token::L_BRACE: {
+        EndsWith endsWith(*this, Token::R_BRACE);
         return parseObjectLiteralExpression(t);
-    case Token::L_PAREN:
+    }
+    case Token::L_PAREN: {
+        EndsWith endsWith(*this, Token::R_PAREN);
         return parseParenthesizedExpressionOrTuple(t);
-    case Token::L_ANGLE:
+    }
+    case Token::L_ANGLE: {
+        EndsWith endsWith(*this, Token::R_ANGLE);
         return parseTupleTypeExpression(t);
+    }
     //case Token::FUNCTION:
         //return parseFunctionExpression(t);
     case Token::IDENTIFIER:
@@ -349,7 +393,7 @@ std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const To
     CHECK(t, Token::L_PAREN);
 
     if (m_lexer.peekIsOperator()) {
-        auto op = parseOperator(m_lexer.getOperator());
+        auto op = parseOperator(m_lexer.getOperator(Token::R_PAREN));
         CONSUME(Token::R_PAREN);
         return std::move(op);
     }
@@ -405,7 +449,7 @@ std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)
 std::unique_ptr<Identifier> Parser::parseOperator(const Token& t)
 {
     CHECK(t, Token::OPERATOR);
-    return std::make_unique<Identifier>(t);
+    return std::make_unique<Identifier>(t, true);
 }
 
 std::unique_ptr<TypedIdentifier> Parser::parseTypedIdentifier(const Token& t)

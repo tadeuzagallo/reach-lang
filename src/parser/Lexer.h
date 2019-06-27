@@ -10,7 +10,8 @@ public:
   Token next();
   const Token& peek() const;
 
-  Token getOperator();
+  void rewind(const Token&);
+  Token getOperator(Token::Type);
   bool peekIsOperator();
 
 private:

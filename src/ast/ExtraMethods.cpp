@@ -14,9 +14,10 @@ StatementDeclaration::StatementDeclaration(std::unique_ptr<Statement> stmt)
   , statement(std::move(stmt))
 { }
 
-Identifier::Identifier(const Token& t)
+Identifier::Identifier(const Token& t, bool isOperator)
   : Expression(t)
   , name(t.lexeme())
+  , isOperator(isOperator)
 { }
 
 bool Identifier::operator<(const Identifier& other) const
