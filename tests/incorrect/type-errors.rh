@@ -35,4 +35,8 @@ let x = { id = f };
 inspect(x.id()) // CHECK-L: 35:9: Unification failure: expected `Number` but found `{id: () -> Number}`
 
 // Allow parsing operators that contain unknown tokens (tokens that are not meaningful on their own)
-1 #### 2 // CHECK-L: Unknown variable: `####`
+1 #### 2 // CHECK-L: 38:3: Unknown variable: `####`
+
+// record checking
+function f(x: {x: String}) -> String { x.x }
+f({}) // CHECK-L: 42:3: Unification failure: expected `{x: String}` but found `{:}`

@@ -239,14 +239,10 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 
 void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
 {
+    // TODO: can we do better here?
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkType(tmp, type, Type::Class::Record);
-    tc.generator().branch(tmp, [&] {
-        // TODO: actual check
-    }, [&] {
-        infer(tc, type);
-        tc.generator().typeError(location, "Unexpected record");
-    });
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
