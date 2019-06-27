@@ -1,0 +1,30 @@
+// RUN: %reach | %check
+
+// RECORDS
+// width
+function f(x: {x: String}) -> {:} { x }
+inspect(f({ x = "", y = 42 })) // CHECK-L: {y = 42, x = ""} : {:}
+
+// permutation
+function f(x: {y: Number, x: String}) -> {x: String, y: Number} { x }
+inspect(f({ x = "", y = 42 })) // CHECK-L: {y = 42, x = ""} : {y: Number, x: String}
+
+// depth
+function f(x: {x: {x: String}}) -> {x: {:}} { x }
+inspect(f({x = { x = "", y = 42 }})) // CHECK-L: {x = {y = 42, x = ""}} : {x: {:}}
+
+// TUPLES
+// width
+function f(x: <Bool, String, Number>) -> <Bool, String> { x }
+inspect(f((true, "", 42, []))) // CHECK-L: (true, "", 42, []) : <Bool, String>
+
+// depth
+function f(x: <Bool, {x: String}>) -> <Bool, {:}> { x }
+inspect(f((true, { x = "", y = 42 }))) // CHECK-L: (true, {y = 42, x = ""}) : <Bool, {:}>
+
+// ARRAYS
+// depth
+function f(x: {x: String}[]) -> {:}[] { x }
+inspect(f([{x = "", y = 42}])) // CHECK-L: [{y = 42, x = ""}] : {:}[]
+
+// TODO: functions - need syntax for function types

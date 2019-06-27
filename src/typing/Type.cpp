@@ -3,13 +3,14 @@
 #include "TypeChecker.h"
 #include <typeinfo>
 
-static bool isEqualType(Value lhs, Value rhs)
+static bool isSubtype(Value lhs, Value rhs)
 {
     if (lhs.isType() != rhs.isType())
         return false;
     if (lhs.isType())
-        return *lhs.asType() == *rhs.asType();
-    return lhs == rhs;
+        return *lhs.asType() <= *rhs.asType();
+    ASSERT_NOT_REACHED();
+    return false;
 }
 
 Type::Type(Class typeClass)
@@ -19,9 +20,31 @@ Type::Type(Class typeClass)
     ASSERT(typeClass >= Class::SpecificType, "OOPS");
 }
 
-bool Type::operator!=(const Type& other) const
+bool Type::operator<=(const Type& other) const
 {
-    return !(*this == other);
+    if (m_class != other.m_class)
+        return false;
+    switch (m_class) {
+        case Class::AnyValue:
+        case Class::AnyType:
+            ASSERT_NOT_REACHED();
+        case Class::Type:
+            return true;
+        case Class::Bottom:
+            return false;
+        case Class::Name:
+            return *as<TypeName>() == *other.as<TypeName>();
+        case Class::Var:
+            return *as<TypeVar>() == *other.as<TypeVar>();
+        case Class::Function:
+            return *as<TypeFunction>() <= *other.as<TypeFunction>();
+        case Class::Array:
+            return *as<TypeArray>() <= *other.as<TypeArray>();
+        case Class::Record:
+            return *as<TypeRecord>() <= *other.as<TypeRecord>();
+        case Class::Tuple:
+            return *as<TypeTuple>() <= *other.as<TypeTuple>();
+    }
 }
 
 Type* Type::instantiate(VM&)
@@ -45,11 +68,6 @@ Type* TypeType::substitute(VM&, Substitutions&)
     return this;
 }
 
-bool TypeType::operator==(const Type& other) const
-{
-    return other.is<TypeType>();
-}
-
 void TypeType::dump(std::ostream& out) const
 {
     out << "Type";
@@ -63,11 +81,6 @@ TypeBottom::TypeBottom()
 Type* TypeBottom::substitute(VM&, Substitutions&)
 {
     return this;
-}
-
-bool TypeBottom::operator==(const Type& other) const
-{
-    return other.is<TypeBottom>();
 }
 
 void TypeBottom::dump(std::ostream& out) const
@@ -86,11 +99,9 @@ Type* TypeName::substitute(VM&, Substitutions&)
     return this;
 }
 
-bool TypeName::operator==(const Type& other) const
+bool TypeName::operator==(const TypeName& other) const
 {
-    if (!other.is<TypeName>())
-        return false;
-    return name() == other.as<TypeName>()->name();
+    return name() == other.name();
 }
 
 void TypeName::dump(std::ostream& out) const
@@ -165,17 +176,14 @@ Type* TypeFunction::substitute(VM& vm, Substitutions& subst)
     return TypeFunction::create(vm, params_.size(), &params_[0], returnType_, m_inferredParameters);
 }
 
-bool TypeFunction::operator==(const Type& otherT) const
+bool TypeFunction::operator<=(const TypeFunction& other) const
 {
-    if (!otherT.is<TypeFunction>())
-        return false;
-    const TypeFunction* other = otherT.as<TypeFunction>();
-    if (params()->size() != other->params()->size())
+    if (params()->size() != other.params()->size())
         return false;
     for (uint32_t i = 0; i < params()->size(); i++)
-        if (isEqualType(param(i), other->param(i)))
+        if (isSubtype(param(i), other.param(i)))
             return false;
-    if (isEqualType(returnType(), other->returnType()))
+    if (isSubtype(returnType(), other.returnType()))
         return false;
     return true;
 }
@@ -207,11 +215,9 @@ Type* TypeArray::substitute(VM& vm, Substitutions& subst)
     return TypeArray::create(vm, itemType_);
 }
 
-bool TypeArray::operator==(const Type& other) const
+bool TypeArray::operator<=(const TypeArray& other) const
 {
-    if (!other.is<TypeArray>())
-        return false;
-    return isEqualType(itemType(), other.as<TypeArray>()->itemType());
+    return isSubtype(itemType(), other.itemType());
 }
 
 void TypeArray::dump(std::ostream& out) const
@@ -240,20 +246,16 @@ Type* TypeTuple::substitute(VM& vm, Substitutions& subst)
     return newTuple;
 }
 
-bool TypeTuple::operator==(const Type& other) const
+bool TypeTuple::operator<=(const TypeTuple& other) const
 {
-    if (!other.is<TypeTuple>())
-        return false;
-
-    const TypeTuple* otherTuple = other.as<TypeTuple>();
     Array* types = itemsTypes();
-    uint32_t size = types->size();
-    Array* otherTypes = otherTuple->itemsTypes();
-    if (size != otherTypes->size())
+    Array* otherTypes = other.itemsTypes();
+    uint32_t otherSize = otherTypes->size();
+    if (types->size() < otherSize)
         return false;
 
-    for (uint32_t i = 0; i < size; i++) {
-        if (!isEqualType(types->getIndex(i), otherTypes->getIndex(i)))
+    for (uint32_t i = 0; i < otherSize; i++) {
+        if (!isSubtype(types->getIndex(i), otherTypes->getIndex(i)))
             return false;
     }
 
@@ -302,16 +304,13 @@ Type* TypeRecord::substitute(VM& vm, Substitutions& subst)
     return TypeRecord::create(vm, fields_);
 }
 
-bool TypeRecord::operator==(const Type& otherT) const
+bool TypeRecord::operator<=(const TypeRecord& other) const
 {
-    if (!otherT.is<TypeRecord>())
+    if (fields()->size() < other.fields()->size())
         return false;
-    const TypeRecord* other = otherT.as<TypeRecord>();
-    if (fields()->size() != other->fields()->size())
-        return false;
-    for (const auto& pair : *fields()) {
-        auto otherField = other->field(pair.first);
-        if (!otherField || pair.second != otherField)
+    for (const auto& pair : *other.fields()) {
+        auto myField = field(pair.first);
+        if (!myField || !isSubtype(myField, pair.second))
             return false;
     }
     return true;
@@ -357,11 +356,9 @@ Type* TypeVar::substitute(VM&, Substitutions& subst)
     return this;
 }
 
-bool TypeVar::operator==(const Type& other) const
+bool TypeVar::operator==(const TypeVar& other) const
 {
-    if (!other.is<TypeVar>())
-        return false;
-    return uid() == other.as<TypeVar>()->uid();
+    return uid() == other.uid();
 }
 
 void TypeVar::dump(std::ostream& out) const

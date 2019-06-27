@@ -289,28 +289,10 @@ void TupleExpression::infer(TypeChecker& tc, Register result)
 
 void TupleExpression::check(TypeChecker& tc, Register type)
 {
+    // TODO: this should propagate check for nested types, but requires generating a for loop
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkType(tmp, type, Type::Class::Tuple);
-    tc.generator().branch(tmp, [&]{
-        Register itemsTypes = tc.generator().newLocal();
-        tc.generator().getField(itemsTypes, type, TypeTuple::itemsTypesField);
-        tc.generator().getArrayLength(tmp, itemsTypes);
-        size_t size = items.size();
-        Register tmp2 = tc.generator().newLocal();
-        tc.generator().loadConstant(tmp2, static_cast<uint32_t>(size));
-        tc.generator().isEqual(tmp, tmp, tmp2);
-        tc.generator().branch(tmp, [&] {
-            for (uint32_t i = 0; i < items.size(); i++) {
-                tc.generator().loadConstant(tmp, i);
-                tc.generator().getArrayIndex(tmp, itemsTypes, tmp);
-                items[i]->check(tc, tmp);
-            }
-        }, [&] {
-            tc.generator().typeError(location, "Wrong tuple length");
-        });
-    }, [&] {
-        tc.generator().typeError(location, "Unexpected tuple");
-    });
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void ArrayTypeExpression::infer(TypeChecker& tc, Register result)

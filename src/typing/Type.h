@@ -85,11 +85,11 @@ public:
     template<typename T, typename = std::enable_if_t<std::is_base_of<Type, T>::value>>
     const T* as() const;
 
-    bool operator!=(const Type& other) const;
     friend std::ostream& operator<<(std::ostream&, const Type&);
 
+    bool operator<=(const Type& other) const;
+
     virtual Type* instantiate(VM&);
-    virtual bool operator==(const Type& other) const = 0;
     virtual Type* substitute(VM&, Substitutions&) = 0;
 
 protected:
@@ -103,7 +103,6 @@ public:
     CELL_CREATE(TypeType);
 
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
 private:
@@ -115,7 +114,6 @@ public:
     CELL_CREATE(TypeBottom);
 
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
 private:
@@ -126,8 +124,8 @@ class TypeName : public Type {
 public:
     CELL_CREATE(TypeName);
 
+    bool operator==(const TypeName&) const;
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
     CELL_FIELD(String, name);
@@ -147,8 +145,8 @@ public:
 
     Type* instantiate(VM&) override;
 
+    bool operator<=(const TypeFunction&) const;
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
     CELL_FIELD(Array, params);
@@ -168,8 +166,8 @@ class TypeArray : public Type {
 public:
     CELL_CREATE(TypeArray);
 
+    bool operator<=(const TypeArray&) const;
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
     VALUE_FIELD(Value, itemType);
@@ -182,8 +180,8 @@ class TypeTuple : public Type {
 public:
     CELL_CREATE(TypeTuple);
 
+    bool operator<=(const TypeTuple&) const;
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
     CELL_FIELD(Array, itemsTypes);
@@ -198,8 +196,8 @@ public:
 
     Type* field(const std::string&) const;
 
+    bool operator<=(const TypeRecord&) const;
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
     CELL_FIELD(Object, fields)
@@ -217,8 +215,8 @@ public:
 
     void fresh(VM&, Substitutions&) const;
 
+    bool operator==(const TypeVar&) const;
     Type* substitute(VM&, Substitutions&) override;
-    bool operator==(const Type&) const override;
     void dump(std::ostream&) const override;
 
     VALUE_FIELD(uint32_t, uid, .asNumber());

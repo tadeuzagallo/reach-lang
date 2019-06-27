@@ -16,27 +16,20 @@ function g(x: Number[]) -> Number[] {
 // TODO: better error message
 g([""]) // CHECK-L: 17:4: Unification failure: expected `Number` but found `String`
 
-function f(x: <String, Number, Number>) -> <String, Number> {
-    x // CHECK-L: 20:5: Unification failure: expected `<String, Number>` but found `<String, Number, Number>`
-}
-
 function f(x: <String, Number, Number>) -> <String, Number, Number> {
     x
 }
-f((1, 2, 3)) // CHECK-L: 26:4: Unification failure: expected `String` but found `Number`
-
-// TODO: better error messages
-f(("1", 2)) // CHECK-L: 29:3: Wrong tuple length
-f(("1", 2, 3, 4)) // CHECK-L: 30:3: Wrong tuple length
+f((1, 2, 3)) // CHECK-L: 22:3: Unification failure: expected `<String, Number, Number>` but found `<Number, Number, Number>`
+f(("1", 2)) // CHECK-L: 23:3: Unification failure: expected `<String, Number, Number>` but found `<String, Number>`
 
 function id(x: Number) -> Number { x }
 function f() -> Number { 13 }
 let x = { id = f };
-inspect(x.id()) // CHECK-L: 35:9: Unification failure: expected `Number` but found `{id: () -> Number}`
+inspect(x.id()) // CHECK-L: 28:9: Unification failure: expected `Number` but found `{id: () -> Number}`
 
 // Allow parsing operators that contain unknown tokens (tokens that are not meaningful on their own)
-1 #### 2 // CHECK-L: 38:3: Unknown variable: `####`
+1 #### 2 // CHECK-L: 31:3: Unknown variable: `####`
 
 // record checking
 function f(x: {x: String}) -> String { x.x }
-f({}) // CHECK-L: 42:3: Unification failure: expected `{x: String}` but found `{:}`
+f({}) // CHECK-L: 35:3: Unification failure: expected `{x: String}` but found `{:}`

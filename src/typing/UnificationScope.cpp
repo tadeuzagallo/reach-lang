@@ -89,7 +89,7 @@ void UnificationScope::unifies(const Constraint& constraint)
         }
     }
 
-    if (*lhsType == *rhsType)
+    if (*lhsType <= *rhsType)
         return;
 
     if (rhsType->is<TypeVar>() && !rhsType->as<TypeVar>()->isRigid())
