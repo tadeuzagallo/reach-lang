@@ -115,11 +115,6 @@ void Identifier::generate(BytecodeGenerator& generator, Register dst)
     generator.getLocal(dst, *this);
 }
 
-void BinaryExpression::generate(BytecodeGenerator&, Register)
-{
-    ASSERT_NOT_REACHED();
-}
-
 void ParenthesizedExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     expression->generate(generator, dst);

@@ -210,16 +210,6 @@ void Identifier::check(TypeChecker& tc, Register type)
     tc.unify(location, tmp, type);
 }
 
-void BinaryExpression::infer(TypeChecker&, Register)
-{
-    ASSERT_NOT_REACHED();
-}
-
-void BinaryExpression::check(TypeChecker&, Register)
-{
-    ASSERT_NOT_REACHED();
-}
-
 void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
 {
     expression->infer(tc, result);

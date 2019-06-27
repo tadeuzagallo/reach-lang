@@ -25,18 +25,6 @@ ast_node :Identifier < :Expression,
     "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :BinaryExpression < :Expression,
-  fields: {
-    lhs: "std::unique_ptr<Expression>",
-    op: "std::unique_ptr<Identifier>",
-    rhs: "std::unique_ptr<Expression>",
-  },
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
-
 ast_node :ParenthesizedExpression < :Expression,
   fields: {
     expression: "std::unique_ptr<Expression>",
