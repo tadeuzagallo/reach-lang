@@ -182,7 +182,22 @@ Token::Type Lexer::nextTokenType()
                 skipWhitespaces();
                 resetPosition();
                 return nextTokenType();
-            // TODO: multiline comments
+            case '*': {
+                int depth = 1;
+                for (;;) {
+                    char last = m_nextChar;
+                    nextChar();
+                    if (last == '*' && m_nextChar == '/') {
+                        if (!--depth) {
+                            nextChar();
+                            skipWhitespaces();
+                            resetPosition();
+                            return nextTokenType();
+                        }
+                    } else if (last == '/' && m_nextChar == '*')
+                        depth++;
+                }
+            }
             default:
                 return Token::DIVIDE;
             }

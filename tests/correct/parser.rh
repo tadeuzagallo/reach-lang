@@ -1,0 +1,7 @@
+// RUN: %reach
+
+// single line comment
+
+/* multiline /* nested /* comment */ */ */
+
+0
