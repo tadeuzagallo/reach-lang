@@ -19,7 +19,7 @@ g([""]) // CHECK-L: 17:4: Unification failure: expected `Number` but found `Stri
 function f(x: <String, Number, Number>) -> <String, Number, Number> {
     x
 }
-f((1, 2, 3)) // CHECK-L: 22:3: Unification failure: expected `<String, Number, Number>` but found `<Number, Number, Number>`
+f((1, 2, 3)) // CHECK-L: 22:3: Unification failure: expected `String` but found `Number`
 f(("1", 2)) // CHECK-L: 23:3: Unification failure: expected `<String, Number, Number>` but found `<String, Number>`
 
 function id(x: Number) -> Number { x }

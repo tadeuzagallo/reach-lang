@@ -50,8 +50,8 @@ void UnificationScope::finalize()
 {
     if (m_finalized)
         return;
-    m_finalized = true;
     solveConstraints();
+    m_finalized = true;
 }
 
 void UnificationScope::solveConstraints()
@@ -67,6 +67,10 @@ void UnificationScope::unifies(const Constraint& constraint)
 {
     Type* lhsType = constraint.lhs.type(m_vm)->substitute(m_vm, m_substitutions);
     Type* rhsType = constraint.rhs.asType()->substitute(m_vm, m_substitutions);
+
+    // optimize out checks of the same type (e.g. String U String, Void U Void, Type U Type ...)
+    if (lhsType == rhsType)
+        return;
 
     LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " U " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
 
@@ -89,8 +93,61 @@ void UnificationScope::unifies(const Constraint& constraint)
         }
     }
 
-    if (*lhsType <= *rhsType)
-        return;
+    if (lhsType->typeClass() == rhsType->typeClass()) {
+        switch (lhsType->typeClass())  {
+        case Type::Class::Tuple: {
+            TypeTuple* lhs = lhsType->as<TypeTuple>();
+            TypeTuple* rhs = rhsType->as<TypeTuple>();
+            Array* lhsItemsTypes = lhs->itemsTypes();
+            Array* rhsItemsTypes = rhs->itemsTypes();
+            uint32_t size = rhsItemsTypes->size();
+            if (lhsItemsTypes->size() <  size)
+                break;
+            for (uint32_t i = 0; i < size; i++)
+                unify(constraint.bytecodeOffset, AbstractValue { lhsItemsTypes->getIndex(i).asType() }, rhsItemsTypes->getIndex(i));
+            return;
+        }
+        case Type::Class::Record: {
+            TypeRecord* lhs = lhsType->as<TypeRecord>();
+            TypeRecord* rhs = rhsType->as<TypeRecord>();
+            if (lhs->fields()->size() < rhs->fields()->size())
+                break;
+            bool failed = false;
+            for (const auto& pair : *rhs->fields()) {
+                auto lhsField = lhs->field(pair.first);
+                // TODO: better error message
+                if (!lhsField) {
+                    failed = true;
+                    break;
+                }
+                unify(constraint.bytecodeOffset, AbstractValue { lhsField }, pair.second);
+            }
+            if (!failed)
+                return;
+            break;
+        }
+        case Type::Class::Array: {
+            TypeArray* lhs = lhsType->as<TypeArray>();
+            TypeArray* rhs = rhsType->as<TypeArray>();
+            unify(constraint.bytecodeOffset, AbstractValue { lhs->itemType().asType() }, rhs->itemType());
+            return;
+        }
+        /* TODO: function types
+        case Type::Class::Function: {
+            TypeFunction* lhs = lhsType->as<TypeFunction>();
+            TypeFunction* rhs = rhsType->as<TypeFunction>();
+            if (lhs->params()->size() != rhs->params()->size())
+                break;
+            for (uint32_t i = 0; i < lhs->params()->size(); i++)
+                unify(constraint.bytecodeOffset, AbstractValue { rhs->param(i).asType() }, lhs->param(i));
+            unify(constraint.bytecodeOffset, AbstractValue { lhs->returnType.asType() }, rhs->returnType());
+            return;
+        }
+        */
+        default:
+            break;
+        }
+    }
 
     if (rhsType->is<TypeVar>() && !rhsType->as<TypeVar>()->isRigid())
         rhsType = m_vm.typeType;

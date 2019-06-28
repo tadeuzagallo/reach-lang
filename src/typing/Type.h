@@ -87,8 +87,6 @@ public:
 
     friend std::ostream& operator<<(std::ostream&, const Type&);
 
-    bool operator<=(const Type& other) const;
-
     virtual Type* instantiate(VM&);
     virtual Type* substitute(VM&, Substitutions&) = 0;
 
@@ -124,7 +122,6 @@ class TypeName : public Type {
 public:
     CELL_CREATE(TypeName);
 
-    bool operator==(const TypeName&) const;
     Type* substitute(VM&, Substitutions&) override;
     void dump(std::ostream&) const override;
 
@@ -145,7 +142,6 @@ public:
 
     Type* instantiate(VM&) override;
 
-    bool operator<=(const TypeFunction&) const;
     Type* substitute(VM&, Substitutions&) override;
     void dump(std::ostream&) const override;
 
@@ -166,7 +162,6 @@ class TypeArray : public Type {
 public:
     CELL_CREATE(TypeArray);
 
-    bool operator<=(const TypeArray&) const;
     Type* substitute(VM&, Substitutions&) override;
     void dump(std::ostream&) const override;
 
@@ -180,7 +175,6 @@ class TypeTuple : public Type {
 public:
     CELL_CREATE(TypeTuple);
 
-    bool operator<=(const TypeTuple&) const;
     Type* substitute(VM&, Substitutions&) override;
     void dump(std::ostream&) const override;
 
@@ -196,7 +190,6 @@ public:
 
     Type* field(const std::string&) const;
 
-    bool operator<=(const TypeRecord&) const;
     Type* substitute(VM&, Substitutions&) override;
     void dump(std::ostream&) const override;
 
@@ -215,7 +208,6 @@ public:
 
     void fresh(VM&, Substitutions&) const;
 
-    bool operator==(const TypeVar&) const;
     Type* substitute(VM&, Substitutions&) override;
     void dump(std::ostream&) const override;
 

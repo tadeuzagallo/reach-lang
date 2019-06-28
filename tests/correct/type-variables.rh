@@ -25,3 +25,17 @@ inspect(name) // CHECK-L: <function name> : ({age: Number, name: String}) -> Str
 let john = { name = "Tom", age = 35 };
 inspect(john) // CHECK-L: {age = 35, name = "Tom"} : {name: String, age: Number}
 inspect(john.name()) // CHECK: "Tom" : String
+
+let x = (1, "2");
+function inferTuple(%T: Type, %U: Type, x: <T, U>) -> <Type, Type> { (T, U) }
+inspect(inferTuple(x)) // CHECK-L: (Number, String) : <Type, Type>
+
+let x = {x = "", y = [1]};
+function inferRecord(%T: Type, %U: Type, x: {x: T, y: U}) -> {x: Type, y: Type} { {x = T, y = U} }
+inspect(inferRecord(x)) // CHECK-L: {y = Number[], x = String} : {y: Type, x: Type}
+
+let x = [true];
+function inferArray(%T: Type, x: T[]) -> Type { T }
+inspect(inferArray(x)) // CHECK-L: Bool : Type
+
+// TODO: infer function
