@@ -18,7 +18,7 @@ ast_node :LexicalDeclaration < :Declaration,
   fields: {
     name: "std::unique_ptr<Identifier>",
     type: "std::unique_ptr<Expression>",
-    initializer: "std::optional<std::unique_ptr<Expression>>"
+    initializer: "std::unique_ptr<Expression>"
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",

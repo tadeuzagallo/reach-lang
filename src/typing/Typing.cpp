@@ -33,13 +33,13 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
     Register initType = tc.generator().newLocal();
     if (this->type) {
         tc.inferAsType(this->type, initType);
-        (*initializer)->check(tc, initType);
+        initializer->check(tc, initType);
     } else
-        (*initializer)->infer(tc, initType);
+        initializer->infer(tc, initType);
 
     tc.generator().checkTypeOf(tmp, initType, Type::Class::Type);
     tc.generator().branch(tmp, [&]{
-        (*initializer)->generate(tc.generator(), initType);
+        initializer->generate(tc.generator(), initType);
     }, [&] { });
     tc.insert(name->name, initType);
     tc.newValue(tmp, type);

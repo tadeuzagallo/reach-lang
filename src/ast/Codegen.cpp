@@ -17,8 +17,7 @@ std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) c
 // Declarations
 void LexicalDeclaration::generate(BytecodeGenerator& generator, Register result)
 {
-    //ASSERT(!isConst, "TODO");
-    (*initializer)->generate(generator, result);
+    initializer->generate(generator, result);
     generator.setLocal(*name, result);
 }
 
