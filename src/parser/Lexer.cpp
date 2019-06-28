@@ -101,14 +101,20 @@ Token Lexer::getOperator(Token::Type conflictingType) {
     }
     m_token.location.end = m_lastPosition;
 
+    auto cancel = [&] {
+        rewind(m_token);
+        nextToken();
+        return peek();
+    };
+
+    if (isReservedOperator())
+        return cancel();
+
     if (m_lastPosition.offset - m_token.location.start.offset == 1) {
         switch (conflictingType) {
         case Token::R_ANGLE:
-            if (m_sourceFile.source[m_token.location.start.offset] == '>') {
-                rewind(m_token);
-                nextToken();
-                return peek();
-            }
+            if (m_sourceFile.source[m_token.location.start.offset] == '>')
+                return cancel();
             break;
         case Token::R_PAREN:
         case Token::R_SQUARE:
@@ -272,4 +278,22 @@ void Lexer::checkKeyword()
     KEYWORD(Type, TYPE)
 
 #undef KEYWORD
+}
+
+bool Lexer::isReservedOperator()
+{
+    ASSERT(m_token.type == Token::OPERATOR, "Only operators might be reserved operators\n");
+    size_t length = m_token.location.end.offset - m_token.location.start.offset;
+    const char* lexeme = m_sourceFile.source + m_token.location.start.offset;
+
+#define RESERVED_OP(__op) \
+    if (length == strlen(#__op) && !strncmp(lexeme, #__op, length)) \
+        return true;
+
+    RESERVED_OP(=)
+    RESERVED_OP(->)
+
+#undef KEYWORD
+
+    return false;
 }

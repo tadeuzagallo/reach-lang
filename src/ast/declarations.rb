@@ -16,8 +16,8 @@ ast_node :Declaration < :Node,
 
 ast_node :LexicalDeclaration < :Declaration,
   fields: {
-    isConst: "bool",
     name: "std::unique_ptr<Identifier>",
+    type: "std::unique_ptr<Expression>",
     initializer: "std::optional<std::unique_ptr<Expression>>"
   },
   extra_methods: [

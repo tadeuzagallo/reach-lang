@@ -29,9 +29,14 @@ void Declaration::infer(TypeChecker& tc, Register result)
 
 void LexicalDeclaration::check(TypeChecker& tc, Register type)
 {
-    Register initType = tc.generator().newLocal();
     Register tmp = tc.generator().newLocal();
-    (*initializer)->infer(tc, initType);
+    Register initType = tc.generator().newLocal();
+    if (this->type) {
+        tc.inferAsType(this->type, initType);
+        (*initializer)->check(tc, initType);
+    } else
+        (*initializer)->infer(tc, initType);
+
     tc.generator().checkTypeOf(tmp, initType, Type::Class::Type);
     tc.generator().branch(tmp, [&]{
         (*initializer)->generate(tc.generator(), initType);

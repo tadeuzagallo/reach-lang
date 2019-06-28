@@ -16,6 +16,7 @@ public:
 
 private:
   void checkKeyword();
+  bool isReservedOperator();
 
   void nextChar();
   void nextToken();

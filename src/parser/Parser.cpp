@@ -84,13 +84,16 @@ std::unique_ptr<LexicalDeclaration> Parser::parseLexicalDeclaration(const Token&
     auto decl = std::make_unique<LexicalDeclaration>(t);
     decl->name = parseIdentifier(m_lexer.next());
 
-    if (m_lexer.peek().type == Token::EQUAL) {
-        m_lexer.next();
-        decl->initializer = parseExpression(m_lexer.next());
+    if (m_lexer.peek().type == Token::COLON) {
+        CONSUME(Token::COLON);
+        decl->type = parseExpression(m_lexer.next());
     }
 
+    CONSUME(Token::EQUAL);
+    decl->initializer = parseExpression(m_lexer.next());
+
     //ASSERT(m_lexer.peek().type == Token::SEMICOLON, "Expected semicolon after lexical declaration");
-    m_lexer.next();
+    //m_lexer.next();
 
     return decl;
 }

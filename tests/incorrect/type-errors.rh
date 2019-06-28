@@ -33,3 +33,5 @@ inspect(x.id()) // CHECK-L: 28:9: Unification failure: expected `Number` but fou
 // record checking
 function f(x: {x: String}) -> String { x.x }
 f({}) // CHECK-L: 35:3: Unification failure: expected `{x: String}` but found `{:}`
+
+let x : Number = "" // CHECK-L: 37:18: Unification failure: expected `Number` but found `String`
