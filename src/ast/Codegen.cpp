@@ -155,6 +155,18 @@ void TupleTypeExpression::generate(BytecodeGenerator& generator, Register dst)
     }
 }
 
+void FunctionTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    size_t size = parameters.size();
+    std::vector<Register> params;
+    for (uint32_t i = 0; i < size; i++)
+        params.emplace_back(generator.newLocal());
+    for (uint32_t i = 0; i < size; i++)
+        parameters[i]->generate(generator, params[size - i - 1]);
+    returnType->generate(generator, dst);
+    generator.newFunctionType(dst, params, dst, 0);
+}
+
 void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.newArray(dst, items.size());

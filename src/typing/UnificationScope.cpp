@@ -77,7 +77,6 @@ void UnificationScope::unifies(const Constraint& constraint)
     if (rhsType->is<TypeVar>()) {
         TypeVar* var = rhsType->as<TypeVar>();
         if (var->inferred() && !var->isRigid()) {
-            ASSERT(!var->isRigid(), "OOPS");
             bind(var, lhsType->substitute(m_vm, m_substitutions));
             return;
         }
@@ -90,6 +89,17 @@ void UnificationScope::unifies(const Constraint& constraint)
                 bind(var, lhsType);
             }
             return;
+        }
+    }
+
+    if (constraint.lhs.isType()) {
+        lhsType = constraint.lhs.asType()->substitute(m_vm, m_substitutions);
+        if (lhsType->is<TypeVar>()) {
+            TypeVar* var = lhsType->as<TypeVar>();
+            if (var->inferred() && !var->isRigid()) {
+                bind(var, rhsType->substitute(m_vm, m_substitutions));
+                return;
+            }
         }
     }
 
@@ -129,21 +139,19 @@ void UnificationScope::unifies(const Constraint& constraint)
         case Type::Class::Array: {
             TypeArray* lhs = lhsType->as<TypeArray>();
             TypeArray* rhs = rhsType->as<TypeArray>();
-            unify(constraint.bytecodeOffset, AbstractValue { lhs->itemType().asType() }, rhs->itemType());
+            unify(constraint.bytecodeOffset, AbstractValue { lhs->itemType().asType()}, rhs->itemType());
             return;
         }
-        /* TODO: function types
         case Type::Class::Function: {
             TypeFunction* lhs = lhsType->as<TypeFunction>();
             TypeFunction* rhs = rhsType->as<TypeFunction>();
             if (lhs->params()->size() != rhs->params()->size())
                 break;
             for (uint32_t i = 0; i < lhs->params()->size(); i++)
-                unify(constraint.bytecodeOffset, AbstractValue { rhs->param(i).asType() }, lhs->param(i));
-            unify(constraint.bytecodeOffset, AbstractValue { lhs->returnType.asType() }, rhs->returnType());
+                unify(constraint.bytecodeOffset, rhs->param(i), lhs->param(i));
+            unify(constraint.bytecodeOffset, AbstractValue { lhs->returnType().asType() }, rhs->returnType());
             return;
         }
-        */
         default:
             break;
         }

@@ -220,6 +220,8 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
         return parseSubscriptExpression(std::move(expr));
     case Token::DOT:
         return parseMemberExpression(std::move(expr));
+    case Token::ARROW:
+        return parseFunctionTypeExpression(std::move(expr));
     default:
         if (m_lexer.peekIsOperator())
             return parseBinaryExpression(std::move(expr), stop);
@@ -284,6 +286,19 @@ std::unique_ptr<Expression> Parser::parseMemberExpression(std::unique_ptr<Expres
     return std::move(expr);
 }
 
+std::unique_ptr<FunctionTypeExpression> Parser::parseFunctionTypeExpression(std::unique_ptr<Expression> parameters)
+{
+    CONSUME(Token::ARROW);
+
+    auto type = std::make_unique<FunctionTypeExpression>(parameters->location);
+    if (auto* tuple = dynamic_cast<TupleExpression*>(parameters.get()))
+        type->parameters = std::move(tuple->items);
+    else
+        type->parameters.emplace_back(std::move(parameters));
+    type->returnType = parseExpression(m_lexer.next());
+    return type;
+}
+
 std::unique_ptr<Expression> Parser::parseBinaryExpression(std::unique_ptr<Expression> lhs, bool* stop)
 {
     auto op = m_lexer.getOperator(m_endsWithToken);
@@ -297,7 +312,6 @@ std::unique_ptr<Expression> Parser::parseBinaryExpression(std::unique_ptr<Expres
     expr->arguments.emplace_back(parseExpression(m_lexer.next()));
     return expr;
 }
-
 std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
 {
     switch (t.type) {

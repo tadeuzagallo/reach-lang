@@ -38,4 +38,8 @@ let x = [true];
 function inferArray(%T: Type, x: T[]) -> Type { T }
 inspect(inferArray(x)) // CHECK-L: Bool : Type
 
-// TODO: infer function
+function x(x: Number, y: String) -> Bool { false }
+function inferFunction(%S: Type, %T: Type, %U: Type, x: (S, T) -> U) -> Type[] { [S, T, U] }
+inspect(x) // CHECK-L: <function x> : (Number, String) -> Bool
+inspect(inferFunction) // CHECK-L: <function inferFunction> : (S, T, U, (S, T) -> U) -> Type[]
+inspect(inferFunction(x)) // CHECK-L: [Number, String, Bool] : Type[]

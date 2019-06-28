@@ -55,6 +55,17 @@ ast_node :TupleTypeExpression < :Expression,
     "virtual void check(TypeChecker&, Register)",
   ]
 
+ast_node :FunctionTypeExpression < :Expression,
+  fields: {
+    parameters: "std::vector<std::unique_ptr<Expression>>",
+    returnType: "std::unique_ptr<Expression>",
+  },
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register)",
+  ]
+
 ast_node :ObjectLiteralExpression < :Expression,
   fields: {
     fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",

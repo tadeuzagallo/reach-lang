@@ -335,6 +335,22 @@ void TupleTypeExpression::check(TypeChecker& tc, Register type)
         item->check(tc, tc.typeType());
 }
 
+void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    for (auto& param : parameters)
+        param->check(tc, tc.typeType());
+    returnType->check(tc, tc.typeType());
+    tc.generator().newValue(result, tc.typeType());
+}
+
+void FunctionTypeExpression::check(TypeChecker& tc, Register type)
+{
+    tc.unify(location, tc.typeType(), type);
+    for (auto& param : parameters)
+        param->check(tc, tc.typeType());
+    returnType->check(tc, tc.typeType());
+}
+
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
 {
     callee->infer(tc, result);
