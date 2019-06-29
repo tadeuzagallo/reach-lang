@@ -8,3 +8,6 @@ inspect(f(42)) // CHECK: 42 : Number
 
 function g(x: Number, y: Number) -> Number { y }
 inspect(g(1, 2)) // CHECK: 2 : Number
+
+function f() -> Void { }
+inspect(f()) // CHECK: () : Void

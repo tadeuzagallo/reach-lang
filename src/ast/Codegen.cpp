@@ -4,13 +4,11 @@
 
 std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) const
 {
-    Register result = Register::invalid();
-    for (const auto& decl : declarations) {
-        result = generator.newLocal();
+    Register result = generator.newLocal();
+    for (const auto& decl : declarations)
         decl->generate(generator, result);
-    }
-    if (!result.isValid())
-        result =  generator.newLocal();
+    if (!declarations.size())
+        generator.loadConstant(result, Value::unit());
     return generator.finalize(result);
 }
 
@@ -46,14 +44,10 @@ void EmptyStatement::generate(BytecodeGenerator&, Register)
 
 void BlockStatement::generate(BytecodeGenerator& generator, Register result)
 {
-    Register localResult = Register::invalid();
-    for (const auto& decl : declarations) {
-        localResult = generator.newLocal();
-        decl->generate(generator, localResult);
-    }
-    if (localResult.isValid()) {
-        generator.move(result, localResult);
-    }
+    for (const auto& decl : declarations)
+        decl->generate(generator, result);
+    if (!declarations.size())
+        generator.loadConstant(result, Value::unit());
 }
 
 void ReturnStatement::generate(BytecodeGenerator&, Register)

@@ -33,6 +33,8 @@ void TypeChecker::check(Program& program)
     Register result = m_generator.newLocal();
     for (const auto& decl : program.declarations)
         decl->infer(*this, result);
+    if (!program.declarations.size())
+        unitValue(result);
     endTypeChecking(Mode::Program, result);
 }
 
