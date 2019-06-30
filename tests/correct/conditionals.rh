@@ -1,5 +1,12 @@
 // RUN: %reach | %check
 
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
 function f(x: Bool) -> Number {
     if (x) {
         42

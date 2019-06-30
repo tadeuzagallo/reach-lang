@@ -72,4 +72,4 @@ let y = { x = f() };
 let y = { x = f() };
 let y = { x = f() };
 let y = { x = f() };
-print(42)
+println("42")

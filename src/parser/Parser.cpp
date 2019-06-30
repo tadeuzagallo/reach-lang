@@ -510,9 +510,11 @@ std::unique_ptr<NumericLiteral> Parser::parseNumericLiteral(const Token& t)
 
 std::unique_ptr<StringLiteral> Parser::parseStringLiteral(const Token& t)
 {
+
     auto str = std::make_unique<StringLiteral>(t);
     str->location = t.location;
-    str->value = t.lexeme();
+    uint32_t start = t.location.start.offset;
+    str->value = std::string(t.location.file.source + start + 1, t.location.end.offset - start - 2);
     return str;
 }
 

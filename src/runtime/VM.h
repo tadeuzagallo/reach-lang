@@ -34,6 +34,7 @@ public:
     UnificationScope* unificationScope { nullptr };
 
     Type* typeType;
+    Type* topType;
     Type* bottomType;
     Type* unitType;
     Type* boolType;

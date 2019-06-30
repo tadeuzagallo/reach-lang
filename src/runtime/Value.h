@@ -39,6 +39,9 @@ public:
     template<typename T>
     T* asCell() const { return asCell()->cast<T>(); }
 
+    template<typename T>
+    bool isCell() const { return isCell() && asCell()->is<T>(); }
+
     bool operator!=(const Value&) const;
     bool operator==(const Value&) const;
     void dump(std::ostream&) const;

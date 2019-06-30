@@ -14,7 +14,7 @@ function g(x: Number[]) -> Number[] {
     x
 }
 // TODO: better error message
-g([""]) // CHECK-L: 17:4: Unification failure: expected `Number` but found `String`
+g([""]) // CHECK-L: 17:3: Unification failure: expected `Number` but found `String`
 
 function f(x: <String, Number, Number>) -> <String, Number, Number> {
     x
@@ -25,7 +25,7 @@ f(("1", 2)) // CHECK-L: 23:3: Unification failure: expected `<String, Number, Nu
 function id(x: Number) -> Number { x }
 function f() -> Number { 13 }
 let x = { id = f };
-inspect(x.id()) // CHECK-L: 28:9: Unification failure: expected `Number` but found `{id: () -> Number}`
+x.id() // CHECK-L: 28:1: Unification failure: expected `Number` but found `{id: () -> Number}`
 
 // Allow parsing operators that contain unknown tokens (tokens that are not meaningful on their own)
 1 #### 2 // CHECK-L: 31:3: Unknown variable: `####`

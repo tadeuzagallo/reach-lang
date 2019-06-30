@@ -4,6 +4,7 @@
 #include "Function.h"
 #include "Type.h"
 #include <iostream>
+#include <sstream>
 
 static void addFunction(VM* vm, const char* name, NativeFunction fn, Type* type)
 {
@@ -13,35 +14,33 @@ static void addFunction(VM* vm, const char* name, NativeFunction fn, Type* type)
 
 static Value functionPrint(VM&, std::vector<Value> args)
 {
-    bool isFirst = true;
-    for (auto arg : args) {
-        if (!isFirst)
-            std::cout << ", ";
-        std::cout << arg;
-        isFirst = false;
-    }
-    std::cout << std::endl;
+    ASSERT(args.size() == 1, "print expects a single argument");
+    ASSERT(args[0].isCell<String>(), "print expects a string as its first argument");
+    std::cout << args[0].asCell<String>()->str();
     return Value::unit();
 }
 
-static Value functionInspect(VM& vm, std::vector<Value> args)
+static Value functionPrintln(VM&, std::vector<Value> args)
 {
-    ASSERT(args.size() % 2 == 0, "OOPS");
-    bool isFirst = true;
-    for (uint32_t i = 0; i < args.size(); i += 2) {
-        if (!isFirst)
-            std::cout << ", ";
-        std::cout << args[i] << " : " << *args[i + 1].type(vm);
-        isFirst = false;
-    }
-    std::cout << std::endl;
+    ASSERT(args.size() == 1, "println expects a single argument");
+    ASSERT(args[0].isCell<String>(), "println expects a string as its first argument");
+    std::cout << args[0].asCell<String>()->str() << std::endl;;
     return Value::unit();
+}
+
+static Value functionStringify(VM& vm, std::vector<Value> args)
+{
+    ASSERT(args.size() == 1, "stringify expects a single argument");
+    std::stringstream str;
+    args[0].dump(str);
+    return String::create(vm, str.str());
 }
 
 VM::VM()
     : typeChecker(nullptr)
     , heap(this)
     , typeType(TypeType::create(*this))
+    , topType(TypeTop::create(*this))
     , bottomType(TypeBottom::create(*this))
     , unitType(TypeName::create(*this, "Void"))
     , boolType(TypeName::create(*this, "Bool"))
@@ -53,8 +52,14 @@ VM::VM()
     // so we don't crash when calling stack.back()
     stack.push_back(Value::crash());
 
-    addFunction(this, "print", functionPrint, bottomType);
-    addFunction(this, "inspect", functionInspect, bottomType);
+    Value stringValue = stringType;
+    auto* printType = TypeFunction::create(*this, 1, &stringValue, unitType, 0);
+    addFunction(this, "print", functionPrint, printType);
+    addFunction(this, "println", functionPrintln, printType);
+
+    Value topValue = topType;
+    auto* stringifyType = TypeFunction::create(*this, 1, &topValue, stringType, 0);
+    addFunction(this, "stringify", functionStringify, stringifyType);
 
     globalEnvironment->set("Void", unitType);
     globalEnvironment->set("Bool", boolType);

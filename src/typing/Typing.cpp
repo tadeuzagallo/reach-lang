@@ -256,7 +256,7 @@ void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
         items[0]->infer(tc, result);
         tc.generator().getTypeForValue(result, result);
     } else
-        tc.generator().move(result, tc.unitType());
+        tc.generator().move(result, tc.bottomType());
 
     for (uint32_t i = 1; i < items.size(); i++)
         items[i]->check(tc, result);
@@ -266,15 +266,10 @@ void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 
 void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
 {
+    // TODO: this should propagate check for nested types
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkType(tmp, type, Type::Class::Array);
-    tc.generator().branch(tmp, [&]{
-        tc.generator().getField(tmp, type, TypeArray::itemTypeField);
-        for (const auto& item : items)
-            item->check(tc, tmp);
-    }, [&] {
-        tc.generator().typeError(location, "Unexpected array");
-    });
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void TupleExpression::infer(TypeChecker& tc, Register result)
@@ -360,35 +355,12 @@ void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
 {
     callee->infer(tc, result);
     Register tmp = tc.generator().newLocal();
-    tc.generator().checkTypeOf(tmp, result, Type::Class::Bottom);
+    tc.generator().checkTypeOf(tmp, result, Type::Class::Function);
     tc.generator().branch(tmp, [&] {
-        if (Identifier* ident = dynamic_cast<Identifier*>(callee.get())) {
-            if (ident->name == "inspect") {
-                for (auto it = arguments.begin(); it != arguments.end(); it++) {
-                    std::unique_ptr<Expression>& argument = *it++;
-                    argument->infer(tc, tmp);
-                    auto type = std::make_unique<SynthesizedTypeExpression>(argument->location);
-                    type->typeIndex = tc.generator().storeConstant(tmp);
-                    it = arguments.emplace(it, std::move(type));
-                }
-                goto result;
-            }
-        }
-
-        // check arguments are well-formed
-        for (const auto& arg : arguments)
-            arg->infer(tc, tmp);
-result:
-        tc.bottomValue(result);
-        tc.generator().jump(done);
+        tc.generator().getTypeForValue(result, result);
     }, [&] {
-        tc.generator().checkTypeOf(tmp, result, Type::Class::Function);
-        tc.generator().branch(tmp, [&] {
-            tc.generator().getTypeForValue(result, result);
-        }, [&] {
-            tc.generator().typeError(location, "Callee is not a function");
-            tc.generator().jump(done);
-        });
+        tc.generator().typeError(location, "Callee is not a function");
+        tc.generator().jump(done);
     });
 }
 
@@ -459,13 +431,16 @@ void CallExpression::infer(TypeChecker& tc, Register result)
 
 void CallExpression::check(TypeChecker& tc, Register type)
 {
-    TypeChecker::UnificationScope scope(tc);
     Register tmp = tc.generator().newLocal();
     Label done = tc.generator().label();
-    checkCallee(tc, tmp, done);
-    checkArguments(tc, tmp, done);
-    tc.generator().getField(tmp, tmp, TypeFunction::returnTypeField);
-    tc.newValue(tmp, tmp);
+    {
+        TypeChecker::UnificationScope scope(tc);
+        checkCallee(tc, tmp, done);
+        checkArguments(tc, tmp, done);
+        tc.generator().getField(tmp, tmp, TypeFunction::returnTypeField);
+        scope.resolve(tmp, tmp);
+        tc.newValue(tmp, tmp);
+    }
     tc.unify(location, tmp, type);
     tc.generator().emit(done);
 }

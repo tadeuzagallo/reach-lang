@@ -18,6 +18,7 @@ class VM;
 
 #define FOR_EACH_BASE_TYPE(macro) \
     macro(type) \
+    macro(top) \
     macro(bottom) \
     macro(unit) \
     macro(bool) \

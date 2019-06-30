@@ -1,5 +1,20 @@
 // RUN: %reach | %check
 
-print("test", 13) // CHECK: "test", 13
-inspect(print) // CHECK: <native function> : ⊥
-inspect(inspect) // CHECK: <native function> : ⊥
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+println("test") // CHECK: test
+inspect(println) // CHECK-L: <native function> : (String) -> Void
+
+print("test")
+print("test") // CHECK: testtest
+println("")
+inspect(print) // CHECK-L: <native function> : (String) -> Void
+
+inspect(stringify(13)) // CHECK-L: "13" : String
+inspect(stringify([])) // CHECK-L: "[]" : String
+inspect(stringify) // CHECK-L: <native function> : (⊤) -> String

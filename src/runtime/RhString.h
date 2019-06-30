@@ -15,7 +15,7 @@ public:
 
     void dump(std::ostream& out) const override
     {
-        out << m_str;
+        out << '"' << m_str << '"';
     }
 
     bool operator==(const String& other) const

@@ -41,8 +41,9 @@ Type* UnificationScope::infer(InstructionStream::Offset bytecodeOffset, TypeVar*
         return it->second;
     std::stringstream message;
     message << "Unification failure: failed to infer type variable `" << *var << "`";
-    LOG(ConstraintSolving, message.str());
     m_vm.typeError(bytecodeOffset, message.str());
+    message << " @ " << m_vm.currentBlock->locationInfo(bytecodeOffset);
+    LOG(ConstraintSolving, message.str());
     return m_vm.unitType;
 }
 
@@ -70,6 +71,14 @@ void UnificationScope::unifies(const Constraint& constraint)
 
     // optimize out checks of the same type (e.g. String U String, Void U Void, Type U Type ...)
     if (lhsType == rhsType)
+        return;
+
+    // ∀σ, σ <: ⊤
+    if (rhsType->is<TypeTop>())
+        return;
+
+    // ∀σ, ⊥ <: σ
+    if (lhsType->is<TypeBottom>())
         return;
 
     LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " U " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
@@ -162,8 +171,9 @@ void UnificationScope::unifies(const Constraint& constraint)
 
     std::stringstream msg;
     msg << "Unification failure: expected `" << *rhsType << "` but found `" << *lhsType << "`";
-    LOG(ConstraintSolving, msg.str());
     m_vm.typeError(constraint.bytecodeOffset, msg.str());
+    msg << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset);
+    LOG(ConstraintSolving, msg.str());
 }
 
 void UnificationScope::bind(TypeVar* var, Type* type)

@@ -36,6 +36,21 @@ void TypeType::dump(std::ostream& out) const
     out << "Type";
 }
 
+TypeTop::TypeTop()
+    : Type(Type::Class::Top)
+{
+}
+
+Type* TypeTop::substitute(VM&, Substitutions&)
+{
+    return this;
+}
+
+void TypeTop::dump(std::ostream& out) const
+{
+    out << "⊤";
+}
+
 TypeBottom::TypeBottom()
     : Type(Type::Class::Bottom)
 {
@@ -285,6 +300,9 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
         break;
     case Type::Class::Type:
         out << "Type::Class::Type";
+        break;
+    case Type::Class::Top:
+        out << "Type::Class::Top";
         break;
     case Type::Class::Bottom:
         out << "Type::Class::Bottom";

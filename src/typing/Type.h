@@ -63,6 +63,7 @@ public:
         AnyType = 1,
         SpecificType = 2,
         Type = 2,
+        Top,
         Bottom,
         Name,
         Function,
@@ -105,6 +106,17 @@ public:
 
 private:
     TypeType();
+};
+
+class TypeTop : public Type {
+public:
+    CELL_CREATE(TypeTop);
+
+    Type* substitute(VM&, Substitutions&) override;
+    void dump(std::ostream&) const override;
+
+private:
+    TypeTop();
 };
 
 class TypeBottom : public Type {

@@ -1,5 +1,12 @@
 //RUN: %reach | %check
 
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
 function id_explicit(T: Type, x: T) -> T { x }
 inspect(id_explicit(Number, 42)); // CHECK: 42 : Number
 

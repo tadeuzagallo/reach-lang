@@ -190,6 +190,8 @@ std::optional<std::vector<bool>> TypeChecker::Scope::getFunction(const std::stri
         return it->second;
     if (m_previousScope)
         return m_previousScope->getFunction(name);
+    if (auto* previousTypeChecker = m_typeChecker.previousTypeChecker())
+        return previousTypeChecker->m_currentScope->getFunction(name);
     return std::nullopt;
 }
 

@@ -1,4 +1,13 @@
 // RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+
 function g(x: Number) -> Number {
     function h() -> Number { [{x = x}.x][0] }
     if (false) {

@@ -1,5 +1,12 @@
 // RUN: %reach | %check
 
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
 inspect(1) // CHECK: 1 : Number
 inspect("asd") // CHECK: "asd" : String
 inspect(true) // CHECK: true : Bool

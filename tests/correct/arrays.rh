@@ -1,5 +1,12 @@
 //RUN: %reach | %check
 
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
 let x = [1, 2, 3];
 inspect(x); // CHECK-L: [1, 2, 3] : Number[]
 inspect(x[0]) // CHECK: 1 : Number
