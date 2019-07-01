@@ -22,7 +22,7 @@ void Heap::collect()
 void Heap::markFromRoots()
 {
     auto markRoot = [&](Value root) {
-        if (root.isCrash() || !root.isCell())
+        if (root.isCrash() || (!root.isCell() && !root.isAbstractValue()))
             return;
 
         Cell* cell = root.getCell();
@@ -49,10 +49,10 @@ void Heap::markNativeStack(const std::function<void(Value)>& visitor)
     pthread_t self = pthread_self();
     Value* stackBottom = reinterpret_cast<Value*>(pthread_get_stackaddr_np(self));
     for (Value* root = reinterpret_cast<Value*>(rsp); root != stackBottom; ++root)  {
-        if (root->isCrash() || !root->isCell())
+        if (root->isCrash() || (!root->isCell() && !root->isAbstractValue()))
             continue;
 
-        Cell* cell = reinterpret_cast<Cell*>(root->m_bits);
+        Cell* cell = root->getCell();
         bool isValid = false;
         Allocator::each([&](Allocator& allocator) {
             if (isValid)
@@ -94,10 +94,10 @@ void Heap::mark()
         m_worklist.pop();
 
         cell->visit([&](Value value) {
-            if (value.isCrash() || !value.isCell())
+            if (value.isCrash() || (!value.isCell() && !value.isAbstractValue()))
                 return;
 
-            Cell* cell = value.asCell();
+            Cell* cell = value.getCell();
             if (isMarked(cell))
                 return;
 

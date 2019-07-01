@@ -122,7 +122,7 @@ bool Value::isCell() const
 bool Value::isAbstractValue() const
 {
     CHECK();
-    return m_bits & TagTypeAbstractValue;
+    return (m_bits & TagMask) == TagTypeAbstractValue;
 }
 
 bool Value::isType() const
