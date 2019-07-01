@@ -34,6 +34,7 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
     if (this->type) {
         tc.inferAsType(this->type, initType);
         initializer->check(tc, initType);
+        tc.generator().newValue(initType, initType);
     } else
         initializer->infer(tc, initType);
 
