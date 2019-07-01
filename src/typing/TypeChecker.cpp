@@ -31,8 +31,10 @@ TypeChecker::~TypeChecker()
 void TypeChecker::check(Program& program)
 {
     Register result = m_generator.newLocal();
-    for (const auto& decl : program.declarations)
+    for (const auto& decl : program.declarations) {
+        UnificationScope scope(*this);
         decl->infer(*this, result);
+    }
     if (!program.declarations.size())
         unitValue(result);
     endTypeChecking(Mode::Program, result);
