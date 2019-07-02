@@ -72,7 +72,10 @@ void UnificationScope::unifies(const Constraint& constraint)
     Type* lhsType = constraint.lhs.type(m_vm)->substitute(m_vm, m_substitutions);
     Type* rhsType = constraint.rhs.asType()->substitute(m_vm, m_substitutions);
 
-    // optimize out checks of the same type (e.g. String U String, Void U Void, Type U Type ...)
+    // Optimize out checks of the same type (e.g. String U String, Void U Void, Type U Type ...)
+    //
+    // ---------------------------------------- T-Ident
+    // σ <: σ
     if (lhsType == rhsType)
         return;
 
@@ -124,11 +127,13 @@ void UnificationScope::unifies(const Constraint& constraint)
         // functions, so it's converse does not make sense.
     }
 
-    // ∀σ, σ <: ⊤
+    // ---------------------------------------- T-Top
+    // σ <: ⊤
     if (rhsType->is<TypeTop>())
         return;
 
-    // ∀σ, ⊥ <: σ
+    // ---------------------------------------- T-Bottom
+    // ⊥ <: σ
     if (lhsType->is<TypeBottom>())
         return;
 

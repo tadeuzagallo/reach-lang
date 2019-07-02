@@ -62,3 +62,19 @@ let x : String | Number = 42
 // T-Union-L & T-Union-R
 function f(x: String | Number | Bool) -> Void { }
 f(x)
+
+// NOTE: We cannot refer to ⊤ directly, it's currently only available as the first
+// parameter of the builtin `stringify` funciton.
+//
+// T-Top
+inspect(stringify) // CHECK-L: <native function> : (⊤) -> String
+inspect(stringify(42)) // CHECK-L: "42" : String
+inspect(stringify("")) // CHECK-L: """" : String
+
+// NOTE: We cannot refer to ⊥ directly, it's currently only available as the
+// inferred type of the empty array
+//
+// T-Bot
+inspect([]) // CHECK-L: [] : ⊥[]
+let x : String[] = []
+inspect(x) // CHECK-L: [] : String[]
