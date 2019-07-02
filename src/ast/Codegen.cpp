@@ -160,6 +160,14 @@ void FunctionTypeExpression::generate(BytecodeGenerator& generator, Register dst
     generator.newFunctionType(dst, params, dst, 0);
 }
 
+void UnionTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    Register tmp = generator.newLocal();
+    lhs->generate(generator, dst);
+    rhs->generate(generator, tmp);
+    generator.newUnionType(dst, dst, tmp);
+}
+
 void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.newArray(dst, items.size());

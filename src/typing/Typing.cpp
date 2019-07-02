@@ -149,13 +149,17 @@ void IfStatement::infer(TypeChecker& tc, Register result)
 {
     condition->check(tc, tc.boolType());
     consequent->infer(tc, result);
+    tc.generator().getTypeForValue(result, result);
+    Register rhs = Register::invalid();
     if (!alternate) {
-        tc.unify(location, result, tc.unitType());
-        tc.unitValue(result);
+        rhs = tc.unitType();
     } else {
-        tc.generator().getTypeForValue(result, result);
-        (*alternate)->check(tc, result);
+        rhs = tc.generator().newLocal();
+        (*alternate)->infer(tc, rhs);
+        tc.generator().getTypeForValue(rhs, rhs);
     }
+    tc.generator().newUnionType(result, result, rhs);
+    tc.generator().newValue(result, result);
 }
 
 void IfStatement::check(TypeChecker& tc, Register type)
@@ -299,41 +303,42 @@ void TupleExpression::check(TypeChecker& tc, Register type)
 void ArrayTypeExpression::infer(TypeChecker& tc, Register result)
 {
     itemType->check(tc, tc.typeType());
-    tc.generator().newValue(result, tc.typeType());
+    generate(tc.generator(), result);
 }
 
 void ArrayTypeExpression::check(TypeChecker& tc, Register type)
 {
-    tc.unify(location, tc.typeType(), type);
-    itemType->check(tc, tc.typeType());
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void ObjectTypeExpression::infer(TypeChecker& tc, Register result)
 {
     for (auto& field : fields)
         field.second->check(tc, tc.typeType());
-    tc.generator().newValue(result, tc.typeType());
+    generate(tc.generator(), result);
 }
 
 void ObjectTypeExpression::check(TypeChecker& tc, Register type)
 {
-    tc.unify(location, tc.typeType(), type);
-    for (auto& field : fields)
-        field.second->check(tc, tc.typeType());
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void TupleTypeExpression::infer(TypeChecker& tc, Register result)
 {
     for (auto& item : items)
         item->check(tc, tc.typeType());
-    tc.generator().newValue(result, tc.typeType());
+    generate(tc.generator(), result);
 }
 
 void TupleTypeExpression::check(TypeChecker& tc, Register type)
 {
-    tc.unify(location, tc.typeType(), type);
-    for (auto& item : items)
-        item->check(tc, tc.typeType());
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
@@ -341,15 +346,28 @@ void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
     for (auto& param : parameters)
         param->check(tc, tc.typeType());
     returnType->check(tc, tc.typeType());
-    tc.generator().newValue(result, tc.typeType());
+    generate(tc.generator(), result);
 }
 
 void FunctionTypeExpression::check(TypeChecker& tc, Register type)
 {
-    tc.unify(location, tc.typeType(), type);
-    for (auto& param : parameters)
-        param->check(tc, tc.typeType());
-    returnType->check(tc, tc.typeType());
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
+}
+
+void UnionTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    lhs->check(tc, tc.typeType());
+    rhs->check(tc, tc.typeType());
+    generate(tc.generator(), result);
+}
+
+void UnionTypeExpression::check(TypeChecker& tc, Register type)
+{
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
 }
 
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
@@ -473,26 +491,20 @@ void SubscriptExpression::check(TypeChecker& tc, Register itemType)
 
 void MemberExpression::infer(TypeChecker& tc, Register result)
 {
-    // FIXME: should check tc against { this->field }
+    TypeChecker::UnificationScope scope(tc);
     Register tmp = tc.generator().newLocal();
-    object->infer(tc, result);
-    tc.generator().checkTypeOf(tmp, result, Type::Class::Record);
-    tc.generator().branch(tmp, [&] {
-        tc.generator().getTypeForValue(result, result);
-        tc.generator().getField(result, result, TypeRecord::fieldsField);
-        tc.generator().getField(result, result, property->name);
-        tc.generator().newValue(result, result);
-    }, [&] {
-        tc.generator().typeError(location, "Trying to acess field of non-record");
-    });
+    tc.generator().newVarType(tmp, "T", /* inferred */ true, /* rigid */ false);
+    tc.generator().newRecordType(result, { { property->name, tmp } });
+    object->check(tc, result);
+    scope.resolve(result, tmp);
+    tc.generator().newValue(result, result);
 }
 
 void MemberExpression::check(TypeChecker& tc, Register type)
 {
-    // TODO: do we need something custom here?
     Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
+    tc.generator().newRecordType(tmp, { { property->name, type } });
+    object->check(tc, tmp);
 }
 
 void LiteralExpression::infer(TypeChecker& tc, Register result)
@@ -555,7 +567,7 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
     Register tmp = tc.generator().newLocal();
     tc.generator().checkType(tmp, result, Type::Class::Type);
     tc.generator().branch(tmp, [&] {
-        tc.generator().newVarType(result, name->name, inferred);
+        tc.generator().newVarType(result, name->name, inferred, /* rigid */ true);
         tc.insert(name->name, result);
     }, [&] {
         if (inferred)

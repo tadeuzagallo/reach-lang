@@ -248,10 +248,10 @@ void BytecodeGenerator::endTypeChecking(Register type)
 }
 
 // Types
-void BytecodeGenerator::newVarType(Register result, const std::string& name, bool inferred)
+void BytecodeGenerator::newVarType(Register result, const std::string& name, bool inferred, bool rigid)
 {
     uint32_t nameIndex = uniqueIdentifier(name);
-    emit<NewVarType>(result, nameIndex, inferred);
+    emit<NewVarType>(result, nameIndex, inferred, rigid);
 }
 
 void BytecodeGenerator::newNameType(Register result, const std::string& name)
@@ -295,6 +295,12 @@ void BytecodeGenerator::newFunctionType(Register result, const std::vector<Regis
     Register firstParam = paramCount ? params[0] : Register::forParameter(0);
     emit<NewFunctionType>(result, paramCount, firstParam, returnType, inferredParameters);
 }
+
+void BytecodeGenerator::newUnionType(Register dst, Register lhs, Register rhs)
+{
+    emit<NewUnionType>(dst, lhs, rhs);
+}
+
 
 void BytecodeGenerator::newValue(Register dst, Register type)
 {

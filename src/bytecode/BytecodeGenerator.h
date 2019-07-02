@@ -64,12 +64,13 @@ public:
     void endTypeChecking(Register);
 
     // Types
-    void newVarType(Register, const std::string&, bool);
+    void newVarType(Register, const std::string&, bool, bool);
     void newNameType(Register, const std::string&);
     void newArrayType(Register, Register);
     void newTupleType(Register, unsigned);
     void newRecordType(Register, const std::vector<std::pair<std::string, Register>>&);
     void newFunctionType(Register, const std::vector<Register>&, Register, uint32_t);
+    void newUnionType(Register, Register, Register);
 
     void newValue(Register, Register);
     void getTypeForValue(Register, Register);

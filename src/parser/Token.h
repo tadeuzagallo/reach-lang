@@ -55,7 +55,9 @@ public:
       NOT_EQUAL,
       TIMES,
       POWER,
+      AMPERSAND,
       AND,
+      PIPE,
       OR,
       ARROW,
   };

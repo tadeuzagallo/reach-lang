@@ -71,6 +71,7 @@ public:
         Record,
         Var,
         Tuple,
+        Union,
     };
 
     CELL_TYPE(Type);
@@ -233,6 +234,23 @@ private:
     static uint32_t s_uid;
     bool m_isRigid;
 };
+
+class TypeUnion : public Type {
+public:
+    CELL_CREATE(TypeUnion);
+
+    Type* collapse(VM&);
+
+    Type* substitute(VM&, Substitutions&) override;
+    void dump(std::ostream&) const override;
+
+    VALUE_FIELD(Value, lhs);
+    VALUE_FIELD(Value, rhs);
+
+private:
+    TypeUnion(Value, Value);
+};
+
 
 template<typename T, typename>
 bool Type::is() const

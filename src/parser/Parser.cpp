@@ -225,6 +225,8 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
         return parseMemberExpression(std::move(expr));
     case Token::ARROW:
         return parseFunctionTypeExpression(std::move(expr));
+    case Token::PIPE:
+        return parseUnionTypeExpression(std::move(expr));
     default:
         if (m_lexer.peekIsOperator())
             return parseBinaryExpression(std::move(expr), stop);
@@ -299,6 +301,16 @@ std::unique_ptr<FunctionTypeExpression> Parser::parseFunctionTypeExpression(std:
     else
         type->parameters.emplace_back(std::move(parameters));
     type->returnType = parseExpression(m_lexer.next());
+    return type;
+}
+
+std::unique_ptr<UnionTypeExpression> Parser::parseUnionTypeExpression(std::unique_ptr<Expression> lhs)
+{
+    CONSUME(Token::PIPE);
+
+    auto type = std::make_unique<UnionTypeExpression>(lhs->location);
+    type->lhs = std::move(lhs);
+    type->rhs = parseExpression(m_lexer.next());
     return type;
 }
 

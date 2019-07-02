@@ -1,0 +1,40 @@
+//RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+// UNION TYPES
+// s <: t | (u | v)
+function f(x: Number | String | {:}) -> Void { }
+f(1)
+f("")
+f({})
+
+// s <: (t | u) | v
+function f(x: (Number | String) | {:}) -> Void { }
+f(1)
+f("")
+f({})
+
+function f(x: {x: Number, y: Number } | {x: Number, z: Number }) -> Number { x.x }
+inspect(f({x = 1, y = 1})) // CHECK-L: 1 : Number
+inspect(f({x = 1, z = 1})) // CHECK-L: 1 : Number
+
+// TODO: make if an expression so we can check it with inspect
+if (true) 1 else ""
+
+function makeUnion(%T: Type, x: T, U: Type) -> T | U { x }
+inspect(makeUnion(42, String)) // CHECK-L: 42 : Number | String
+
+function f(x: {x: Number}) -> Number { x.x }
+inspect(f(makeUnion({x = 42, y = 1 }, {x: Number, z: Number}))) // CHECK-L: 42 : Number
+
+let x : Number | String = 42
+inspect(x) // CHECK-L: 42 : Number | String
+
+let x : {x: String} | {x: Number} = {x = 42}
+inspect(x.x) // CHECK-L: 42 : String | Number

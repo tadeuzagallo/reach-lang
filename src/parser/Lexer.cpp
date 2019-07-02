@@ -244,21 +244,8 @@ Token::Type Lexer::nextTokenType()
         TOKEN2("!=", NOT_EQUAL, BANG);
         TOKEN2("**", POWER, TIMES);
         TOKEN2("->", ARROW, MINUS);
-
-#undef TOKEN2
-
-#define TOKEN2(__chars, __type) \
-        do { \
-            if (m_nextChar == __chars[0]) { \
-                nextChar(); \
-                if (m_nextChar == __chars[1]) \
-                    return Token::__type; \
-                return Token::UNKNOWN; \
-            } \
-        } while (false)
-
-        TOKEN2("&&", AND);
-        TOKEN2("||", OR);
+        TOKEN2("&&", AND, AMPERSAND);
+        TOKEN2("||", OR, PIPE);
 
 #undef TOKEN2
 

@@ -302,6 +302,7 @@ TYPE_OP(NewArrayType)
 TYPE_OP(NewTupleType)
 TYPE_OP(NewRecordType)
 TYPE_OP(NewFunctionType)
+TYPE_OP(NewUnionType)
 TYPE_OP(NewValue)
 TYPE_OP(GetTypeForValue)
 

@@ -35,3 +35,12 @@ function f(x: {x: String}) -> String { x.x }
 f({}) // CHECK-L: 35:3: Unification failure: expected `{x: String}` but found `{:}`
 
 let x : Number = "" // CHECK-L: 37:18: Unification failure: expected `Number` but found `String`
+
+// union types
+function f(x: Number | String) -> Void { }
+// TODO: better error
+f(false) // CHECK-L: 42:3: Unification failure: expected `String` but found `Bool`
+
+// Union should not collapse on right (would be T-UnionRec-R)
+function f(x: {x: Number, y: Number} | {x: Number, z: Number}) -> {x: Number} { x }
+f({x = 42}) // CHECK-L: 46:3: Unification failure: expected `{z: Number, x: Number}` but found `{x: Number}`

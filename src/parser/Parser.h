@@ -35,6 +35,7 @@ public:
     std::unique_ptr<Expression> parseMemberExpression(std::unique_ptr<Expression>);
     std::unique_ptr<Expression> parseBinaryExpression(std::unique_ptr<Expression>, bool*);
     std::unique_ptr<FunctionTypeExpression> parseFunctionTypeExpression(std::unique_ptr<Expression>);
+    std::unique_ptr<UnionTypeExpression> parseUnionTypeExpression(std::unique_ptr<Expression>);
 
     std::unique_ptr<Expression> parsePrimaryExpression(const Token&);
     std::unique_ptr<Identifier> parseIdentifier(const Token&);

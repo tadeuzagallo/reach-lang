@@ -134,7 +134,8 @@ instruction :InferImplicitParameters,
 instruction :NewVarType,
    dst: :Register,
    nameIndex: :uint32_t,
-   isInferred: :bool
+   isInferred: :bool,
+   isRigid: :bool
 
 instruction :NewNameType,
     dst: :Register,
@@ -160,6 +161,11 @@ instruction :NewFunctionType,
     firstParam: :Register,
     returnType: :Register,
     inferredParameters: :uint32_t
+
+instruction :NewUnionType,
+    dst: :Register,
+    lhs: :Register,
+    rhs: :Register
 
 # Create new values from types
 instruction :NewValue,

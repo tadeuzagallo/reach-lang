@@ -66,6 +66,17 @@ ast_node :FunctionTypeExpression < :Expression,
     "virtual void check(TypeChecker&, Register)",
   ]
 
+ast_node :UnionTypeExpression < :Expression,
+  fields: {
+    lhs: "std::unique_ptr<Expression>",
+    rhs: "std::unique_ptr<Expression>",
+  },
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void infer(TypeChecker&, Register)",
+    "virtual void check(TypeChecker&, Register)",
+  ]
+
 ast_node :ObjectLiteralExpression < :Expression,
   fields: {
     fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",

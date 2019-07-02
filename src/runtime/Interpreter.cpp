@@ -406,7 +406,7 @@ OP(InferImplicitParameters)
 OP(NewVarType)
 {
     const std::string& name = m_block.identifier(ip.nameIndex);
-    TypeVar* var = TypeVar::create(m_vm, name, ip.isInferred, true);
+    TypeVar* var = TypeVar::create(m_vm, name, ip.isInferred, ip.isRigid);
     m_cfr[ip.dst] = var;
     DISPATCH();
 }
@@ -444,6 +444,13 @@ OP(NewFunctionType)
     Value* params = &m_cfr[Register::forLocal(-ip.firstParam.offset() + ip.paramCount - 1)];
     Value returnType = m_cfr[ip.returnType];
     m_cfr[ip.dst] = TypeFunction::create(m_vm, ip.paramCount, params, returnType, ip.inferredParameters);
+    DISPATCH();
+}
+
+OP(NewUnionType)
+{
+    auto* unionType = TypeUnion::create(m_vm, m_cfr[ip.lhs], m_cfr[ip.rhs]);
+    m_cfr[ip.dst] = unionType;
     DISPATCH();
 }
 

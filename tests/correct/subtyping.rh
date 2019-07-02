@@ -42,3 +42,23 @@ inspect(f(g)) // CHECK-L: <function g> : ({z: Bool, y: Number, x: String}) -> {:
 // LET
 let x : {x: Number} = {x = 1, y = 2}
 inspect(x) // CHECK-L: {y = 2, x = 1} : {x: Number}
+
+// UNION
+// T-UnionRecord-L
+let x : {x: Number} | {x: String} = {x = 42}
+x.x
+
+// T-UnionRecord-L (2)
+function f(x: {x: Number, y: Number} | {x: Number, z: Number}) -> {x: Number} { x }
+f({x = 42, y = 1})
+
+// T-Union-R
+let x : String | Number = 42
+
+// NOTE: T-Union-L cannot be tested individually, since it would require that
+// S | T <: U, where U is neither a union nor a record. The only type that would
+// hipotetically satisfy this condition would be ⊤, but that is handled by T-Top.
+//
+// T-Union-L & T-Union-R
+function f(x: String | Number | Bool) -> Void { }
+f(x)

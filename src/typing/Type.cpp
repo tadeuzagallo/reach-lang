@@ -289,6 +289,60 @@ void TypeVar::dump(std::ostream& out) const
     out << name()->str();
 }
 
+TypeUnion::TypeUnion(Value lhs, Value rhs)
+    : Type(Type::Class::Union)
+{
+    set_lhs(lhs);
+    set_rhs(rhs);
+}
+
+Type* TypeUnion::collapse(VM& vm)
+{
+    static auto getFields = [&](Value value) -> Object* {
+        ASSERT(value.isType(), "OOPS");
+
+        Type* type = value.asType();
+
+        while (type->is<TypeUnion>())
+            type = type->as<TypeUnion>()->collapse(vm);
+
+        if (!type->is<TypeRecord>())
+            return nullptr;
+
+        return type->as<TypeRecord>()->fields();
+    };
+
+    Object* lhs = getFields(this->lhs());
+    if (!lhs)
+        return nullptr;
+    Object* rhs = getFields(this->rhs());
+    if (!rhs)
+        return nullptr;
+
+    Fields fields;
+    for (const auto& lhsField : *lhs) {
+        if (auto rhsValue = rhs->tryGet(lhsField.first))
+            fields.emplace(lhsField.first, TypeUnion::create(vm, lhsField.second, *rhsValue));
+    }
+    return TypeRecord::create(vm, std::move(fields));
+}
+
+Type* TypeUnion::substitute(VM& vm, Substitutions& subst)
+{
+    Value lhs = this->lhs();
+    Value rhs = this->rhs();
+    if (lhs.isType())
+        lhs = lhs.asType()->substitute(vm, subst);
+    if (rhs.isType())
+        rhs = rhs.asType()->substitute(vm, subst);
+    return TypeUnion::create(vm, lhs, rhs);
+}
+
+void TypeUnion::dump(std::ostream& out) const
+{
+    out << lhs() << " | " << rhs();
+}
+
 std::ostream& operator<<(std::ostream& out, Type::Class tc)
 {
     switch (tc) {
@@ -324,6 +378,9 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
         break;
     case Type::Class::Tuple:
         out << "Type::Class::Tuple";
+        break;
+    case Type::Class::Union:
+        out << "Type::Class::Union";
         break;
     }
     return out;
