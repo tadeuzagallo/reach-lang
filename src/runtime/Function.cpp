@@ -3,6 +3,7 @@
 
 void Function::visit(std::function<void(Value)> visitor) const
 {
+    visitor(m_type);
     if (m_block)
         m_block->visit(visitor);
     if (m_parentEnvironment)
