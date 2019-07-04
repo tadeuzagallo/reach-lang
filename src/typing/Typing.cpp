@@ -38,10 +38,6 @@ void LexicalDeclaration::check(TypeChecker& tc, Register type)
     } else
         initializer->infer(tc, initType);
 
-    tc.generator().checkTypeOf(tmp, initType, Type::Class::Type);
-    tc.generator().branch(tmp, [&]{
-        initializer->generate(tc.generator(), initType);
-    }, [&] { });
     tc.insert(name->name, initType);
     tc.newValue(tmp, type);
     tc.unify(location, tmp, tc.unitType());
