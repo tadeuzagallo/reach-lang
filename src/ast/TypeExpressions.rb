@@ -1,16 +1,15 @@
 import :memory
 import :vector
 
-ast_node :TypeExpression < :Expression,
+ast_node :TypeExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
     "virtual void infer(TypeChecker&, Register) = 0",
-    "void check(TypeChecker&, Register)",
   ]
 
 ast_node :TupleTypeExpression < :TypeExpression,
   fields: {
-    items: "std::vector<std::unique_ptr<Expression>>",
+    items: "std::vector<std::unique_ptr<InferredExpression>>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
@@ -19,8 +18,8 @@ ast_node :TupleTypeExpression < :TypeExpression,
 
 ast_node :FunctionTypeExpression < :TypeExpression,
   fields: {
-    parameters: "std::vector<std::unique_ptr<Expression>>",
-    returnType: "std::unique_ptr<Expression>",
+    parameters: "std::vector<std::unique_ptr<InferredExpression>>",
+    returnType: "std::unique_ptr<InferredExpression>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
@@ -29,8 +28,8 @@ ast_node :FunctionTypeExpression < :TypeExpression,
 
 ast_node :UnionTypeExpression < :TypeExpression,
   fields: {
-    lhs: "std::unique_ptr<Expression>",
-    rhs: "std::unique_ptr<Expression>",
+    lhs: "std::unique_ptr<InferredExpression>",
+    rhs: "std::unique_ptr<InferredExpression>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
@@ -39,7 +38,7 @@ ast_node :UnionTypeExpression < :TypeExpression,
 
 ast_node :ObjectTypeExpression < :TypeExpression,
   fields: {
-    fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",
+    fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<InferredExpression>>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
@@ -48,7 +47,7 @@ ast_node :ObjectTypeExpression < :TypeExpression,
 
 ast_node :ArrayTypeExpression < :TypeExpression,
   fields: {
-    itemType: "std::unique_ptr<Expression>",
+    itemType: "std::unique_ptr<InferredExpression>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",

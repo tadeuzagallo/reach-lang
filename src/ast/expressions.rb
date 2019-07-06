@@ -6,11 +6,26 @@ import :memory
 ast_node :Expression < :Node,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
-    "virtual void infer(TypeChecker&, Register) = 0",
+
+    "private: Expression(const Token&)",
+    "friend class CheckedExpression",
+  ]
+
+ast_node :CheckedExpression < :Expression,
+  extra_methods: [
+    "CheckedExpression(const Token&)",
+    "virtual void generate(BytecodeGenerator&, Register) = 0",
     "virtual void check(TypeChecker&, Register) = 0",
   ]
 
-ast_node :Identifier < :Expression,
+ast_node :InferredExpression < :CheckedExpression,
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register) = 0",
+    "virtual void infer(TypeChecker&, Register) = 0",
+    "virtual void check(TypeChecker&, Register) final",
+  ]
+
+ast_node :Identifier < :InferredExpression,
   fields: {
     name: "std::string",
     isOperator: "bool",
@@ -21,88 +36,80 @@ ast_node :Identifier < :Expression,
     "bool operator<(const Identifier&) const",
     "friend std::ostream& operator<<(std::ostream&, const Identifier&)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :ParenthesizedExpression < :Expression,
+ast_node :ParenthesizedExpression < :InferredExpression,
   fields: {
-    expression: "std::unique_ptr<Expression>",
+    expression: "std::unique_ptr<InferredExpression>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :TupleExpression < :Expression,
+ast_node :TupleExpression < :InferredExpression,
   fields: {
-    items: "std::vector<std::unique_ptr<Expression>>",
+    items: "std::vector<std::unique_ptr<InferredExpression>>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :ObjectLiteralExpression < :Expression,
+ast_node :ObjectLiteralExpression < :InferredExpression,
   fields: {
-    fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",
+    fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<InferredExpression>>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :ArrayLiteralExpression < :Expression,
+ast_node :ArrayLiteralExpression < :InferredExpression,
   fields: {
-    items: "std::vector<std::unique_ptr<Expression>>",
+    items: "std::vector<std::unique_ptr<InferredExpression>>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :CallExpression < :Expression,
+ast_node :CallExpression < :InferredExpression,
   fields: {
-    callee: "std::unique_ptr<Expression>",
-    arguments: "std::vector<std::unique_ptr<Expression>>",
+    callee: "std::unique_ptr<InferredExpression>",
+    arguments: "std::vector<std::unique_ptr<CheckedExpression>>",
   },
   extra_methods: [
-    "CallExpression(std::unique_ptr<Expression>)",
+    "CallExpression(std::unique_ptr<InferredExpression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
     "void checkCallee(TypeChecker&, Register, Label&)",
     "void checkArguments(TypeChecker&, Register, Label&)",
   ]
 
-ast_node :SubscriptExpression < :Expression,
+ast_node :SubscriptExpression < :InferredExpression,
   fields: {
-    target: "std::unique_ptr<Expression>",
-    index: "std::unique_ptr<Expression>",
+    target: "std::unique_ptr<InferredExpression>",
+    index: "std::unique_ptr<CheckedExpression>",
   },
   extra_methods: [
-    "SubscriptExpression(std::unique_ptr<Expression>)",
+    "SubscriptExpression(std::unique_ptr<InferredExpression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :MemberExpression < :Expression,
+ast_node :MemberExpression < :InferredExpression,
   fields: {
-    object: "std::unique_ptr<Expression>",
+    object: "std::unique_ptr<InferredExpression>",
     property: "std::unique_ptr<Identifier>",
   },
   extra_methods: [
-    "MemberExpression(std::unique_ptr<Expression>)",
+    "MemberExpression(std::unique_ptr<InferredExpression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :LiteralExpression < :Expression,
+ast_node :LiteralExpression < :InferredExpression,
   fields: {
     literal: "std::unique_ptr<Literal>",
   },
@@ -110,15 +117,4 @@ ast_node :LiteralExpression < :Expression,
     "LiteralExpression(std::unique_ptr<Literal>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
   ]
-
-ast_node :TypedIdentifier < :Node,
-    fields: {
-        name: "std::unique_ptr<Identifier>",
-        type: "std::unique_ptr<Expression>",
-        inferred: "bool",
-    },
-    extra_methods: [
-        "virtual void infer(TypeChecker&, Register)",
-    ]

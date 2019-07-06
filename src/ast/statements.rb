@@ -32,7 +32,7 @@ ast_node :BlockStatement < :Statement,
 
 ast_node :ReturnStatement < :Statement,
   fields: {
-    expression: "std::optional<std::unique_ptr<Expression>>",
+    expression: "std::optional<std::unique_ptr<InferredExpression>>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
@@ -41,7 +41,7 @@ ast_node :ReturnStatement < :Statement,
 
 ast_node :IfStatement < :Statement,
   fields: {
-    condition: "std::unique_ptr<Expression>",
+    condition: "std::unique_ptr<CheckedExpression>",
     consequent: "std::unique_ptr<Statement>",
     alternate: "std::optional<std::unique_ptr<Statement>>",
   },
@@ -87,10 +87,10 @@ ast_node :ForStatement < :Statement,
 
 ast_node :ExpressionStatement < :Statement,
   fields: {
-    expression: "std::unique_ptr<Expression>",
+    expression: "std::unique_ptr<InferredExpression>",
   },
   extra_methods: [
-    "ExpressionStatement(std::unique_ptr<Expression>)",
+    "ExpressionStatement(std::unique_ptr<InferredExpression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
     "virtual void check(TypeChecker&, Register)",

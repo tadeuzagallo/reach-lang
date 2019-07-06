@@ -27,23 +27,24 @@ public:
     std::unique_ptr<WhileStatement> parseWhileStatement(const Token& t);
     std::unique_ptr<ReturnStatement> parseReturnStatement(const Token& t);
 
-    std::unique_ptr<Expression> parseExpression(const Token&);
+    std::unique_ptr<InferredExpression> parseInferredExpression(const Token&);
+    std::unique_ptr<CheckedExpression> parseCheckedExpression(const Token&);
 
-    std::unique_ptr<Expression> parseSuffixExpression(std::unique_ptr<Expression>, bool*);
-    std::unique_ptr<CallExpression> parseCallExpression(std::unique_ptr<Expression>);
-    std::unique_ptr<Expression> parseSubscriptExpression(std::unique_ptr<Expression>);
-    std::unique_ptr<Expression> parseMemberExpression(std::unique_ptr<Expression>);
-    std::unique_ptr<Expression> parseBinaryExpression(std::unique_ptr<Expression>, bool*);
-    std::unique_ptr<FunctionTypeExpression> parseFunctionTypeExpression(std::unique_ptr<Expression>);
-    std::unique_ptr<UnionTypeExpression> parseUnionTypeExpression(std::unique_ptr<Expression>);
+    std::unique_ptr<InferredExpression> parseSuffixExpression(std::unique_ptr<InferredExpression>, bool*);
+    std::unique_ptr<CallExpression> parseCallExpression(std::unique_ptr<InferredExpression>);
+    std::unique_ptr<InferredExpression> parseSubscriptExpressionOrArrayType(std::unique_ptr<InferredExpression>);
+    std::unique_ptr<InferredExpression> parseMemberExpressionOrUFCSCall(std::unique_ptr<InferredExpression>);
+    std::unique_ptr<InferredExpression> parseBinaryExpression(std::unique_ptr<InferredExpression>, bool*);
+    std::unique_ptr<FunctionTypeExpression> parseFunctionTypeExpression(std::unique_ptr<InferredExpression>);
+    std::unique_ptr<UnionTypeExpression> parseUnionTypeExpression(std::unique_ptr<InferredExpression>);
 
-    std::unique_ptr<Expression> parsePrimaryExpression(const Token&);
+    std::unique_ptr<InferredExpression> parsePrimaryExpression(const Token&);
     std::unique_ptr<Identifier> parseIdentifier(const Token&);
     std::unique_ptr<Identifier> parseOperator(const Token&);
     std::unique_ptr<ArrayLiteralExpression> parseArrayLiteralExpression(const Token&);
     std::unique_ptr<TypeExpression> parseTypeExpression(const Token&);
-    std::unique_ptr<Expression> parseObjectLiteralExpression(const Token&);
-    std::unique_ptr<Expression> parseParenthesizedExpressionOrTuple(const Token&);
+    std::unique_ptr<InferredExpression> parseObjectLiteralExpressionOrObjectType(const Token&);
+    std::unique_ptr<InferredExpression> parseParenthesizedExpressionOrTuple(const Token&);
     std::unique_ptr<TupleTypeExpression> parseTupleTypeExpression(const Token&);
 
     std::unique_ptr<Literal> parseLiteral(const Token&);

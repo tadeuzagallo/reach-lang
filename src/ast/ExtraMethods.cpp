@@ -9,13 +9,23 @@ void Program::dump(std::ostream& out)
   dump(out, 0);
 }
 
+Expression::Expression(const Token& t)
+    : Node(t)
+{
+}
+
+CheckedExpression::CheckedExpression(const Token& t)
+    : Expression(t)
+{
+}
+
 StatementDeclaration::StatementDeclaration(std::unique_ptr<Statement> stmt)
   : Declaration(stmt->location)
   , statement(std::move(stmt))
 { }
 
 Identifier::Identifier(const Token& t, bool isOperator)
-  : Expression(t)
+  : InferredExpression(t)
   , name(t.lexeme())
   , isOperator(isOperator)
 { }
@@ -32,26 +42,26 @@ std::ostream& operator<<(std::ostream& out, const Identifier& ident)
 }
 
 LiteralExpression::LiteralExpression(std::unique_ptr<Literal> lit)
-  : Expression(lit->location)
+  : InferredExpression(lit->location)
   , literal(std::move(lit))
 { }
 
-CallExpression::CallExpression(std::unique_ptr<Expression> expr)
-  : Expression(expr->location)
+CallExpression::CallExpression(std::unique_ptr<InferredExpression> expr)
+  : InferredExpression(expr->location)
   , callee(std::move(expr))
 { }
 
-MemberExpression::MemberExpression(std::unique_ptr<Expression> expr)
-  : Expression(expr->location)
+MemberExpression::MemberExpression(std::unique_ptr<InferredExpression> expr)
+  : InferredExpression(expr->location)
   , object(std::move(expr))
 { }
 
-SubscriptExpression::SubscriptExpression(std::unique_ptr<Expression> expr)
-  : Expression(expr->location)
+SubscriptExpression::SubscriptExpression(std::unique_ptr<InferredExpression> expr)
+  : InferredExpression(expr->location)
   , target(std::move(expr))
 { }
 
-ExpressionStatement::ExpressionStatement(std::unique_ptr<Expression> expr)
+ExpressionStatement::ExpressionStatement(std::unique_ptr<InferredExpression> expr)
   : Statement(expr->location)
   , expression(std::move(expr))
 { }

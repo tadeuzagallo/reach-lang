@@ -200,6 +200,13 @@ void ExpressionStatement::check(TypeChecker& tc, Register result)
 }
 
 
+void InferredExpression::check(TypeChecker& tc, Register type)
+{
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
+}
+
 // Expressions
 
 void Identifier::infer(TypeChecker& tc, Register result)
@@ -207,22 +214,9 @@ void Identifier::infer(TypeChecker& tc, Register result)
     tc.lookup(result, location, name);
 }
 
-void Identifier::check(TypeChecker& tc, Register type)
-{
-    // TODO: we'll eventually need something custom here
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
 void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
 {
     expression->infer(tc, result);
-}
-
-void ParenthesizedExpression::check(TypeChecker& tc, Register type)
-{
-    expression->check(tc, type);
 }
 
 void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
@@ -242,14 +236,6 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
     tc.newRecordValue(result, fieldRegisters);
 }
 
-void ObjectLiteralExpression::check(TypeChecker& tc, Register type)
-{
-    // TODO: can we do better here?
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
 void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
     if (items.size()) {
@@ -262,14 +248,6 @@ void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
         items[i]->check(tc, result);
 
     tc.newArrayValue(result, result);
-}
-
-void ArrayLiteralExpression::check(TypeChecker& tc, Register type)
-{
-    // TODO: this should propagate check for nested types
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
 }
 
 void TupleExpression::infer(TypeChecker& tc, Register result)
@@ -285,14 +263,6 @@ void TupleExpression::infer(TypeChecker& tc, Register result)
     }
 
     tc.generator().newValue(result, result);
-}
-
-void TupleExpression::check(TypeChecker& tc, Register type)
-{
-    // TODO: this should propagate check for nested types, but requires generating a for loop
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
 }
 
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
@@ -373,22 +343,6 @@ void CallExpression::infer(TypeChecker& tc, Register result)
     tc.generator().emit(done);
 }
 
-void CallExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    Label done = tc.generator().label();
-    {
-        TypeChecker::UnificationScope scope(tc);
-        checkCallee(tc, tmp, done);
-        checkArguments(tc, tmp, done);
-        tc.generator().getField(tmp, tmp, TypeFunction::returnTypeField);
-        scope.resolve(tmp, tmp);
-        tc.newValue(tmp, tmp);
-    }
-    tc.unify(location, tmp, type);
-    tc.generator().emit(done);
-}
-
 void SubscriptExpression::infer(TypeChecker& tc, Register result)
 {
     target->infer(tc, result);
@@ -405,15 +359,6 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     index->check(tc, tc.numberType());
 }
 
-void SubscriptExpression::check(TypeChecker& tc, Register itemType)
-{
-    Register tmp = tc.generator().newLocal();
-    tc.generator().newArrayType(tmp, itemType);
-    target->check(tc, tmp);
-
-    index->check(tc, tc.numberType());
-}
-
 void MemberExpression::infer(TypeChecker& tc, Register result)
 {
     TypeChecker::UnificationScope scope(tc);
@@ -425,27 +370,12 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
     tc.generator().newValue(result, result);
 }
 
-void MemberExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    tc.generator().newRecordType(tmp, { { property->name, type } });
-    object->check(tc, tmp);
-}
-
 void LiteralExpression::infer(TypeChecker& tc, Register result)
 {
     literal->infer(tc, result);
 }
 
-void LiteralExpression::check(TypeChecker& tc, Register result)
-{
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, result);
-}
-
 // Literals
-
 void BooleanLiteral::infer(TypeChecker& tc, Register result)
 {
     tc.boolValue(result);
@@ -477,14 +407,6 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
         tc.generator().newValue(tmp, result);
         tc.insert(name->name, tmp);
     });
-}
-
-void TypeExpression::check(TypeChecker& tc, Register type)
-{
-    tc.unify(location, type, tc.typeType());
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
 }
 
 void TypeTypeExpression::infer(TypeChecker& tc, Register result)

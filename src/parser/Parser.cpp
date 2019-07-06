@@ -84,16 +84,14 @@ std::unique_ptr<LexicalDeclaration> Parser::parseLexicalDeclaration(const Token&
     auto decl = std::make_unique<LexicalDeclaration>(t);
     decl->name = parseIdentifier(m_lexer.next());
 
+    // TODO: if we have a type declaration there's we can have a checked expression here
     if (m_lexer.peek().type == Token::COLON) {
         CONSUME(Token::COLON);
-        decl->type = parseExpression(m_lexer.next());
+        decl->type = parseInferredExpression(m_lexer.next());
     }
 
     CONSUME(Token::EQUAL);
-    decl->initializer = parseExpression(m_lexer.next());
-
-    //ASSERT(m_lexer.peek().type == Token::SEMICOLON, "Expected semicolon after lexical declaration");
-    //m_lexer.next();
+    decl->initializer = parseInferredExpression(m_lexer.next());
 
     return decl;
 }
@@ -118,7 +116,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration(const Toke
     }
     CONSUME(Token::R_PAREN);
     CONSUME(Token::ARROW);
-    fn->returnType = parseExpression(m_lexer.next());
+    fn->returnType = parseInferredExpression(m_lexer.next());
     fn->body = parseBlockStatement(m_lexer.next());
 
     return fn;
@@ -142,7 +140,7 @@ std::unique_ptr<Statement> Parser::parseStatement(const Token& t, IsTopLevel isT
             return parseBlockStatement(t);
         // fallthrough;
     default:
-        auto expr = wrap<ExpressionStatement>(parseExpression(t));
+        auto expr = wrap<ExpressionStatement>(parseInferredExpression(t));
         //ASSERT(m_lexer.peek().type == Token::SEMICOLON, "Expected semicolon after lexical expression");
         //m_lexer.next();
         return expr;
@@ -167,7 +165,7 @@ std::unique_ptr<IfStatement> Parser::parseIfStatement(const Token& t)
 
     CHECK(t, Token::IF);
     CONSUME(Token::L_PAREN);
-    ifStmt->condition = parseExpression(m_lexer.next());
+    ifStmt->condition = parseCheckedExpression(m_lexer.next());
     CONSUME(Token::R_PAREN);
 
     ifStmt->consequent = parseStatement(m_lexer.next());
@@ -200,12 +198,18 @@ std::unique_ptr<ReturnStatement> Parser::parseReturnStatement(const Token& t)
     //if (next.type == Token::SEMICOLON)
     //return ret;
 
-    ret->expression = parseExpression(next);
+    ret->expression = parseInferredExpression(next);
     //ASSERT(m_lexer.next().type == Token::SEMICOLON, "Expected semicolon after return statement");
     return ret;
 }
 
-std::unique_ptr<Expression> Parser::parseExpression(const Token& t)
+std::unique_ptr<CheckedExpression> Parser::parseCheckedExpression(const Token& t)
+{
+    // TODO: parse lambda
+    return parseInferredExpression(t);
+}
+
+std::unique_ptr<InferredExpression> Parser::parseInferredExpression(const Token& t)
 {
     auto expr = parsePrimaryExpression(t);
     bool stop = false;
@@ -214,15 +218,15 @@ std::unique_ptr<Expression> Parser::parseExpression(const Token& t)
     return expr;
 }
 
-std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expression> expr, bool* stop)
+std::unique_ptr<InferredExpression> Parser::parseSuffixExpression(std::unique_ptr<InferredExpression> expr, bool* stop)
 {
     switch (m_lexer.peek().type) {
     case Token::L_PAREN:
         return parseCallExpression(std::move(expr));
     case Token::L_SQUARE:
-        return parseSubscriptExpression(std::move(expr));
+        return parseSubscriptExpressionOrArrayType(std::move(expr));
     case Token::DOT:
-        return parseMemberExpression(std::move(expr));
+        return parseMemberExpressionOrUFCSCall(std::move(expr));
     case Token::ARROW:
         return parseFunctionTypeExpression(std::move(expr));
     case Token::PIPE:
@@ -236,7 +240,7 @@ std::unique_ptr<Expression> Parser::parseSuffixExpression(std::unique_ptr<Expres
     }
 }
 
-std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expression> callee)
+std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<InferredExpression> callee)
 {
     CONSUME(Token::L_PAREN);
 
@@ -248,7 +252,7 @@ std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expr
         call = std::make_unique<CallExpression>(std::move(callee));
 
     while (m_lexer.peek().type != Token::R_PAREN) {
-        call->arguments.emplace_back(parseExpression(m_lexer.next()));
+        call->arguments.emplace_back(parseCheckedExpression(m_lexer.next()));
         if (m_lexer.peek().type == Token::COMMA)
             m_lexer.next();
         else
@@ -259,7 +263,7 @@ std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expr
     return call;
 }
 
-std::unique_ptr<Expression> Parser::parseSubscriptExpression(std::unique_ptr<Expression> target)
+std::unique_ptr<InferredExpression> Parser::parseSubscriptExpressionOrArrayType(std::unique_ptr<InferredExpression> target)
 {
     auto firstToken = m_lexer.next();
     CHECK(firstToken, Token::L_SQUARE);
@@ -270,13 +274,13 @@ std::unique_ptr<Expression> Parser::parseSubscriptExpression(std::unique_ptr<Exp
         return std::move(array);
     }
     auto subscript = std::make_unique<SubscriptExpression>(std::move(target));
-    subscript->index = parseExpression(tok);
+    subscript->index = parseCheckedExpression(tok);
     CONSUME(Token::R_SQUARE);
 
     return std::move(subscript);
 }
 
-std::unique_ptr<Expression> Parser::parseMemberExpression(std::unique_ptr<Expression> object)
+std::unique_ptr<InferredExpression> Parser::parseMemberExpressionOrUFCSCall(std::unique_ptr<InferredExpression> object)
 {
     CONSUME(Token::DOT);
 
@@ -291,7 +295,7 @@ std::unique_ptr<Expression> Parser::parseMemberExpression(std::unique_ptr<Expres
     return std::move(expr);
 }
 
-std::unique_ptr<FunctionTypeExpression> Parser::parseFunctionTypeExpression(std::unique_ptr<Expression> parameters)
+std::unique_ptr<FunctionTypeExpression> Parser::parseFunctionTypeExpression(std::unique_ptr<InferredExpression> parameters)
 {
     CONSUME(Token::ARROW);
 
@@ -300,21 +304,21 @@ std::unique_ptr<FunctionTypeExpression> Parser::parseFunctionTypeExpression(std:
         type->parameters = std::move(tuple->items);
     else
         type->parameters.emplace_back(std::move(parameters));
-    type->returnType = parseExpression(m_lexer.next());
+    type->returnType = parseInferredExpression(m_lexer.next());
     return type;
 }
 
-std::unique_ptr<UnionTypeExpression> Parser::parseUnionTypeExpression(std::unique_ptr<Expression> lhs)
+std::unique_ptr<UnionTypeExpression> Parser::parseUnionTypeExpression(std::unique_ptr<InferredExpression> lhs)
 {
     CONSUME(Token::PIPE);
 
     auto type = std::make_unique<UnionTypeExpression>(lhs->location);
     type->lhs = std::move(lhs);
-    type->rhs = parseExpression(m_lexer.next());
+    type->rhs = parseInferredExpression(m_lexer.next());
     return type;
 }
 
-std::unique_ptr<Expression> Parser::parseBinaryExpression(std::unique_ptr<Expression> lhs, bool* stop)
+std::unique_ptr<InferredExpression> Parser::parseBinaryExpression(std::unique_ptr<InferredExpression> lhs, bool* stop)
 {
     auto op = m_lexer.getOperator(m_endsWithToken);
     if (op.type != Token::OPERATOR) {
@@ -324,10 +328,10 @@ std::unique_ptr<Expression> Parser::parseBinaryExpression(std::unique_ptr<Expres
 
     auto expr = std::make_unique<CallExpression>(parseOperator(op));
     expr->arguments.emplace_back(std::move(lhs));
-    expr->arguments.emplace_back(parseExpression(m_lexer.next()));
+    expr->arguments.emplace_back(parseCheckedExpression(m_lexer.next()));
     return expr;
 }
-std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
+std::unique_ptr<InferredExpression> Parser::parsePrimaryExpression(const Token &t)
 {
     switch (t.type) {
     case Token::L_SQUARE: {
@@ -336,7 +340,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
     }
     case Token::L_BRACE: {
         EndsWith endsWith(*this, Token::R_BRACE);
-        return parseObjectLiteralExpression(t);
+        return parseObjectLiteralExpressionOrObjectType(t);
     }
     case Token::L_PAREN: {
         EndsWith endsWith(*this, Token::R_PAREN);
@@ -363,7 +367,7 @@ std::unique_ptr<ArrayLiteralExpression> Parser::parseArrayLiteralExpression(cons
     auto array = std::make_unique<ArrayLiteralExpression>(t);
     Token tok = m_lexer.next();
     while (tok.type != Token::R_SQUARE) {
-        array->items.push_back(parseExpression(tok));
+        array->items.push_back(parseInferredExpression(tok));
         tok = m_lexer.next();
         if (tok.type == Token::COMMA)
             tok = m_lexer.next();
@@ -374,7 +378,7 @@ std::unique_ptr<ArrayLiteralExpression> Parser::parseArrayLiteralExpression(cons
     return array;
 }
 
-std::unique_ptr<Expression> Parser::parseObjectLiteralExpression(const Token& t)
+std::unique_ptr<InferredExpression> Parser::parseObjectLiteralExpressionOrObjectType(const Token& t)
 {
     CHECK(t, Token::L_BRACE);
 
@@ -387,10 +391,10 @@ std::unique_ptr<Expression> Parser::parseObjectLiteralExpression(const Token& t)
     }
 
     auto name = parseIdentifier(tok);
-    auto parse = [&](Token::Type separator, auto&& object) -> std::unique_ptr<Expression> {
+    auto parse = [&](Token::Type separator, auto&& object) -> std::unique_ptr<InferredExpression> {
         CHECK(tok, separator);
         for (;;) {
-            auto value = parseExpression(m_lexer.next());
+            auto value = parseInferredExpression(m_lexer.next());
             object->fields[std::move(name)] = std::move(value);
             tok = m_lexer.next();
             if (tok.type != Token::COMMA)
@@ -417,7 +421,7 @@ std::unique_ptr<Expression> Parser::parseObjectLiteralExpression(const Token& t)
     }
 }
 
-std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const Token& t)
+std::unique_ptr<InferredExpression> Parser::parseParenthesizedExpressionOrTuple(const Token& t)
 {
     CHECK(t, Token::L_PAREN);
 
@@ -427,7 +431,7 @@ std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const To
         return std::move(op);
     }
 
-    auto expr = parseExpression(m_lexer.next());
+    auto expr = parseInferredExpression(m_lexer.next());
     auto tok = m_lexer.next();
     switch (tok.type) {
     case Token::R_PAREN: {
@@ -439,7 +443,7 @@ std::unique_ptr<Expression> Parser::parseParenthesizedExpressionOrTuple(const To
         auto tuple = std::make_unique<TupleExpression>(t);
         tuple->items.emplace_back(std::move(expr));
         for (;;) {
-            tuple->items.emplace_back(parseExpression(m_lexer.next()));
+            tuple->items.emplace_back(parseInferredExpression(m_lexer.next()));
             if (m_lexer.peek().type != Token::COMMA)
                 break;
             CONSUME(Token::COMMA);
@@ -458,7 +462,7 @@ std::unique_ptr<TupleTypeExpression> Parser::parseTupleTypeExpression(const Toke
     CHECK(t, Token::L_ANGLE);
     auto tupleType = std::make_unique<TupleTypeExpression>(t);
     while (m_lexer.peek().type != Token::R_ANGLE) {
-        tupleType->items.push_back(parseExpression(m_lexer.next()));
+        tupleType->items.push_back(parseInferredExpression(m_lexer.next()));
         if (m_lexer.peek().type != Token::COMMA)
             break;
         m_lexer.next();
@@ -492,7 +496,7 @@ std::unique_ptr<TypedIdentifier> Parser::parseTypedIdentifier(const Token& t)
         typedIdentifier->name = parseIdentifier(t);
     }
     CONSUME(Token::COLON);
-    typedIdentifier->type = parseExpression(m_lexer.next());
+    typedIdentifier->type = parseInferredExpression(m_lexer.next());
     return typedIdentifier;
 }
 

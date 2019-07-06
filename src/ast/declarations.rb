@@ -16,19 +16,29 @@ ast_node :Declaration < :Node,
 ast_node :LexicalDeclaration < :Declaration,
   fields: {
     name: "std::unique_ptr<Identifier>",
-    type: "std::unique_ptr<Expression>",
-    initializer: "std::unique_ptr<Expression>"
+    type: "std::unique_ptr<InferredExpression>",
+    initializer: "std::unique_ptr<InferredExpression>" # TODO: this could be checked if type is present
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void check(TypeChecker&, Register)",
   ]
 
+ast_node :TypedIdentifier < :Node,
+    fields: {
+        name: "std::unique_ptr<Identifier>",
+        type: "std::unique_ptr<InferredExpression>",
+        inferred: "bool",
+    },
+    extra_methods: [
+        "virtual void infer(TypeChecker&, Register)",
+    ]
+
 ast_node :FunctionDeclaration < :Declaration,
   fields: {
     name: "std::unique_ptr<Identifier>",
     parameters: "std::vector<std::unique_ptr<TypedIdentifier>>",
-    returnType: "std::unique_ptr<Expression>",
+    returnType: "std::unique_ptr<InferredExpression>",
     body: "std::unique_ptr<BlockStatement>",
     functionIndex: "uint32_t",
   },
