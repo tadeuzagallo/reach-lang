@@ -36,11 +36,6 @@ LiteralExpression::LiteralExpression(std::unique_ptr<Literal> lit)
   , literal(std::move(lit))
 { }
 
-TypeExpression::TypeExpression(std::unique_ptr<ASTType> type)
-  : Expression(type->location)
-  , type(std::move(type))
-{ }
-
 CallExpression::CallExpression(std::unique_ptr<Expression> expr)
   : Expression(expr->location)
   , callee(std::move(expr))

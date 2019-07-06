@@ -350,9 +350,9 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression(const Token &t)
         //return parseFunctionExpression(t);
     case Token::IDENTIFIER:
         return parseIdentifier(t);
+    case Token::TYPE:
+        return parseTypeType(t);
     default:
-        if (auto typeExpression = wrap<TypeExpression>(parseType(t)))
-            return typeExpression;
         return wrap<LiteralExpression>(parseLiteral(t));
     }
 }
@@ -537,21 +537,10 @@ std::unique_ptr<BooleanLiteral> Parser::parseBooleanLiteral(const Token& t, bool
     return boolean;
 }
 
-// Types
-std::unique_ptr<ASTType> Parser::parseType(const Token& t)
-{
-    switch (t.type) {
-    case Token::TYPE:
-        return parseTypeType(t);
-    default:
-        return nullptr;
-    };
-}
-
-std::unique_ptr<ASTTypeType> Parser::parseTypeType(const Token& t)
+std::unique_ptr<TypeTypeExpression> Parser::parseTypeType(const Token& t)
 {
     CHECK(t, Token::TYPE);
-    return std::make_unique<ASTTypeType>(t);
+    return std::make_unique<TypeTypeExpression>(t);
 }
 
 // Error handling

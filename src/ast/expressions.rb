@@ -1,4 +1,3 @@
-import "types.h"
 import "literals.h"
 import :vector
 import :map
@@ -45,49 +44,7 @@ ast_node :TupleExpression < :Expression,
     "virtual void check(TypeChecker&, Register)",
   ]
 
-ast_node :TupleTypeExpression < :Expression,
-  fields: {
-    items: "std::vector<std::unique_ptr<Expression>>",
-  },
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
-
-ast_node :FunctionTypeExpression < :Expression,
-  fields: {
-    parameters: "std::vector<std::unique_ptr<Expression>>",
-    returnType: "std::unique_ptr<Expression>",
-  },
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
-
-ast_node :UnionTypeExpression < :Expression,
-  fields: {
-    lhs: "std::unique_ptr<Expression>",
-    rhs: "std::unique_ptr<Expression>",
-  },
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
-
 ast_node :ObjectLiteralExpression < :Expression,
-  fields: {
-    fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",
-  },
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
-
-ast_node :ObjectTypeExpression < :Expression,
   fields: {
     fields: "std::map<std::unique_ptr<Identifier>, std::unique_ptr<Expression>>",
   },
@@ -100,16 +57,6 @@ ast_node :ObjectTypeExpression < :Expression,
 ast_node :ArrayLiteralExpression < :Expression,
   fields: {
     items: "std::vector<std::unique_ptr<Expression>>",
-  },
-  extra_methods: [
-    "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
-    "virtual void check(TypeChecker&, Register)",
-  ]
-
-ast_node :ArrayTypeExpression < :Expression,
-  fields: {
-    itemType: "std::unique_ptr<Expression>",
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
@@ -165,28 +112,6 @@ ast_node :LiteralExpression < :Expression,
     "virtual void infer(TypeChecker&, Register)",
     "virtual void check(TypeChecker&, Register)",
   ]
-
-
-ast_node :SynthesizedTypeExpression < :Expression,
-    fields: {
-        typeIndex: "uint32_t",
-    },
-    extra_methods: [
-        "virtual void generate(BytecodeGenerator&, Register)",
-        "virtual void infer(TypeChecker&, Register)",
-        "virtual void check(TypeChecker&, Register)",
-    ]
-
-ast_node :TypeExpression < :Expression,
-    fields: {
-        type: "std::unique_ptr<ASTType>",
-    },
-    extra_methods: [
-        "TypeExpression(std::unique_ptr<ASTType>)",
-        "virtual void generate(BytecodeGenerator&, Register)",
-        "virtual void infer(TypeChecker&, Register)",
-        "virtual void check(TypeChecker&, Register)",
-    ]
 
 ast_node :TypedIdentifier < :Node,
     fields: {

@@ -6,9 +6,8 @@
 template<typename T>
 void TypeChecker::inferAsType(T& node, Register result)
 {
-    node->check(*this, typeType());
-    node->generate(m_generator, result);
-
+    node->infer(*this, result);
+    unify(node->location, result, typeType());
     // If the node is not a type, return the unit type so we can continue
     Register tmp = m_generator.newLocal();
     m_generator.checkType(tmp, result, Type::Class::AnyType);
@@ -296,76 +295,6 @@ void TupleExpression::check(TypeChecker& tc, Register type)
     tc.unify(location, tmp, type);
 }
 
-void ArrayTypeExpression::infer(TypeChecker& tc, Register result)
-{
-    itemType->check(tc, tc.typeType());
-    generate(tc.generator(), result);
-}
-
-void ArrayTypeExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
-void ObjectTypeExpression::infer(TypeChecker& tc, Register result)
-{
-    for (auto& field : fields)
-        field.second->check(tc, tc.typeType());
-    generate(tc.generator(), result);
-}
-
-void ObjectTypeExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
-void TupleTypeExpression::infer(TypeChecker& tc, Register result)
-{
-    for (auto& item : items)
-        item->check(tc, tc.typeType());
-    generate(tc.generator(), result);
-}
-
-void TupleTypeExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
-void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
-{
-    for (auto& param : parameters)
-        param->check(tc, tc.typeType());
-    returnType->check(tc, tc.typeType());
-    generate(tc.generator(), result);
-}
-
-void FunctionTypeExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
-void UnionTypeExpression::infer(TypeChecker& tc, Register result)
-{
-    lhs->check(tc, tc.typeType());
-    rhs->check(tc, tc.typeType());
-    generate(tc.generator(), result);
-}
-
-void UnionTypeExpression::check(TypeChecker& tc, Register type)
-{
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, type);
-}
-
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
 {
     callee->infer(tc, result);
@@ -515,29 +444,6 @@ void LiteralExpression::check(TypeChecker& tc, Register result)
     tc.unify(location, tmp, result);
 }
 
-void TypeExpression::infer(TypeChecker& tc, Register result)
-{
-    type->infer(tc, result);
-}
-void TypeExpression::check(TypeChecker& tc, Register result)
-{
-    tc.unify(location, result, tc.typeType());
-    Register tmp = tc.generator().newLocal();
-    infer(tc, tmp);
-    tc.unify(location, tmp, result);
-}
-
-void SynthesizedTypeExpression::infer(TypeChecker& tc, Register)
-{
-    tc.generator().typeError(location, "Should not infer type for SynthesizedTypeExpression");
-}
-
-void SynthesizedTypeExpression::check(TypeChecker& tc, Register)
-{
-    tc.generator().typeError(location, "Should not type check SynthesizedTypeExpression");
-}
-
-
 // Literals
 
 void BooleanLiteral::infer(TypeChecker& tc, Register result)
@@ -573,7 +479,55 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
     });
 }
 
-void ASTTypeType::infer(TypeChecker& tc, Register result)
+void TypeExpression::check(TypeChecker& tc, Register type)
+{
+    tc.unify(location, type, tc.typeType());
+    Register tmp = tc.generator().newLocal();
+    infer(tc, tmp);
+    tc.unify(location, tmp, type);
+}
+
+void TypeTypeExpression::infer(TypeChecker& tc, Register result)
 {
     tc.generator().move(result, tc.typeType());
+}
+
+void SynthesizedTypeExpression::infer(TypeChecker& tc, Register)
+{
+    tc.generator().typeError(location, "Should not infer type for SynthesizedTypeExpression");
+}
+
+void ArrayTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    itemType->check(tc, tc.typeType());
+    generate(tc.generator(), result);
+}
+
+void ObjectTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    for (auto& field : fields)
+        field.second->check(tc, tc.typeType());
+    generate(tc.generator(), result);
+}
+
+void TupleTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    for (auto& item : items)
+        item->check(tc, tc.typeType());
+    generate(tc.generator(), result);
+}
+
+void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    for (auto& param : parameters)
+        param->check(tc, tc.typeType());
+    returnType->check(tc, tc.typeType());
+    generate(tc.generator(), result);
+}
+
+void UnionTypeExpression::infer(TypeChecker& tc, Register result)
+{
+    lhs->check(tc, tc.typeType());
+    rhs->check(tc, tc.typeType());
+    generate(tc.generator(), result);
 }

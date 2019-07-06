@@ -51,8 +51,7 @@ public:
     std::unique_ptr<StringLiteral> parseStringLiteral(const Token&);
     std::unique_ptr<BooleanLiteral> parseBooleanLiteral(const Token&, bool);
 
-    std::unique_ptr<ASTType> parseType(const Token&);
-    std::unique_ptr<ASTTypeType> parseTypeType(const Token&);
+    std::unique_ptr<TypeTypeExpression> parseTypeType(const Token&);
 
     void parseError(const Token&, const std::string&);
     void unexpectedToken(const Token&);

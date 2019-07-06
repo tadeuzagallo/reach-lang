@@ -1,7 +1,6 @@
 import "BytecodeGenerator.h"
 import "expressions.h"
 import "statements.h"
-import "types.h"
 
 import :memory
 import :optional

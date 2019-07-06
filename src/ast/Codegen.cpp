@@ -1,6 +1,7 @@
 #include "program.h"
 #include "BytecodeGenerator.h"
 #include "RhString.h"
+#include "TypeExpressions.h"
 
 std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) const
 {
@@ -124,6 +125,83 @@ void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register ds
     }
 }
 
+void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.newArray(dst, items.size());
+    for (unsigned i = 0; i < items.size(); i++) {
+        Register tmp = generator.newLocal();
+        items[i]->generate(generator, tmp);
+        generator.setArrayIndex(dst, i, tmp);
+    }
+}
+
+void TupleExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.newTuple(dst, items.size());
+    for (unsigned i = 0; i < items.size(); i++) {
+        Register tmp = generator.newLocal();
+        items[i]->generate(generator, tmp);
+        generator.setTupleIndex(dst, i, tmp);
+    }
+}
+
+void CallExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    Register calleeReg = generator.newLocal();
+    callee->generate(generator, calleeReg);
+    std::vector<Register> args;
+    for (size_t i = 0; i < arguments.size(); i++)
+        args.push_back(generator.newLocal());
+    for (size_t i = 0; i < arguments.size(); i++)
+        arguments[i]->generate(generator, args[i]);
+    generator.call(dst, calleeReg, args);
+}
+
+void SubscriptExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    target->generate(generator, dst);
+    Register tmp = generator.newLocal();
+    index->generate(generator, tmp);
+    generator.getArrayIndex(dst, dst, tmp);
+}
+
+void MemberExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    object->generate(generator, dst);
+    generator.getField(dst, dst, property->name);
+}
+
+void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    return literal->generate(generator, dst);
+}
+
+// Literals
+
+void BooleanLiteral::generate(BytecodeGenerator& generator, Register dst)
+{
+    return generator.loadConstant(dst, value);
+}
+
+void NumericLiteral::generate(BytecodeGenerator& generator, Register dst)
+{
+    return generator.loadConstant(dst, value);
+}
+
+void StringLiteral::generate(BytecodeGenerator& generator, Register dst)
+{
+    String* string = String::create(generator.vm(), value);
+    return generator.loadConstant(dst, string);
+}
+
+
+// Types
+
+void TypeTypeExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    generator.loadConstant(dst, generator.vm().typeType);
+}
+
 void ObjectTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.newRecordType(dst, {});
@@ -168,96 +246,13 @@ void UnionTypeExpression::generate(BytecodeGenerator& generator, Register dst)
     generator.newUnionType(dst, dst, tmp);
 }
 
-void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    generator.newArray(dst, items.size());
-    for (unsigned i = 0; i < items.size(); i++) {
-        Register tmp = generator.newLocal();
-        items[i]->generate(generator, tmp);
-        generator.setArrayIndex(dst, i, tmp);
-    }
-}
-
-void TupleExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    generator.newTuple(dst, items.size());
-    for (unsigned i = 0; i < items.size(); i++) {
-        Register tmp = generator.newLocal();
-        items[i]->generate(generator, tmp);
-        generator.setTupleIndex(dst, i, tmp);
-    }
-}
-
 void ArrayTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     itemType->generate(generator, dst);
     generator.newArrayType(dst, dst);
 }
 
-void CallExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    Register calleeReg = generator.newLocal();
-    callee->generate(generator, calleeReg);
-    std::vector<Register> args;
-    for (size_t i = 0; i < arguments.size(); i++)
-        args.push_back(generator.newLocal());
-    for (size_t i = 0; i < arguments.size(); i++)
-        arguments[i]->generate(generator, args[i]);
-    generator.call(dst, calleeReg, args);
-}
-
-void SubscriptExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    target->generate(generator, dst);
-    Register tmp = generator.newLocal();
-    index->generate(generator, tmp);
-    generator.getArrayIndex(dst, dst, tmp);
-}
-
-void MemberExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    object->generate(generator, dst);
-    generator.getField(dst, dst, property->name);
-}
-
-void LiteralExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    return literal->generate(generator, dst);
-}
-
 void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     return generator.loadConstantIndex(dst, typeIndex);
-}
-
-void TypeExpression::generate(BytecodeGenerator& generator, Register dst)
-{
-    type->generate(generator, dst);
-}
-
-
-// Literals
-
-void BooleanLiteral::generate(BytecodeGenerator& generator, Register dst)
-{
-    return generator.loadConstant(dst, value);
-}
-
-void NumericLiteral::generate(BytecodeGenerator& generator, Register dst)
-{
-    return generator.loadConstant(dst, value);
-}
-
-void StringLiteral::generate(BytecodeGenerator& generator, Register dst)
-{
-    String* string = String::create(generator.vm(), value);
-    return generator.loadConstant(dst, string);
-}
-
-
-// Types
-
-void ASTTypeType::generate(BytecodeGenerator& generator, Register dst)
-{
-    generator.loadConstant(dst, generator.vm().typeType);
 }
