@@ -58,7 +58,7 @@ class Type : public Object {
     friend class JIT;
 
 public:
-    enum class Class : uint8_t {
+    enum class Class : uint32_t {
         AnyValue = 0,
         AnyType = 1,
         SpecificType = 2,

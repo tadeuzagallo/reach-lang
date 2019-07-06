@@ -134,8 +134,8 @@ instruction :InferImplicitParameters,
 instruction :NewVarType,
    dst: :Register,
    nameIndex: :uint32_t,
-   isInferred: :bool,
-   isRigid: :bool
+   isInferred: :uint32_t,
+   isRigid: :uint32_t
 
 instruction :NewNameType,
     dst: :Register,

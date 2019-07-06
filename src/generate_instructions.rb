@@ -18,7 +18,10 @@ class Instruction < Struct.new(:name, :fields)
     return unless fields
 
     fields.map do |name, type|
-      "#{type} #{name};"
+      <<-EOS
+      #{type} #{name};
+      static_assert(sizeof(#{type}) == 4);
+      EOS
     end.join("\n")
   end
 
