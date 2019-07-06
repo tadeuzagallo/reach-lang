@@ -23,6 +23,8 @@ public:
     size_t size() { return m_items.size(); }
     std::vector<Value>::iterator begin() { return m_items.begin(); }
     std::vector<Value>::iterator end() { return m_items.end(); }
+    std::vector<Value>::const_iterator begin() const { return m_items.begin(); }
+    std::vector<Value>::const_iterator end() const { return m_items.end(); }
 
     void visit(std::function<void(Value)>) const override;
     void dump(std::ostream& out) const override;

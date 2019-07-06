@@ -6,14 +6,19 @@
 template<typename T>
 void TypeChecker::inferAsType(T& node, Register result)
 {
-    node->infer(*this, result);
-    unify(node->location, result, typeType());
-    // If the node is not a type, return the unit type so we can continue
-    Register tmp = m_generator.newLocal();
-    m_generator.checkType(tmp, result, Type::Class::AnyType);
-    m_generator.branch(tmp, [&] { }, [&] {
-        m_generator.move(result, unitType());
-    });
+    if (dynamic_cast<TypeExpression*>(node.get()) || dynamic_cast<Identifier*>(node.get())) {
+        node->infer(*this, result);
+        unify(node->location, result, typeType());
+        // If the node is not a type, return the unit type so we can continue
+        Register tmp = m_generator.newLocal();
+        m_generator.checkType(tmp, result, Type::Class::AnyType);
+        m_generator.branch(tmp, [&] { }, [&] {
+            m_generator.move(result, unitType());
+        });
+    } else {
+        node->check(*this, typeType());
+        generator().loadConstant(result, TypeHole::create(vm(), node->asHole(vm())));
+    }
 }
 
 

@@ -225,6 +225,12 @@ void UnificationScope::unifies(const Constraint& constraint)
             unifies(constraint.bytecodeOffset, AbstractValue { lhs->returnType().asType() }, rhs->returnType());
             return;
         }
+        case Type::Class::Hole: {
+            TypeHole* lhs = lhsType->as<TypeHole>();
+            TypeHole* rhs = rhsType->as<TypeHole>();
+            if (*lhs->hole() == *rhs->hole())
+                return;
+        };
         default:
             break;
         }

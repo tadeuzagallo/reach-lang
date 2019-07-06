@@ -5,6 +5,7 @@ ast_node :TypeExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
     "virtual void infer(TypeChecker&, Register) = 0",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :TupleTypeExpression < :TypeExpression,

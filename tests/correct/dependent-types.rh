@@ -1,0 +1,23 @@
+//RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+function isSingleton(b: Bool) -> Type
+{
+    if (b)
+        Number
+    else
+        Number[]
+}
+inspect(isSingleton) // CHECK-L: <function isSingleton> : (Bool) -> Type
+
+function mkSingle(x: Bool, y: isSingleton(x)) -> isSingleton(x)
+{
+    y
+}
+inspect(mkSingle) // CHECK-L: <function mkSingle> : (Bool, isSingleton(x)) -> isSingleton(x)

@@ -44,3 +44,9 @@ f(false) // CHECK-L: 42:3: Unification failure: expected `String` but found `Boo
 // Union should not collapse on right (would be T-UnionRec-R)
 function f(x: {x: Number, y: Number} | {x: Number, z: Number}) -> {x: Number} { x }
 f({x = 42}) // CHECK-L: 46:3: Unification failure: expected `{z: Number, x: Number}` but found `{x: Number}`
+
+
+function isSingleton(b: Bool) -> Type { if (b) Number else Number[] }
+function mkSingle(x: Bool, y: Bool, z: isSingleton(y)) -> isSingleton(x) {
+    z // CHECK-L: 51:5: Unification failure: expected `isSingleton(x)` but found `isSingleton(y)`
+}

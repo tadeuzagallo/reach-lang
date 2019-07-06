@@ -195,11 +195,7 @@ std::unique_ptr<ReturnStatement> Parser::parseReturnStatement(const Token& t)
     CHECK(t, Token::RETURN);
     auto ret = std::make_unique<ReturnStatement>(t);
     auto next = m_lexer.next();
-    //if (next.type == Token::SEMICOLON)
-    //return ret;
-
     ret->expression = parseInferredExpression(next);
-    //ASSERT(m_lexer.next().type == Token::SEMICOLON, "Expected semicolon after return statement");
     return ret;
 }
 

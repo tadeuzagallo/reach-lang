@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Array.h"
+#include "Hole.h"
 #include "Object.h"
 #include "RhString.h"
 #include <iostream>
@@ -16,43 +17,6 @@ class Type;
 using Types = std::vector<Value>;
 using Fields = std::unordered_map<std::string, Value>;
 using Substitutions = std::unordered_map<uint32_t, Type*>;
-
-#define FIELD_NAME(__name) \
-    static constexpr const char* __name##Field  = #__name; \
-
-#define FIELD_CELL_GETTER(__type, __name) \
-    __type* __name() const \
-    { \
-        return get(__name##Field).asCell<__type>(); \
-    } \
-
-#define FIELD_CELL_SETTER(__type, __name) \
-    void set_##__name(__type* __value) \
-    { \
-        set(__name##Field, __value); \
-    } \
-
-#define FIELD_VALUE_GETTER(__type, __name, ...) \
-    __type __name() const \
-    { \
-        return get(__name##Field) __VA_ARGS__; \
-    } \
-
-#define FIELD_VALUE_SETTER(__type, __name) \
-    void set_##__name(__type __value) \
-    { \
-        set(__name##Field, __value); \
-    } \
-
-#define CELL_FIELD(__type, __name) \
-    FIELD_NAME(__name) \
-    FIELD_CELL_GETTER(__type, __name) \
-    FIELD_CELL_SETTER(__type, __name) \
-
-#define VALUE_FIELD(__type, __name, ...) \
-    FIELD_NAME(__name) \
-    FIELD_VALUE_GETTER(__type, __name, __VA_ARGS__) \
-    FIELD_VALUE_SETTER(__type, __name) \
 
 class Type : public Object {
     friend class JIT;
@@ -72,6 +36,7 @@ public:
         Var,
         Tuple,
         Union,
+        Hole,
     };
 
     CELL_TYPE(Type);
@@ -251,6 +216,18 @@ private:
     TypeUnion(Value, Value);
 };
 
+class TypeHole : public Type {
+public:
+    CELL_CREATE(TypeHole);
+
+    Type* substitute(VM&, Substitutions&) override;
+    void dump(std::ostream&) const override;
+
+    CELL_FIELD(Hole, hole);
+
+private:
+    TypeHole(Hole*);
+};
 
 template<typename T, typename>
 bool Type::is() const

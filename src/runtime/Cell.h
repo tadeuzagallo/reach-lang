@@ -43,7 +43,8 @@ public:
         Environment = 0x10,
         Type = 0x20 | Object,
         Tuple = 0x40,
-        InvalidCell = 0x41,
+        Hole = 0x80 | Object,
+        InvalidCell = Hole + 1,
     };
 
     template<typename T>

@@ -16,6 +16,7 @@ ast_node :CheckedExpression < :Expression,
     "CheckedExpression(const Token&)",
     "virtual void generate(BytecodeGenerator&, Register) = 0",
     "virtual void check(TypeChecker&, Register) = 0",
+    "virtual Hole* asHole(VM&) = 0",
   ]
 
 ast_node :InferredExpression < :CheckedExpression,
@@ -36,6 +37,7 @@ ast_node :Identifier < :InferredExpression,
     "bool operator<(const Identifier&) const",
     "friend std::ostream& operator<<(std::ostream&, const Identifier&)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :ParenthesizedExpression < :InferredExpression,
@@ -45,6 +47,7 @@ ast_node :ParenthesizedExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :TupleExpression < :InferredExpression,
@@ -54,6 +57,7 @@ ast_node :TupleExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :ObjectLiteralExpression < :InferredExpression,
@@ -63,6 +67,7 @@ ast_node :ObjectLiteralExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :ArrayLiteralExpression < :InferredExpression,
@@ -72,6 +77,7 @@ ast_node :ArrayLiteralExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :CallExpression < :InferredExpression,
@@ -85,6 +91,7 @@ ast_node :CallExpression < :InferredExpression,
     "virtual void infer(TypeChecker&, Register)",
     "void checkCallee(TypeChecker&, Register, Label&)",
     "void checkArguments(TypeChecker&, Register, Label&)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :SubscriptExpression < :InferredExpression,
@@ -96,6 +103,7 @@ ast_node :SubscriptExpression < :InferredExpression,
     "SubscriptExpression(std::unique_ptr<InferredExpression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :MemberExpression < :InferredExpression,
@@ -107,6 +115,7 @@ ast_node :MemberExpression < :InferredExpression,
     "MemberExpression(std::unique_ptr<InferredExpression>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :LiteralExpression < :InferredExpression,
@@ -117,4 +126,5 @@ ast_node :LiteralExpression < :InferredExpression,
     "LiteralExpression(std::unique_ptr<Literal>)",
     "virtual void generate(BytecodeGenerator&, Register)",
     "virtual void infer(TypeChecker&, Register)",
+    "virtual Hole* asHole(VM&)",
   ]

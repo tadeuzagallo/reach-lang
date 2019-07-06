@@ -343,6 +343,23 @@ void TypeUnion::dump(std::ostream& out) const
     out << lhs() << " | " << rhs();
 }
 
+TypeHole::TypeHole(Hole* hole)
+    : Type(Type::Class::Hole)
+{
+    set_hole(hole);
+}
+
+Type* TypeHole::substitute(VM&, Substitutions&)
+{
+    // TODO
+    return this;
+}
+
+void TypeHole::dump(std::ostream& out) const
+{
+    hole()->dump(out);
+}
+
 std::ostream& operator<<(std::ostream& out, Type::Class tc)
 {
     switch (tc) {
@@ -381,6 +398,9 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
         break;
     case Type::Class::Union:
         out << "Type::Class::Union";
+        break;
+    case Type::Class::Hole:
+        out << "Type::Class::Hole";
         break;
     }
     return out;
