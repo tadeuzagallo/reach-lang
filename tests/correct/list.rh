@@ -1,0 +1,40 @@
+// RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+function List(T: Type) -> Type
+{
+    {head: T, tail: #List(T)} | {:}
+}
+inspect(List(Bool)) // CHECK-L: {tail: List(Bool), head: Bool} | {:} : Type
+
+function NonEmptyList(T: Type) -> Type
+{
+    {head: T, tail: #List(T)}
+}
+inspect(NonEmptyList(Number)) // CHECK-L {tail: List(Number), head: Number} : Type
+
+function listID(%T: Type, list: List(T)) -> List(T)
+{
+    list
+}
+inspect(listID) // CHECK-L: <function listID> : (T: Type, list: List(T)) -> List(T)
+
+let nil = {}
+
+function cons(%T: Type, head: T, tail: List(T)) -> NonEmptyList(T)
+{
+    {head = head, tail = tail}
+}
+inspect(cons) // CHECK-L: <function cons> : (T: Type, head: T, tail: List(T)) -> NonEmptyList(T)
+
+let list = cons(1, cons(2, cons(3, nil)))
+inspect(list) // CHECK-L: {tail = {tail = {tail = {}, head = 3}, head = 2}, head = 1} : {tail: List(Number), head: Number}
+inspect(list.head) // CHECK-L: 1 : Number
+
+inspect(listID(cons(1, nil))) // CHECK-L: {tail = {}, head = 1} : {tail: List(Number), head: Number} | {:}

@@ -4,6 +4,7 @@
 #include "BytecodeBlock.h"
 #include "Environment.h"
 #include "Function.h"
+#include "Hole.h"
 #include "Object.h"
 #include "Scope.h"
 #include "Tuple.h"
@@ -357,6 +358,37 @@ OP(NewBindingType)
     store(regR0, ip.dst);
 }
 
+
+// Holes
+
+OP(NewCallHole)
+{
+    move(vm(), regA0);
+    load(ip.callee, regA1);
+    move(ip.argc, regA2);
+    lea(ip.firstArg, regA3);
+    call(createHoleCall);
+    store(regR0, ip.dst);
+}
+
+OP(NewSubscriptHole)
+{
+    move(vm(), regA0);
+    load(ip.target, regA1);
+    load(ip.index, regA2);
+    call(createHoleSubscript);
+    store(regR0, ip.dst);
+}
+
+OP(NewMemberHole)
+{
+    move(vm(), regA0);
+    load(ip.object, regA1);
+    move(&m_block.identifier(ip.fieldIndex), regA2);
+    call(createHoleMember);
+    store(regR0, ip.dst);
+}
+
 #define TYPE_OP(Instruction) \
     OP(Instruction) { \
         UNUSED(ip); \
@@ -373,9 +405,6 @@ TYPE_OP(CheckType)
 TYPE_OP(CheckTypeOf)
 TYPE_OP(TypeError)
 TYPE_OP(InferImplicitParameters)
-TYPE_OP(NewCallHole)
-TYPE_OP(NewSubscriptHole)
-TYPE_OP(NewMemberHole)
 TYPE_OP(NewValue)
 TYPE_OP(GetTypeForValue)
 

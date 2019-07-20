@@ -33,6 +33,7 @@ public:
       COMMA,
       COLON,
       SEMICOLON,
+      HASH,
 
       MOD,
       PLUS,

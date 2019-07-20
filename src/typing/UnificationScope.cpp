@@ -283,6 +283,16 @@ void UnificationScope::unifies(const Constraint& constraint)
         return;
     }
 
+    // eval(<hole>) => S
+    // S <: T
+    // ---------------------------------------- T-Hole-L
+    // Γ ⊢ <hole> <: T
+    if (lhsType->is<Hole>()) {
+        Type* type = eval(lhsType->as<Hole>());
+        unifies(constraint.bytecodeOffset, type, constraint.rhs);
+        return;
+    }
+
     if (rhsType->is<TypeVar>() && !rhsType->as<TypeVar>()->isRigid())
         rhsType = m_vm.typeType;
 

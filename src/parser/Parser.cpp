@@ -348,6 +348,8 @@ std::unique_ptr<InferredExpression> Parser::parsePrimaryExpression(const Token &
     }
     //case Token::FUNCTION:
         //return parseFunctionExpression(t);
+    case Token::HASH:
+        return parseLazyExpression(t);
     case Token::IDENTIFIER:
         return parseIdentifier(t);
     case Token::TYPE:
@@ -451,6 +453,14 @@ std::unique_ptr<InferredExpression> Parser::parseParenthesizedExpressionOrTuple(
         unexpectedToken(tok);
     }
     return nullptr;
+}
+
+std::unique_ptr<LazyExpression> Parser::parseLazyExpression(const Token& t)
+{
+    CHECK(t, Token::HASH);
+    auto lazyExpression = std::make_unique<LazyExpression>(t);
+    lazyExpression->expression = parseInferredExpression(m_lexer.next());
+    return lazyExpression;
 }
 
 std::unique_ptr<TupleTypeExpression> Parser::parseTupleTypeExpression(const Token& t)

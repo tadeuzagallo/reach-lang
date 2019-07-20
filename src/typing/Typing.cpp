@@ -221,6 +221,11 @@ void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
     expression->infer(tc, result);
 }
 
+void LazyExpression::infer(TypeChecker& tc, Register result)
+{
+    expression->generateForTypeChecking(tc, result);
+}
+
 void TupleExpression::infer(TypeChecker& tc, Register result)
 {
     tc.generator().newTupleType(result, items.size());

@@ -278,7 +278,7 @@ void TypeBinding::dump(std::ostream& out) const
 {
     out << name()->str() << ": ";
     Type* type = this->type();
-    if (type->is<TypeVar>())
+    if (type->is<TypeVar>() && *type->as<TypeVar>()->name() == *name())
         out << "Type";
     else
         type->dump(out);

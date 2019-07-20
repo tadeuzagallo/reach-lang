@@ -114,6 +114,12 @@ void ParenthesizedExpression::generate(BytecodeGenerator& generator, Register ds
     expression->generate(generator, dst);
 }
 
+void LazyExpression::generate(BytecodeGenerator& generator, Register dst)
+{
+    TypeChecker tc { generator, true };
+    expression->generateForTypeChecking(tc, dst);
+}
+
 void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     // TODO: add concept of structures

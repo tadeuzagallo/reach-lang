@@ -166,3 +166,21 @@ bool Value::hasHole() const
         return ::hasHole(cell->cast<Tuple>());
     return false;
 }
+
+// JIT helpers
+
+HoleCall* createHoleCall(VM& vm, Value callee, uint32_t argumentCount, Value* arguments)
+{
+    Array* array = Array::create(vm, nullptr, argumentCount, arguments);
+    return HoleCall::create(vm, callee, array);
+}
+
+HoleSubscript* createHoleSubscript(VM& vm, Value target, Value index)
+{
+    return HoleSubscript::create(vm, target, index);
+}
+
+HoleMember* createHoleMember(VM& vm, Value object, const std::string& field)
+{
+    return HoleMember::create(vm, object, String::create(vm, field));
+}

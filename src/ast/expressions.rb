@@ -52,6 +52,16 @@ ast_node :ParenthesizedExpression < :InferredExpression,
     "virtual void infer(TypeChecker&, Register)",
   ]
 
+ast_node :LazyExpression < :InferredExpression,
+  fields: {
+    expression: "std::unique_ptr<InferredExpression>",
+  },
+  extra_methods: [
+    "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void generateForTypeChecking(TypeChecker&, Register)",
+    "virtual void infer(TypeChecker&, Register)",
+  ]
+
 ast_node :TupleExpression < :InferredExpression,
   fields: {
     items: "std::vector<std::unique_ptr<InferredExpression>>",

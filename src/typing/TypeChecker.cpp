@@ -13,8 +13,9 @@ void Program::typecheck(BytecodeGenerator& generator)
     checker.check(*this);
 }
 
-TypeChecker::TypeChecker(BytecodeGenerator& generator)
-    : m_generator(generator)
+TypeChecker::TypeChecker(BytecodeGenerator& generator, bool doNotEmitScopeInstructions)
+    : m_doNotEmitScopeInstructions(doNotEmitScopeInstructions)
+    , m_generator(generator)
     , m_topScope(*this, false)
     , m_topUnificationScope(*this)
 {
@@ -155,6 +156,10 @@ void TypeChecker::unify(const SourceLocation& location, Register lhs, Register r
     m_generator.unify(lhs, rhs);
 }
 
+TypeChecker::Scope::Scope(TypeChecker& typeChecker)
+    : Scope(typeChecker, !typeChecker.m_doNotEmitScopeInstructions)
+{
+}
 TypeChecker::Scope::Scope(TypeChecker& typeChecker, bool shouldGenerateBytecode)
     : m_shouldGenerateBytecode(shouldGenerateBytecode)
     , m_typeChecker(typeChecker)
@@ -216,9 +221,16 @@ void TypeChecker::Scope::lookup(Register dst, const std::string& name)
 }
 
 TypeChecker::UnificationScope::UnificationScope(TypeChecker& typeChecker)
-    : m_typeChecker(&typeChecker)
+    : UnificationScope(typeChecker, !typeChecker.m_doNotEmitScopeInstructions)
 {
-    m_typeChecker->m_generator.pushUnificationScope();
+}
+
+TypeChecker::UnificationScope::UnificationScope(TypeChecker& typeChecker, bool shouldGenerateBytecode)
+    : m_shouldGenerateBytecode(shouldGenerateBytecode)
+    , m_typeChecker(&typeChecker)
+{
+    if (m_shouldGenerateBytecode)
+        m_typeChecker->m_generator.pushUnificationScope();
 }
 
 TypeChecker::UnificationScope::~UnificationScope()
@@ -236,6 +248,7 @@ void TypeChecker::UnificationScope::finalize()
 {
     if (!m_typeChecker)
         return;
-    m_typeChecker->m_generator.popUnificationScope();
+    if (m_shouldGenerateBytecode)
+        m_typeChecker->m_generator.popUnificationScope();
     m_typeChecker = nullptr;
 }

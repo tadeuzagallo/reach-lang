@@ -99,3 +99,11 @@ private:
     VALUE_FIELD(Value, object);
     CELL_FIELD(String, property);
 };
+
+// JIT helpers
+
+extern "C" {
+HoleCall* createHoleCall(VM&, Value, uint32_t, Value*);
+HoleSubscript* createHoleSubscript(VM&, Value, Value);
+HoleMember* createHoleMember(VM&, Value, const std::string&);
+}

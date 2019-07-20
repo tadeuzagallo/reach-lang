@@ -13,6 +13,11 @@ void ParenthesizedExpression::generateForTypeChecking(TypeChecker& tc, Register 
     expression->generateForTypeChecking(tc, dst);
 }
 
+void LazyExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
+{
+    expression->generateForTypeChecking(tc, dst);
+}
+
 void ObjectLiteralExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 {
     // TODO: add concept of structures

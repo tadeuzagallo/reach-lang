@@ -1,0 +1,34 @@
+// RUN: %not %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+function List(T: Type) -> Type
+{
+    {:} | {head: T, tail: #List(T)}
+}
+
+function NonEmptyList(T: Type) -> Type
+{
+    {head: T, tail: List(T)}
+}
+
+function listID(T: Type, list: List(T)) -> List(T)
+{
+    list
+}
+inspect(listID)
+
+let nil = {}
+
+function cons(%T: Type, head: T, tail: List(T)) -> NonEmptyList(T)
+{
+    {head = head, tail = tail}
+}
+
+let list = cons(1, cons(2, cons(3, nil)))
+inspect(list.tail.head) // CHECK-L: 34:9: Unification failure: expected `{head: T}` but found `{:}`

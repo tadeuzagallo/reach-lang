@@ -346,7 +346,11 @@ OP(PushUnificationScope)
 OP(PopUnificationScope)
 {
     UNUSED(ip);
-    delete m_vm.unificationScope;
+    // This might call a nested interpreter, which might resize the underlying stack storage
+    preserveStack([&] {
+        delete m_vm.unificationScope;
+        return Value::crash();
+    });
 
     if (!m_vm.unificationScope) {
         // We are done type checking!
@@ -367,7 +371,10 @@ OP(Unify)
 OP(ResolveType)
 {
     Type* type = m_cfr[ip.type].asType();
-    m_cfr[ip.dst] = m_vm.unificationScope->resolve(type);
+    // This might call a nested interpreter, which might resize the underlying stack storage
+    m_cfr[ip.dst] = preserveStack([&] {
+        return m_vm.unificationScope->resolve(type);
+    });
     DISPATCH();
 }
 

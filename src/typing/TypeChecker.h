@@ -35,7 +35,7 @@ public:
 
     enum class Mode { Function, Program };
 
-    TypeChecker(BytecodeGenerator&);
+    TypeChecker(BytecodeGenerator&, bool doNotEmitScopeInstructions = false);
     ~TypeChecker();
 
     VM& vm() const;
@@ -80,7 +80,8 @@ FOR_EACH_BASE_TYPE(DECLARE_TYPE_VALUE_GETTER)
 
     class Scope {
     public:
-        Scope(TypeChecker&, bool shouldGenerateBytecode = true);
+        Scope(TypeChecker&);
+        Scope(TypeChecker&, bool shouldGenerateBytecode);
         ~Scope();
 
         void addFunction(const FunctionDeclaration&);
@@ -100,12 +101,14 @@ FOR_EACH_BASE_TYPE(DECLARE_TYPE_VALUE_GETTER)
     class UnificationScope {
     public:
         UnificationScope(TypeChecker&);
+        UnificationScope(TypeChecker&, bool shouldGenerateBytecode);
         ~UnificationScope();
 
         void resolve(Register, Register);
         void finalize();
 
     private:
+        bool m_shouldGenerateBytecode;
         TypeChecker* m_typeChecker;
     };
 
@@ -127,6 +130,7 @@ private:
 FOR_EACH_BASE_TYPE(DECLARE_TYPE_FIELD)
 #undef DECLARE_TYPE_VALUE_GETTER
 
+    bool m_doNotEmitScopeInstructions;
     BytecodeGenerator& m_generator;
     Scope* m_currentScope { nullptr };
     Scope m_topScope;

@@ -159,6 +159,7 @@ Token::Type Lexer::nextTokenType()
         SIMPLE_CASE(',', COMMA);
         SIMPLE_CASE(':', COLON);
         SIMPLE_CASE(';', SEMICOLON);
+        SIMPLE_CASE('#', HASH);
 
         SIMPLE_CASE('+', PLUS);
         SIMPLE_CASE('%', MOD);

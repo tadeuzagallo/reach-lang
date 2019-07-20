@@ -45,6 +45,7 @@ public:
     std::unique_ptr<TypeExpression> parseTypeExpression(const Token&);
     std::unique_ptr<InferredExpression> parseObjectLiteralExpressionOrObjectType(const Token&);
     std::unique_ptr<InferredExpression> parseParenthesizedExpressionOrTuple(const Token&);
+    std::unique_ptr<LazyExpression> parseLazyExpression(const Token&);
     std::unique_ptr<TupleTypeExpression> parseTupleTypeExpression(const Token&);
 
     std::unique_ptr<Literal> parseLiteral(const Token&);
