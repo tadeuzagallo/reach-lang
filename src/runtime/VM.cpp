@@ -39,14 +39,16 @@ static Value functionStringify(VM& vm, std::vector<Value> args)
 VM::VM()
     : typeChecker(nullptr)
     , heap(this)
+    , stringType(nullptr)
     , typeType(TypeType::create(*this))
     , topType(TypeTop::create(*this))
     , bottomType(TypeBottom::create(*this))
     , unitType(TypeName::create(*this, "Void"))
     , boolType(TypeName::create(*this, "Bool"))
     , numberType(TypeName::create(*this, "Number"))
-    , stringType(TypeName::create(*this, "String"))
 {
+    // Break the cycle VM -> Type -> String -> VM
+    stringType = TypeName::create(*this, "String");
     globalEnvironment = Environment::create(*this, nullptr);
 
     // so we don't crash when calling stack.back()
@@ -70,6 +72,11 @@ VM::VM()
 void VM::typeError(InstructionStream::Offset bytecodeOffset, const std::string& message)
 {
     m_typeErrors.emplace_back(TypeError { currentBlock->locationInfo(bytecodeOffset), message });
+}
+
+bool VM::hasTypeErrors() const
+{
+    return !m_typeErrors.empty();
 }
 
 bool VM::reportTypeErrors()

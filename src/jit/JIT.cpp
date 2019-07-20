@@ -164,8 +164,9 @@ OP(SetLocal)
 OP(NewArray)
 {
     move(vm(), regA0);
-    move(ip.initialSize, regA1);
-    call<Array*, VM&, uint32_t>(&createArray);
+    load(ip.type, regA1);
+    move(ip.initialSize, regA2);
+    call<Array*, VM&, Type*, uint32_t>(&createArray);
     store(regR0, ip.dst);
 }
 
@@ -181,7 +182,7 @@ OP(GetArrayIndex)
 {
     load(ip.array, regA0);
     load(ip.index, regA1);
-    call(&Array::getIndex);
+    call<Array, Value, Value>(&Array::getIndex);
     store(regR0, ip.dst);
 }
 
@@ -194,8 +195,9 @@ OP(GetArrayLength)
 OP(NewTuple)
 {
     move(vm(), regA0);
-    move(ip.initialSize, regA1);
-    call<Tuple*, VM&, uint32_t>(&createTuple);
+    load(ip.type, regA1);
+    move(ip.initialSize, regA2);
+    call<Tuple*, VM&, Type*, uint32_t>(&createTuple);
     store(regR0, ip.dst);
 }
 
@@ -238,8 +240,9 @@ OP(Call)
 OP(NewObject)
 {
     move(vm(), regA0);
-    move(ip.inlineSize, regA1);
-    call<Object*, VM&, uint32_t>(createObject);
+    load(ip.type, regA1);
+    move(ip.inlineSize, regA2);
+    call<Object*, VM&, Type*, uint32_t>(createObject);
     store(regR0, ip.dst);
 }
 
@@ -280,6 +283,80 @@ OP(IsEqual)
     bitOr(Value::TagTypeBool, regT0);
 }
 
+OP(NewVarType)
+{
+    move(vm(), regA0);
+    move(&m_block.identifier(ip.nameIndex), regA1);
+    move(ip.isInferred, regA2);
+    move(ip.isRigid, regA3);
+    call(createTypeVar);
+    store(regR0, ip.dst);
+}
+
+OP(NewNameType)
+{
+    move(vm(), regA0);
+    move(&m_block.identifier(ip.nameIndex), regA1);
+    call(createTypeName);
+    store(regR0, ip.dst);
+}
+
+OP(NewArrayType)
+{
+    move(vm(), regA0);
+    load(ip.itemType, regA1);
+    call(createTypeArray);
+    store(regR0, ip.dst);
+}
+
+OP(NewTupleType)
+{
+    move(vm(), regA0);
+    move(ip.itemCount, regA1);
+    call(createTypeTuple);
+    store(regR0, ip.dst);
+}
+
+OP(NewRecordType)
+{
+    move(vm(), regA0);
+    move(&m_block, regA1);
+    move(ip.fieldCount, regA2);
+    lea(ip.firstKey, regA3);
+    lea(ip.firstType, regA4);
+    call(createTypeRecord);
+    store(regR0, ip.dst);
+}
+
+OP(NewFunctionType)
+{
+    move(vm(), regA0);
+    move(ip.paramCount, regA1);
+    lea(ip.firstParam, regA2);
+    load(ip.returnType, regA3);
+    move(ip.inferredParameters, regA4);
+    call(createTypeFunction);
+    store(regR0, ip.dst);
+}
+
+OP(NewUnionType)
+{
+    move(vm(), regA0);
+    load(ip.lhs, regA1);
+    load(ip.rhs, regA2);
+    call(createTypeUnion);
+    store(regR0, ip.dst);
+}
+
+OP(NewBindingType)
+{
+    move(vm(), regA0);
+    move(&m_block.identifier(ip.nameIndex), regA1);
+    load(ip.type, regA2);
+    call(createTypeUnion);
+    store(regR0, ip.dst);
+}
+
 #define TYPE_OP(Instruction) \
     OP(Instruction) { \
         UNUSED(ip); \
@@ -296,13 +373,9 @@ TYPE_OP(CheckType)
 TYPE_OP(CheckTypeOf)
 TYPE_OP(TypeError)
 TYPE_OP(InferImplicitParameters)
-TYPE_OP(NewVarType)
-TYPE_OP(NewNameType)
-TYPE_OP(NewArrayType)
-TYPE_OP(NewTupleType)
-TYPE_OP(NewRecordType)
-TYPE_OP(NewFunctionType)
-TYPE_OP(NewUnionType)
+TYPE_OP(NewCallHole)
+TYPE_OP(NewSubscriptHole)
+TYPE_OP(NewMemberHole)
 TYPE_OP(NewValue)
 TYPE_OP(GetTypeForValue)
 

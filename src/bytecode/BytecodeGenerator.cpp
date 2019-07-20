@@ -3,18 +3,23 @@
 
 BytecodeGenerator::BytecodeGenerator(VM& vm, std::string name)
     : m_vm(vm)
+    , m_block(vm, name)
 {
-    m_block = std::make_unique<BytecodeBlock>(name);
     emit<Enter>();
 }
 
-std::unique_ptr<BytecodeBlock> BytecodeGenerator::finalize(Register result)
+BytecodeGenerator::~BytecodeGenerator()
+{
+    m_block.destroy(m_vm);
+}
+
+BytecodeBlock* BytecodeGenerator::finalize(Register result)
 {
     emit<End>(result);
     m_block->adjustOffsets();
     if (std::getenv("DUMP_BYTECODE"))
         m_block->dump(std::cout);
-    return std::move(m_block);
+    return m_block.get();
 }
 
 Register BytecodeGenerator::newLocal()
@@ -98,9 +103,9 @@ void BytecodeGenerator::call(Register dst, Register callee, const std::vector<Re
     emit<Call>(dst, callee, argc, argc ? args[0] : Register::forParameter(0));
 }
 
-void BytecodeGenerator::newArray(Register dst, unsigned size)
+void BytecodeGenerator::newArray(Register dst, Register type, unsigned size)
 {
-    emit<NewArray>(dst, size);
+    emit<NewArray>(dst, type, size);
 }
 
 void BytecodeGenerator::setArrayIndex(Register src, unsigned offset, Register value)
@@ -118,9 +123,9 @@ void BytecodeGenerator::getArrayLength(Register dst, Register array)
     emit<GetArrayLength>(dst, array);
 }
 
-void BytecodeGenerator::newTuple(Register dst, unsigned size)
+void BytecodeGenerator::newTuple(Register dst, Register type, unsigned size)
 {
-    emit<NewTuple>(dst, size);
+    emit<NewTuple>(dst, type, size);
 }
 
 void BytecodeGenerator::setTupleIndex(Register src, unsigned offset, Register value)
@@ -133,9 +138,9 @@ void BytecodeGenerator::getTupleIndex(Register dst, Register tuple, Register ind
     emit<GetTupleIndex>(dst, tuple, index);
 }
 
-uint32_t BytecodeGenerator::newFunction(Register dst, std::unique_ptr<BytecodeBlock> block)
+uint32_t BytecodeGenerator::newFunction(Register dst, BytecodeBlock* block)
 {
-    uint32_t functionIndex = m_block->addFunctionBlock(std::move(block));
+    uint32_t functionIndex = m_block->addFunctionBlock(block);
     emit<NewFunction>(dst, functionIndex);
     return functionIndex;
 }
@@ -152,9 +157,9 @@ void BytecodeGenerator::move(Register from, Register to)
     emit<Move>(from, to);
 }
 
-void BytecodeGenerator::newObject(Register dst, uint32_t inlineSize)
+void BytecodeGenerator::newObject(Register dst, Register type, uint32_t inlineSize)
 {
-    emit<NewObject>(dst, inlineSize);
+    emit<NewObject>(dst, type, inlineSize);
 }
 
 void BytecodeGenerator::setField(Register object, const std::string& field, Register value)
@@ -299,6 +304,29 @@ void BytecodeGenerator::newFunctionType(Register result, const std::vector<Regis
 void BytecodeGenerator::newUnionType(Register dst, Register lhs, Register rhs)
 {
     emit<NewUnionType>(dst, lhs, rhs);
+}
+
+void BytecodeGenerator::newBindingType(Register dst, const std::string& name, Register type)
+{
+    uint32_t nameIndex = uniqueIdentifier(name);
+    emit<NewBindingType>(dst, nameIndex, type);
+}
+
+void BytecodeGenerator::newCallHole(Register dst, Register callee, const std::vector<Register>& arguments)
+{
+    unsigned argumentCount = arguments.size();
+    emit<NewCallHole>(dst, callee, argumentCount, argumentCount ? arguments[0] : Register::forParameter(0));
+}
+
+void BytecodeGenerator::newSubscriptHole(Register dst, Register target, Register index)
+{
+    emit<NewSubscriptHole>(dst, target, index);
+}
+
+void BytecodeGenerator::newMemberHole(Register dst, Register object, const std::string& field)
+{
+    uint32_t fieldIndex = uniqueIdentifier(field);
+    emit<NewMemberHole>(dst, object, fieldIndex);
 }
 
 

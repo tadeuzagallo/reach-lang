@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Cell.h"
 #include "InstructionStream.h"
 #include "SourceLocation.h"
 #include "Value.h"
@@ -10,11 +11,11 @@
 
 class Function;
 
-class BytecodeBlock {
+class BytecodeBlock : public Cell {
     friend class BytecodeGenerator;
 
 public:
-    BytecodeBlock(std::string);
+    CELL(BytecodeBlock)
 
     void visit(std::function<void(Value)>) const;
     void dump(std::ostream&) const;
@@ -29,7 +30,7 @@ public:
     const std::string& identifier(uint32_t) const;
     Value& constant(uint32_t) const;
     BytecodeBlock& functionBlock(uint32_t) const;
-    uint32_t addFunctionBlock(std::unique_ptr<BytecodeBlock>);
+    uint32_t addFunctionBlock(BytecodeBlock*);
     Function* function(uint32_t) const;
     void setFunction(uint32_t, Function*);
 
@@ -41,6 +42,8 @@ public:
     LocationInfoWithFile locationInfo(InstructionStream::Offset) const;
 
 private:
+    BytecodeBlock(std::string);
+
     void emitPrologue(const std::function<void()>&);
     void adjustOffsets();
 
@@ -59,7 +62,7 @@ private:
     InstructionStream m_instructions;
     mutable std::vector<Value> m_constants;
     std::vector<std::string> m_identifiers;
-    std::vector<std::unique_ptr<BytecodeBlock>> m_functionBlocks;
+    std::vector<BytecodeBlock*> m_functionBlocks;
     std::vector<Function*> m_functions;
     std::vector<LocationInfo> m_locationInfos;
 

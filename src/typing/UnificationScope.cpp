@@ -1,7 +1,12 @@
 #include "UnificationScope.h"
 
 #include "BytecodeBlock.h"
+#include "BytecodeGenerator.h"
+#include "Hole.h"
+#include "HoleCodegen.h"
+#include "Interpreter.h"
 #include "Log.h"
+#include "PartialEvaluator.h"
 #include "TypeChecker.h"
 #include <sstream>
 
@@ -20,6 +25,19 @@ UnificationScope::~UnificationScope()
     LOG(UnificationScope,  "===> ~UnificationScope <===");
 }
 
+void UnificationScope::visit(const Visitor& visitor) const
+{
+    visitor(m_environment);
+    for (const auto& constraint : m_constraints) {
+        visitor(constraint.lhs);
+        visitor(constraint.rhs);
+    }
+    for (const auto& pair : m_substitutions)
+        visitor(pair.second);
+    if (m_parentScope)
+        m_parentScope->visit(visitor);
+}
+
 void UnificationScope::unify(InstructionStream::Offset bytecodeOffset, Value lhs, Value rhs)
 {
     ASSERT(!m_finalized, "UnificationScope already finalized");
@@ -30,7 +48,12 @@ void UnificationScope::unify(InstructionStream::Offset bytecodeOffset, Value lhs
 Value UnificationScope::resolve(Type* resultType)
 {
     finalize();
-    return resultType->substitute(m_vm, m_substitutions);
+    if (resultType->is<Hole>()) {
+        // TODO: we should call partiallyEvaluate instead of eval if resolveType has unresolved holes
+        // return partiallyEvaluate(Value { resultType }, m_vm, m_environment);
+        return eval(resultType->as<Hole>());
+    } else
+        return resultType->substitute(m_vm, m_substitutions);
 }
 
 Type* UnificationScope::infer(InstructionStream::Offset bytecodeOffset, TypeVar* var)
@@ -58,6 +81,9 @@ void UnificationScope::finalize()
 
 void UnificationScope::solveConstraints()
 {
+    ASSERT(m_finalized && !m_environment, "OOPS");
+    ASSERT(m_vm.currentInterpreter, "OOPS");
+    m_environment = Environment::create(m_vm, m_vm.currentInterpreter->environment());
     while (m_currentConstraint < m_constraints.size())
         unifies(m_constraints[m_currentConstraint++]);
 }
@@ -78,6 +104,16 @@ void UnificationScope::unifies(const Constraint& constraint)
     // σ <: σ
     if (lhsType == rhsType)
         return;
+
+    // Γ, x: σ ⊢ σ <: τ
+    // ---------------------------------------- T-Binding
+    // Γ ⊢ x : σ <: τ
+    if (rhsType->is<TypeBinding>()) {
+        TypeBinding* binding = rhsType->as<TypeBinding>();
+        m_environment->set(binding->name()->str(), constraint.lhs);
+        unifies(constraint.bytecodeOffset, constraint.lhs, binding->type());
+        return;
+    }
 
     LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " U " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
 
@@ -193,10 +229,10 @@ void UnificationScope::unifies(const Constraint& constraint)
         case Type::Class::Record: {
             TypeRecord* lhs = lhsType->as<TypeRecord>();
             TypeRecord* rhs = rhsType->as<TypeRecord>();
-            if (lhs->fields()->size() < rhs->fields()->size())
+            if (lhs->size() < rhs->size())
                 break;
             bool failed = false;
-            for (const auto& pair : *rhs->fields()) {
+            for (const auto& pair : *rhs) {
                 auto lhsField = lhs->field(pair.first);
                 // TODO: better error message
                 if (!lhsField) {
@@ -226,25 +262,48 @@ void UnificationScope::unifies(const Constraint& constraint)
             return;
         }
         case Type::Class::Hole: {
-            TypeHole* lhs = lhsType->as<TypeHole>();
-            TypeHole* rhs = rhsType->as<TypeHole>();
-            if (*lhs->hole() == *rhs->hole())
+            Value lhsValue = partiallyEvaluate(Value { lhsType }, m_vm, m_environment);
+            Value rhsValue = partiallyEvaluate(Value { rhsType }, m_vm, m_environment);
+            if (lhsValue == rhsValue)
                 return;
+            goto unificationError;
         };
         default:
             break;
         }
     }
 
+    // eval(<hole>) => T
+    // S <: T
+    // ---------------------------------------- T-Hole-R
+    // Γ ⊢ S <: <hole>
+    if (rhsType->is<Hole>()) {
+        Type* type = eval(rhsType->as<Hole>());
+        unifies(constraint.bytecodeOffset, constraint.lhs, type);
+        return;
+    }
+
     if (rhsType->is<TypeVar>() && !rhsType->as<TypeVar>()->isRigid())
         rhsType = m_vm.typeType;
 
+unificationError:
     std::stringstream msg;
     msg << "Unification failure: expected `" << *rhsType << "` but found `" << *lhsType << "`";
     LOG(ConstraintSolving, msg.str() << " @ " << m_vm.currentBlock->locationInfo(constraint.bytecodeOffset));
     m_unificationFailed = true;
     if (m_shouldThrowTypeError)
         m_vm.typeError(constraint.bytecodeOffset, msg.str());
+}
+
+Type* UnificationScope::eval(Value hole)
+{
+    //if (m_vm.hasTypeErrors())
+        //return m_vm.topType;
+    BytecodeGenerator generator(m_vm);
+    auto bytecode = holeCodegen(hole, generator);
+    Value result = Interpreter::run(m_vm, *bytecode, m_environment);
+    ASSERT(result.isType(), "OOPS");
+    return result.asType()->substitute(m_vm, m_substitutions);
 }
 
 void UnificationScope::bind(TypeVar* var, Type* type)

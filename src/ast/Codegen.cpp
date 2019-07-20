@@ -3,7 +3,7 @@
 #include "RhString.h"
 #include "TypeExpressions.h"
 
-std::unique_ptr<BytecodeBlock> Program::generate(BytecodeGenerator& generator) const
+BytecodeBlock* Program::generate(BytecodeGenerator& generator) const
 {
     Register result = generator.newLocal();
     for (const auto& decl : declarations)
@@ -117,7 +117,8 @@ void ParenthesizedExpression::generate(BytecodeGenerator& generator, Register ds
 void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     // TODO: add concept of structures
-    generator.newObject(dst, fields.size());
+    generator.loadConstant(dst, Value::unit());
+    generator.newObject(dst, dst, fields.size());
     Register tmp = generator.newLocal();
     for (const auto& field : fields) {
         field.second->generate(generator, tmp);
@@ -127,7 +128,8 @@ void ObjectLiteralExpression::generate(BytecodeGenerator& generator, Register ds
 
 void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.newArray(dst, items.size());
+    generator.loadConstant(dst, Value::unit());
+    generator.newArray(dst, dst, items.size());
     for (unsigned i = 0; i < items.size(); i++) {
         Register tmp = generator.newLocal();
         items[i]->generate(generator, tmp);
@@ -137,7 +139,8 @@ void ArrayLiteralExpression::generate(BytecodeGenerator& generator, Register dst
 
 void TupleExpression::generate(BytecodeGenerator& generator, Register dst)
 {
-    generator.newTuple(dst, items.size());
+    generator.loadConstant(dst, Value::unit());
+    generator.newTuple(dst, dst, items.size());
     for (unsigned i = 0; i < items.size(); i++) {
         Register tmp = generator.newLocal();
         items[i]->generate(generator, tmp);
@@ -205,12 +208,10 @@ void TypeTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 void ObjectTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     generator.newRecordType(dst, {});
-    Register fieldsRegister = generator.newLocal();
     Register tmp = generator.newLocal();
-    generator.getField(fieldsRegister, dst, TypeRecord::fieldsField);
     for (const auto& field : fields) {
         field.second->generate(generator, tmp);
-        generator.setField(fieldsRegister, field.first->name, tmp);
+        generator.setField(dst, field.first->name, tmp);
     }
 }
 

@@ -2,6 +2,7 @@
 
 #include "Array.h"
 #include "Function.h"
+#include "Hole.h"
 #include "Log.h"
 #include "Object.h"
 #include "Scope.h"
@@ -43,15 +44,28 @@ Interpreter::Interpreter(VM& vm, BytecodeBlock& block, InstructionStream::Offset
     m_lastBlock = vm.currentBlock;
     m_vm.currentBlock = &block;
     m_environment = Environment::create(vm, parentEnvironment ?: vm.globalEnvironment);
+    m_lastInterpreter = m_vm.currentInterpreter;
+    m_vm.currentInterpreter = this;
 }
 
 Interpreter::~Interpreter()
 {
     m_vm.currentBlock = m_lastBlock;
+    m_vm.currentInterpreter = m_lastInterpreter;
+}
+
+void Interpreter::visit(const std::function<void(Value)>& visitor) const
+{
+    visitor(&m_block);
+    visitor(m_environment);
+    visitor(m_lastInterpreter);
+    if (m_lastInterpreter)
+        m_lastInterpreter->visit(visitor);
 }
 
 Value Interpreter::run(const Values& args, const Callback& callback)
 {
+    size_t initialStackSize = m_vm.stack.size();
     m_vm.stack.insert(m_vm.stack.begin(), args.begin(), args.end());
 
     // fill what would be the return address
@@ -65,6 +79,7 @@ Value Interpreter::run(const Values& args, const Callback& callback)
     }
 
     m_vm.stack.erase(m_vm.stack.begin(), m_vm.stack.begin() + args.size() + 1);
+    ASSERT(m_vm.stack.size() == initialStackSize, "Inconsistent stack");
     return m_result;
 }
 
@@ -94,11 +109,6 @@ Value Interpreter::preserveStack(const Functor& functor)
     ASSERT(vm().stack.size() == stackSize, "Inconsistent stack");
     m_cfr = Stack { &vm().stack[cfrIndex] };
     return result;
-}
-
-Value Interpreter::reg(Register r) const
-{
-    return m_cfr[r];
 }
 
 #define OP(Instruction) \
@@ -173,7 +183,9 @@ OP(SetLocal)
 
 OP(NewArray)
 {
-    m_cfr[ip.dst] = Value { Array::create(vm(), ip.initialSize) };
+    Value typeValue = m_cfr[ip.type];
+    auto* type = typeValue.isUnit() ? nullptr : typeValue.asType();
+    m_cfr[ip.dst] = Value { Array::create(vm(), type, ip.initialSize) };
     DISPATCH();
 }
 
@@ -203,7 +215,9 @@ OP(GetArrayLength)
 
 OP(NewTuple)
 {
-    m_cfr[ip.dst] = Value { Tuple::create(vm(), ip.initialSize) };
+    Value typeValue = m_cfr[ip.type];
+    auto* type = typeValue.isUnit() ? nullptr : typeValue.asType();
+    m_cfr[ip.dst] = Value { Tuple::create(vm(), type, ip.initialSize) };
     DISPATCH();
 }
 
@@ -261,7 +275,9 @@ OP(Call)
 
 OP(NewObject)
 {
-    auto* object = Object::create(vm(), ip.inlineSize);
+    Value typeValue = m_cfr[ip.type];
+    auto* type = typeValue.isUnit() ? nullptr : typeValue.asType();
+    auto* object = Object::create(vm(), type, ip.inlineSize);
     m_cfr[ip.dst] = Value { object };
     DISPATCH();
 }
@@ -394,6 +410,8 @@ OP(InferImplicitParameters)
         Value param = function->implicitParam(i);
         ASSERT(param.isType(), "OOPS");
         Type* type = param.asType();
+        ASSERT(type->is<TypeBinding>(), "OOPS");
+        type = type->as<TypeBinding>()->type();
         ASSERT(type->is<TypeVar>(), "OOPS");
         Type* result = m_vm.unificationScope->infer(m_ip.offset(), type->as<TypeVar>());
         m_cfr[Register::forLocal(firstParameterOffset + i)] = result;
@@ -451,6 +469,41 @@ OP(NewUnionType)
 {
     auto* unionType = TypeUnion::create(m_vm, m_cfr[ip.lhs], m_cfr[ip.rhs]);
     m_cfr[ip.dst] = unionType;
+    DISPATCH();
+}
+
+OP(NewBindingType)
+{
+    const std::string& name = m_block.identifier(ip.nameIndex);
+    auto* bindingTyp = TypeBinding::create(m_vm, String::create(m_vm, name), m_cfr[ip.type].asType());
+    m_cfr[ip.dst] = bindingTyp;
+    DISPATCH();
+}
+
+OP(NewCallHole)
+{
+    Value callee = m_cfr[ip.callee];
+    Values args(ip.argc);
+    uint32_t firstArgOffset = -ip.firstArg.offset();
+    for (uint32_t i = 0; i < ip.argc; i++)
+        args[i] = m_cfr[Register::forLocal(firstArgOffset + i)];
+    m_cfr[ip.dst] = HoleCall::create(m_vm, callee, Array::create(m_vm, nullptr, std::move(args)));
+    DISPATCH();
+}
+
+OP(NewSubscriptHole)
+{
+    Value target = m_cfr[ip.target];
+    Value index = m_cfr[ip.index];
+    m_cfr[ip.dst] = HoleSubscript::create(m_vm, target, index);
+    DISPATCH();
+}
+
+OP(NewMemberHole)
+{
+    Value object = m_cfr[ip.object];
+    const std::string& field = m_block.identifier(ip.fieldIndex);
+    m_cfr[ip.dst] = HoleMember::create(m_vm, object, String::create(m_vm, field));
     DISPATCH();
 }
 

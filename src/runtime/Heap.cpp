@@ -3,11 +3,24 @@
 #include "BytecodeBlock.h"
 #include "Cell.h"
 #include "Environment.h"
+#include "Interpreter.h"
 #include "VM.h"
 
 Heap::Heap(VM* vm)
     : m_vm(vm)
 {
+}
+
+void Heap::addRoot(Cell* cell)
+{
+    m_roots.emplace_back(cell);
+}
+
+void Heap::removeRoot(Cell* cell)
+{
+    auto it = std::find(m_roots.begin(), m_roots.end(), cell);
+    ASSERT(it != m_roots.end(), "OOPS");
+    m_roots.erase(it);
 }
 
 void Heap::collect()
@@ -34,7 +47,18 @@ void Heap::markFromRoots()
         mark();
     };
 
-    m_vm->globalEnvironment->visit(markRoot);
+    markRoot(m_vm->stringType);
+    markRoot(m_vm->typeType);
+    markRoot(m_vm->topType);
+    markRoot(m_vm->bottomType);
+    markRoot(m_vm->unitType);
+    markRoot(m_vm->boolType);
+    markRoot(m_vm->numberType);
+    markRoot(m_vm->globalEnvironment);
+    for (Cell* root : m_roots)
+        markRoot(root);
+    if (m_vm->currentInterpreter)
+        m_vm->currentInterpreter->visit(markRoot);
     if (m_vm->globalBlock)
         m_vm->globalBlock->visit(markRoot);
 

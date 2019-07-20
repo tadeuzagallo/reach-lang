@@ -2,8 +2,12 @@
 
 #include "Array.h"
 #include "Object.h"
+#include "Register.h"
 #include "RhString.h"
+#include "Type.h"
 
+class BytecodeGenerator;
+class Environment;
 class Identifier;
 class TupleExpression;
 class ObjectLiteralExpression;
@@ -13,66 +17,36 @@ class SubscriptExpression;
 class MemberExpression;
 class LiteralExpression;
 
-class Hole : public Object {
+class Hole : public Type {
 public:
     CELL_TYPE(Hole);
 
     bool operator!=(const Hole& other) const;
+
     virtual bool operator==(const Hole&) const = 0;
     virtual void dump(std::ostream&) const = 0;
+    virtual void generate(BytecodeGenerator&, Register) const = 0;
+    virtual Hole* substitute(VM&, const Substitutions&) const = 0;
+    virtual Value partiallyEvaluate(VM&, Environment*) = 0;
 
 protected:
     Hole();
 };
 
-class HoleIdentifier : public Hole {
+class HoleVariable : public Hole {
 public:
-    CELL_CREATE_VM(HoleIdentifier);
+    CELL_CREATE_VM(HoleVariable);
 
     bool operator==(const Hole&) const override;
     void dump(std::ostream&) const override;
+    void generate(BytecodeGenerator&, Register) const override;
+    Hole* substitute(VM&, const Substitutions&) const override;
+    Value partiallyEvaluate(VM&, Environment*) override;
 
 private:
-    HoleIdentifier(VM&, const Identifier&);
+    HoleVariable(VM&, const std::string&);
 
     CELL_FIELD(String, name);
-};
-
-class HoleTuple : public Hole {
-public:
-    CELL_CREATE_VM(HoleTuple);
-
-    bool operator==(const Hole&) const override;
-    void dump(std::ostream&) const override;
-
-private:
-    HoleTuple(VM&, const TupleExpression&);
-
-    CELL_FIELD(Array, items);
-};
-
-class HoleObject : public Hole {
-public:
-    CELL_CREATE_VM(HoleObject);
-
-    bool operator==(const Hole&) const override;
-    void dump(std::ostream&) const override;
-
-private:
-    HoleObject(VM&, const ObjectLiteralExpression&);
-};
-
-class HoleArray : public Hole {
-public:
-    CELL_CREATE_VM(HoleArray);
-
-    bool operator==(const Hole&) const override;
-    void dump(std::ostream&) const override;
-
-private:
-    HoleArray(VM&, const ArrayLiteralExpression&);
-
-    CELL_FIELD(Array, items);
 };
 
 class HoleCall : public Hole {
@@ -81,11 +55,14 @@ public:
 
     bool operator==(const Hole&) const override;
     void dump(std::ostream&) const override;
+    void generate(BytecodeGenerator&, Register) const override;
+    Hole* substitute(VM&, const Substitutions&) const override;
+    Value partiallyEvaluate(VM&, Environment*) override;
 
 private:
-    HoleCall(VM&, const CallExpression&);
+    HoleCall(VM&, Value, Array*);
 
-    CELL_FIELD(Hole, callee);
+    VALUE_FIELD(Value, callee);
     CELL_FIELD(Array, arguments);
 };
 
@@ -95,12 +72,15 @@ public:
 
     bool operator==(const Hole&) const override;
     void dump(std::ostream&) const override;
+    void generate(BytecodeGenerator&, Register) const override;
+    Hole* substitute(VM&, const Substitutions&) const override;
+    Value partiallyEvaluate(VM&, Environment*) override;
 
 private:
-    HoleSubscript(VM&, const SubscriptExpression&);
+    HoleSubscript(VM&, Value, Value);
 
-    CELL_FIELD(Hole, target);
-    CELL_FIELD(Hole, index);
+    VALUE_FIELD(Value, target);
+    VALUE_FIELD(Value, index);
 };
 
 class HoleMember : public Hole {
@@ -109,23 +89,13 @@ public:
 
     bool operator==(const Hole&) const override;
     void dump(std::ostream&) const override;
+    void generate(BytecodeGenerator&, Register) const override;
+    Hole* substitute(VM&, const Substitutions&) const override;
+    Value partiallyEvaluate(VM&, Environment*) override;
 
 private:
-    HoleMember(VM&, const MemberExpression&);
+    HoleMember(VM&, Value, String*);
 
-    CELL_FIELD(Hole, object);
+    VALUE_FIELD(Value, object);
     CELL_FIELD(String, property);
-};
-
-class HoleLiteral : public Hole {
-public:
-    CELL_CREATE_VM(HoleLiteral);
-
-    bool operator==(const Hole&) const override;
-    void dump(std::ostream&) const override;
-
-private:
-    HoleLiteral(VM&, const LiteralExpression& literal);
-
-    VALUE_FIELD(Value, value);
 };

@@ -2,6 +2,7 @@
 
 void Array::visit(std::function<void(Value)> visitor) const
 {
+    Typed::visit(visitor);
     for (auto item : m_items)
         visitor(item);
 }
@@ -19,7 +20,7 @@ void Array::dump(std::ostream& out) const
     out << "]";
 }
 
-Array* createArray(VM& vm, uint32_t inlineSize)
+Array* createArray(VM& vm, Type* type, uint32_t inlineSize)
 {
-    return Array::create(vm, inlineSize);
+    return Array::create(vm, type, inlineSize);
 }

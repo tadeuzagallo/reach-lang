@@ -29,6 +29,7 @@ instruction :SetLocal,
 
 instruction :NewArray,
     dst: :Register,
+    type: :Register,
     initialSize: :uint32_t
 
 instruction :SetArrayIndex,
@@ -47,6 +48,7 @@ instruction :GetArrayLength,
 
 instruction :NewTuple,
     dst: :Register,
+    type: :Register,
     initialSize: :uint32_t
 
 instruction :SetTupleIndex,
@@ -71,6 +73,7 @@ instruction :Call,
 
 instruction :NewObject,
     dst: :Register,
+    type: :Register,
     inlineSize: :uint32_t
 
 instruction :SetField,
@@ -166,6 +169,29 @@ instruction :NewUnionType,
     dst: :Register,
     lhs: :Register,
     rhs: :Register
+
+instruction :NewBindingType,
+    dst: :Register,
+    nameIndex: :uint32_t,
+    type: :Register
+
+# Holes
+
+instruction :NewCallHole,
+    dst: :Register,
+    callee: :Register,
+    argc: :uint32_t,
+    firstArg: :Register
+
+instruction :NewSubscriptHole,
+    dst: :Register,
+    target: :Register,
+    index: :Register
+
+instruction :NewMemberHole,
+    dst: :Register,
+    object: :Register,
+    fieldIndex: :uint32_t
 
 # Create new values from types
 instruction :NewValue,

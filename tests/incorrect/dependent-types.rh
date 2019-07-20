@@ -1,0 +1,41 @@
+//RUN: %not %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+function isSingleton(b: Bool) -> Type
+{
+    if (b)
+        Number
+    else
+        Number[]
+}
+
+function mkSingle(x: Bool, y: isSingleton(x)) -> isSingleton(x)
+{
+    y
+}
+
+inspect(mkSingle(true, [42])) // CHECK-L: 23:24: Unification failure: expected `Number` but found `Number[]`
+inspect(mkSingle(false, 42)) // CHECK-L: 24:25: Unification failure: expected `Number[]` but found `Number`
+
+// Arrays
+function isSingleton(b: Bool[]) -> Type
+{
+    if (b[0])
+        Number
+    else
+        Number[]
+}
+
+function mkSingle(x: Bool[], y: isSingleton(x)) -> isSingleton(x)
+{
+    y
+}
+
+inspect(mkSingle([true], [42])) // CHECK-L: 40:26: Unification failure: expected `Number` but found `Number[]`
+inspect(mkSingle([false], 42)) // CHECK-L: 41:27: Unification failure: expected `Number[]` but found `Number`

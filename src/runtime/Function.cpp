@@ -3,11 +3,9 @@
 
 void Function::visit(std::function<void(Value)> visitor) const
 {
-    visitor(m_type);
-    if (m_block)
-        m_block->visit(visitor);
-    if (m_parentEnvironment)
-        m_parentEnvironment->visit(visitor);
+    Typed::visit(visitor);
+    visitor(m_block);
+    visitor(m_parentEnvironment);
 }
 
 Value Function::call(VM& vm, std::vector<Value> args)

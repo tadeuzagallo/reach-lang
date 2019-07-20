@@ -8,6 +8,8 @@ class Cell;
 class Value;
 class VM;
 
+using Visitor = std::function<void(Value)>;
+
 class Heap {
 public:
     Heap(VM*);
@@ -26,6 +28,9 @@ public:
 		return cell;
     }
 
+    void addRoot(Cell*);
+    void removeRoot(Cell*);
+
 private:
     void collect();
     void markFromRoots();
@@ -39,4 +44,5 @@ private:
 
     VM* m_vm;
     std::queue<Cell*> m_worklist;
+    std::vector<Cell*> m_roots;
 };

@@ -22,7 +22,7 @@ public:
     void visit(std::function<void(Value)>) const override;
 
 private:
-    Environment(Environment* parent);
+    Environment(Environment*);
 
     Environment* m_parent;
     Map m_map;

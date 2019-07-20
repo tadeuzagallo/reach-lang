@@ -19,7 +19,9 @@ public:
     static Value check(VM& vm, BytecodeBlock&, Environment*);
     static Value run(VM& vm, BytecodeBlock&, Environment* = nullptr, const Values& = {}, const Callback& = {});
 
-    Value reg(Register) const;
+    void visit(const std::function<void(Value)>&) const;
+
+    Environment* environment() const { return m_environment; }
 
 private:
     enum class Mode {
@@ -51,9 +53,10 @@ private:
     };
 
     VM& m_vm;
-    const BytecodeBlock* m_lastBlock;
     BytecodeBlock& m_block;
+    const BytecodeBlock* m_lastBlock;
     Environment* m_environment;
+    Interpreter* m_lastInterpreter;
     Mode m_mode { Mode::Run };
     bool m_stop;
     InstructionStream::Ref m_ip;

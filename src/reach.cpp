@@ -37,7 +37,7 @@ int main(int argc, const char** argv)
     BytecodeGenerator generator(vm);
     program->typecheck(generator);
     auto bytecode = program->generate(generator);
-    vm.globalBlock = bytecode.get();
+    vm.globalBlock = bytecode;
     Value type = Interpreter::check(vm, *bytecode, vm.globalEnvironment);
     Value result = Interpreter::run(vm, *bytecode, vm.globalEnvironment);
     std::cout << "End: " << result << " : " << type << std::endl;

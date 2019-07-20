@@ -39,6 +39,7 @@ Environment* Environment::parent() const
 
 void Environment::visit(std::function<void(Value)> visitor) const
 {
+    visitor(m_parent);
     for (const auto& pair : m_map)
         visitor(pair.second);
     for (const auto& pair : m_typeMap)

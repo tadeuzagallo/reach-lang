@@ -1,10 +1,11 @@
 #include "Type.h"
 
+#include "BytecodeBlock.h"
 #include "TypeChecker.h"
 #include <typeinfo>
 
 Type::Type(Class typeClass)
-    : Object(0)
+    : Object(nullptr, 0)
     , m_class(typeClass)
 {
     ASSERT(typeClass >= Class::SpecificType, "OOPS");
@@ -26,11 +27,6 @@ TypeType::TypeType()
 {
 }
 
-Type* TypeType::substitute(VM&, Substitutions&)
-{
-    return this;
-}
-
 void TypeType::dump(std::ostream& out) const
 {
     out << "Type";
@@ -41,11 +37,6 @@ TypeTop::TypeTop()
 {
 }
 
-Type* TypeTop::substitute(VM&, Substitutions&)
-{
-    return this;
-}
-
 void TypeTop::dump(std::ostream& out) const
 {
     out << "⊤";
@@ -54,11 +45,6 @@ void TypeTop::dump(std::ostream& out) const
 TypeBottom::TypeBottom()
     : Type(Type::Class::Bottom)
 {
-}
-
-Type* TypeBottom::substitute(VM&, Substitutions&)
-{
-    return this;
 }
 
 void TypeBottom::dump(std::ostream& out) const
@@ -72,11 +58,6 @@ TypeName::TypeName(const std::string& name)
     set_name(String::create(vm(), name));
 }
 
-Type* TypeName::substitute(VM&, Substitutions&)
-{
-    return this;
-}
-
 void TypeName::dump(std::ostream& out) const
 {
     out << name()->str();
@@ -86,7 +67,7 @@ TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Val
     : Type(Type::Class::Function)
     , m_inferredParameters(inferredParameters)
 {
-    set_params(Array::create(vm(), parameterCount, parameters));
+    set_params(Array::create(vm(), nullptr, parameterCount, parameters));
     set_returnType(returnType);
 
     Types implicitParams;
@@ -100,8 +81,8 @@ TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Val
     }
     set_explicitParamCount(explicitParams.size());
     set_implicitParamCount(implicitParams.size());
-    set_explicitParams(Array::create(vm(), explicitParams));
-    set_implicitParams(Array::create(vm(), implicitParams));
+    set_explicitParams(Array::create(vm(), nullptr, explicitParams));
+    set_implicitParams(Array::create(vm(), nullptr, implicitParams));
 }
 
 size_t TypeFunction::paramCount() const
@@ -129,24 +110,14 @@ Type* TypeFunction::instantiate(VM& vm)
             Type* type = v.asType();
             if (type->is<TypeVar>())
                 type->as<TypeVar>()->fresh(vm, subst);
+            if (type->is<TypeBinding>()) {
+                type = type->as<TypeBinding>()->type();
+                if (type->is<TypeVar>())
+                    type->as<TypeVar>()->fresh(vm, subst);
+            }
         }
     }
     return substitute(vm, subst);
-}
-
-Type* TypeFunction::substitute(VM& vm, Substitutions& subst)
-{
-    Types params_;
-    for (Value v : *params()) {
-        if (v.isType())
-            params_.emplace_back(v.asType()->substitute(vm, subst));
-        else
-            params_.emplace_back(v);
-    }
-    Value returnType_ = returnType();
-    if (returnType_.isType())
-        returnType_ = returnType_.asType()->substitute(vm, subst);
-    return TypeFunction::create(vm, params_.size(), &params_[0], returnType_, m_inferredParameters);
 }
 
 void TypeFunction::dump(std::ostream& out) const
@@ -168,14 +139,6 @@ TypeArray::TypeArray(Value itemType)
     set_itemType(itemType);
 }
 
-Type* TypeArray::substitute(VM& vm, Substitutions& subst)
-{
-    Value itemType_ = itemType();
-    if (itemType_.isType())
-        itemType_ = itemType_.asType()->substitute(vm, subst);
-    return TypeArray::create(vm, itemType_);
-}
-
 void TypeArray::dump(std::ostream& out) const
 {
     out << itemType() << "[]";
@@ -184,22 +147,7 @@ void TypeArray::dump(std::ostream& out) const
 TypeTuple::TypeTuple(uint32_t itemCount)
     : Type(Type::Class::Tuple)
 {
-    set_itemsTypes(Array::create(vm(), itemCount));
-}
-
-Type* TypeTuple::substitute(VM& vm, Substitutions& subst)
-{
-    Array* types = itemsTypes();
-    size_t size = types->size();
-    TypeTuple* newTuple = TypeTuple::create(vm, size);
-    Array* newTypes = newTuple->itemsTypes();
-    for (uint32_t i = 0; i < size; i++) {
-        auto type = types->getIndex(i);
-        newTypes->setIndex(i, type.isType()
-            ? type.asType()->substitute(vm, subst)
-            : type);
-    }
-    return newTuple;
+    set_itemsTypes(Array::create(vm(), nullptr, itemCount));
 }
 
 void TypeTuple::dump(std::ostream& out) const
@@ -218,37 +166,32 @@ void TypeTuple::dump(std::ostream& out) const
 TypeRecord::TypeRecord(const Fields& fields)
     : Type(Type::Class::Record)
 {
-    set_fields(Object::create(vm(), fields));
+    for (const auto& it : fields)
+        set(it.first, it.second);
 }
 
 TypeRecord::TypeRecord(const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* types)
     : Type(Type::Class::Record)
 {
-    set_fields(Object::create(vm(), block, fieldCount, keys, types));
+    for (uint32_t i = 0; i < fieldCount; i++) {
+        const std::string& key = block.identifier(keys[i].asNumber());
+        set(key, types[i]);
+    }
 }
 
 Type* TypeRecord::field(const std::string& name) const
 {
-    std::optional<Value> field = fields()->tryGet(name);
+    std::optional<Value> field = tryGet(name);
     if (!field)
         return nullptr;
     return field->asCell<Type>();
-}
-
-Type* TypeRecord::substitute(VM& vm, Substitutions& subst)
-{
-    Fields fields_;
-    for (auto& field : *fields()) {
-        fields_.emplace(field.first, field.second.asCell<Type>()->substitute(vm, subst));
-    }
-    return TypeRecord::create(vm, fields_);
 }
 
 void TypeRecord::dump(std::ostream& out) const
 {
     out << "{";
     bool isFirst = true;
-    for (auto& pair : *fields()) {
+    for (auto& pair : *this) {
         if (!isFirst)
             out << ", ";
         out << pair.first << ": " << pair.second;
@@ -276,14 +219,6 @@ void TypeVar::fresh(VM& vm, Substitutions& subst) const
     subst.emplace(uid(), newVar);
 }
 
-Type* TypeVar::substitute(VM&, Substitutions& subst)
-{
-    const auto it = subst.find(uid());
-    if (it != subst.end())
-        return it->second;
-    return this;
-}
-
 void TypeVar::dump(std::ostream& out) const
 {
     out << name()->str();
@@ -309,7 +244,7 @@ Type* TypeUnion::collapse(VM& vm)
         if (!type->is<TypeRecord>())
             return nullptr;
 
-        return type->as<TypeRecord>()->fields();
+        return type->as<TypeRecord>();
     };
 
     Object* lhs = getFields(this->lhs());
@@ -327,37 +262,26 @@ Type* TypeUnion::collapse(VM& vm)
     return TypeRecord::create(vm, std::move(fields));
 }
 
-Type* TypeUnion::substitute(VM& vm, Substitutions& subst)
-{
-    Value lhs = this->lhs();
-    Value rhs = this->rhs();
-    if (lhs.isType())
-        lhs = lhs.asType()->substitute(vm, subst);
-    if (rhs.isType())
-        rhs = rhs.asType()->substitute(vm, subst);
-    return TypeUnion::create(vm, lhs, rhs);
-}
-
 void TypeUnion::dump(std::ostream& out) const
 {
     out << lhs() << " | " << rhs();
 }
 
-TypeHole::TypeHole(Hole* hole)
-    : Type(Type::Class::Hole)
+TypeBinding::TypeBinding(String* name, Type* type)
+    : Type(Type::Class::Binding)
 {
-    set_hole(hole);
+    set_name(name);
+    set_type(type);
 }
 
-Type* TypeHole::substitute(VM&, Substitutions&)
+void TypeBinding::dump(std::ostream& out) const
 {
-    // TODO
-    return this;
-}
-
-void TypeHole::dump(std::ostream& out) const
-{
-    hole()->dump(out);
+    out << name()->str() << ": ";
+    Type* type = this->type();
+    if (type->is<TypeVar>())
+        out << "Type";
+    else
+        type->dump(out);
 }
 
 std::ostream& operator<<(std::ostream& out, Type::Class tc)
@@ -402,6 +326,9 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
     case Type::Class::Hole:
         out << "Type::Class::Hole";
         break;
+    case Type::Class::Binding:
+        out << "Type::Class::Binding";
+        break;
     }
     return out;
 }
@@ -422,6 +349,11 @@ TypeArray* createTypeArray(VM& vm, Value itemType)
     return TypeArray::create(vm, itemType);
 }
 
+TypeTuple* createTypeTuple(VM& vm, uint32_t itemCount)
+{
+    return TypeTuple::create(vm, itemCount);
+}
+
 TypeRecord* createTypeRecord(VM& vm, const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* types)
 {
     return TypeRecord::create(vm, block, fieldCount, keys, types);
@@ -430,4 +362,14 @@ TypeRecord* createTypeRecord(VM& vm, const BytecodeBlock& block, uint32_t fieldC
 TypeFunction* createTypeFunction(VM& vm, uint32_t paramCount, const Value* params, Value returnType, uint32_t inferredParameters)
 {
     return TypeFunction::create(vm, paramCount, params, returnType, inferredParameters);
+}
+
+TypeUnion* createTypeUnion(VM& vm, Value lhs, Value rhs)
+{
+    return TypeUnion::create(vm, lhs, rhs);
+}
+
+TypeBinding* createTypeBinding(VM& vm, const std::string& name, Type* type)
+{
+    return TypeBinding::create(vm, String::create(vm, name), type);
 }

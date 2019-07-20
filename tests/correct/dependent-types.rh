@@ -1,11 +1,109 @@
 //RUN: %reach | %check
 
+
 function inspect(%T: Type, x: T) -> Void
 {
     print(x.stringify())
     print(" : ")
     println(T.stringify())
 }
+
+// Literals
+
+// Boolean
+function isSingleton(b: Bool) -> Type
+{
+    if (b)
+        Number
+    else
+        Number[]
+}
+inspect(isSingleton) // CHECK-L: <function isSingleton> : (b: Bool) -> Type
+
+function mkSingle(x: Bool, y: isSingleton(x)) -> isSingleton(x)
+{
+    y
+}
+inspect(mkSingle) // CHECK-L: <function mkSingle> : (x: Bool, y: isSingleton(x)) -> isSingleton(x)
+
+inspect(mkSingle(true, 42)) // CHECK-L: 42 : Number
+inspect(mkSingle(false, [42])) // CHECK-L: [42] : Number[]
+
+// Arrays
+function isSingleton(b: Bool[]) -> Type
+{
+    if (b[0])
+        Number
+    else
+        Number[]
+}
+inspect(isSingleton) // CHECK-L: <function isSingleton> : (b: Bool[]) -> Type
+
+function mkSingle(x: Bool[], y: isSingleton(x)) -> isSingleton(x)
+{
+    y
+}
+inspect(mkSingle) // CHECK-L: (x: Bool[], y: isSingleton(x)) -> isSingleton(x)
+inspect(mkSingle([true], 42)) // CHECK-L: 42 : Number
+inspect(mkSingle([false], [42])) // CHECK-L: [42] : Number[]
+
+function proj(T: Type[], x: T[0]) -> T[0]
+{
+    x
+}
+inspect(proj) // CHECK-L: <function proj> : (T: Type[], x: T[0]) -> T[0]
+inspect(proj([Number], 42)) // CHECK-L: 42 : Number
+
+// Records
+function isSingleton(b: {x: Bool}) -> Type
+{
+    if (b.x)
+        Number
+    else
+        Number[]
+}
+inspect(isSingleton) // CHECK-L: <function isSingleton> : (b: {x: Bool}) -> Type
+
+function mkSingle(x: {x: Bool}, y: isSingleton(x)) -> isSingleton(x)
+{
+    y
+}
+inspect(mkSingle) // CHECK-L: <function mkSingle> : (x: {x: Bool}, y: isSingleton(x)) -> isSingleton(x)
+inspect(mkSingle({x = true}, 42)) // CHECK-L: 42 : Number
+inspect(mkSingle({x = false}, [42])) // CHECK-L: [42] : Number[]
+
+function projX(T: {X: Type}, x: T.X) -> T.X
+{
+    x
+}
+inspect(projX) // CHECK-L: <function projX> : (T: {X: Type}, x: T.X) -> T.X
+inspect(projX({X = Number}, 42)) // CHECK-L: 42 : Number
+
+// Tuples - TODO: needs tuple accessor
+
+
+// Indirect
+
+// TODO: type errors in the body of this function will lead to crashes when calling it from a type
+function isSingleton(b: Bool) -> Type
+{
+    if (b)
+        Number
+    else
+        Number[]
+}
+
+inspect(isSingleton) // CHECK-L: <function isSingleton> : (b: Bool) -> Type
+
+function mkSingle(x: {x: Bool}, y: isSingleton(x.x)) -> isSingleton(x.x)
+{
+    y
+}
+inspect(mkSingle) // CHECK-L: <function mkSingle> : (x: {x: Bool}, y: isSingleton(x.x)) -> isSingleton(x.x)
+inspect(mkSingle({x = true}, 42)) // CHECK-L: 42 : Number
+inspect(mkSingle({x = false}, [42])) // CHECK-L: [42] : Number[]
+
+// Eta expansions
 
 function isSingleton(b: Bool) -> Type
 {
@@ -14,10 +112,51 @@ function isSingleton(b: Bool) -> Type
     else
         Number[]
 }
-inspect(isSingleton) // CHECK-L: <function isSingleton> : (Bool) -> Type
+
+inspect(isSingleton) // CHECK-L: <function isSingleton> : (b: Bool) -> Type
 
 function mkSingle(x: Bool, y: isSingleton(x)) -> isSingleton(x)
 {
     y
 }
-inspect(mkSingle) // CHECK-L: <function mkSingle> : (Bool, isSingleton(x)) -> isSingleton(x)
+inspect(mkSingle) // CHECK-L: (x: Bool, y: isSingleton(x)) -> isSingleton(x)
+
+/*
+// TODO: partial evaluation on UnificationScope::resolveType
+function mkSingleRec(x: {x: Bool}, y: isSingleton(x.x)) -> isSingleton(x.x)
+{
+    mkSingle(x.x, y)
+}
+*/
+
+// Nested type holes
+
+function choose(b: Bool, S: Type, T: Type) -> Type
+{
+    if (b)
+        S
+    else
+        T
+}
+inspect(choose) // CHECK-L: <function choose> : (b: Bool, S: Type, T: Type) -> Type
+
+function not(b: Bool) -> Bool
+{
+    if (b)
+        false
+    else
+        true
+}
+inspect(not) // CHECK-L: <function not> : (b: Bool) -> Bool
+
+function f(
+    b: Bool,
+    x: choose(b, <Number, choose(not(b), {x: Number}, {y: choose(b, Number[], String[])})>, <String, Number>)
+) -> choose(b, <Number, choose(not(b), {x: Number}, {y: choose(b, Number[], String[])})>, <String, Number>)
+{
+    x
+}
+
+inspect(f) // CHECK-L: <function f> : (b: Bool, x: choose(b, <Number, choose(not(b), {x: Number}, {y: choose(b, Number[], String[])})>, <String, Number>)) -> choose(b, <Number, choose(not(b), {x: Number}, {y: choose(b, Number[], String[])})>, <String, Number>)
+inspect(f(true, (42, {y = [42]}))) // CHECK-L: (42, {y = [42]}) : <Number, {y: Number[]}>
+inspect(f(false, ("str", 42))) // CHECK-L: ("str", 42) : <String, Number>

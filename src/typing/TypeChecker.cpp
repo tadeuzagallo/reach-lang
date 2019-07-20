@@ -2,6 +2,7 @@
 
 #include "AST.h"
 #include "BytecodeGenerator.h"
+#include "Hole.h"
 #include "Log.h"
 #include <sstream>
 #include <limits>
@@ -195,6 +196,23 @@ std::optional<std::vector<bool>> TypeChecker::Scope::getFunction(const std::stri
     if (auto* previousTypeChecker = m_typeChecker.previousTypeChecker())
         return previousTypeChecker->m_currentScope->getFunction(name);
     return std::nullopt;
+}
+
+void TypeChecker::Scope::bindParameter(const std::string& parameter)
+{
+    m_boundParameters.emplace(parameter);
+}
+
+void TypeChecker::Scope::lookup(Register dst, const std::string& name)
+{
+    const auto& it = m_boundParameters.find(name);
+    if (it != m_boundParameters.end()) {
+        m_typeChecker.m_generator.loadConstant(dst, HoleVariable::create(m_typeChecker.vm(), name));
+    } else if (m_previousScope) {
+        m_previousScope->lookup(dst, name);
+    } else {
+        m_typeChecker.m_generator.getLocal(dst, name);
+    }
 }
 
 TypeChecker::UnificationScope::UnificationScope(TypeChecker& typeChecker)

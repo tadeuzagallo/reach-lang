@@ -35,17 +35,21 @@ class Cell {
     friend class Heap;
 
 public:
-    enum class Kind : uint8_t {
-        Object = 0x1,
-        String = 0x2,
-        Array = 0x4,
-        Function = 0x8,
-        Environment = 0x10,
-        Type = 0x20 | Object,
-        Tuple = 0x40,
-        Hole = 0x80 | Object,
-        InvalidCell = Hole + 1,
+    enum class Kind : uint16_t {
+        Typed       = 0x1,
+        Object      = 0x2 | Typed,
+        String      = 0x4 | Typed,
+        Array       = 0x8 | Typed,
+        Function    = 0x10 | Typed,
+        Tuple       = 0x20 | Typed,
+        Type        = 0x40 | Object,
+        Hole        = 0x80 | Type,
+        Environment = 0x100,
+        BytecodeBlock = 0x200,
+        InvalidCell = BytecodeBlock + 1,
     };
+
+    Kind kind() const { return m_kind; }
 
     template<typename T>
     bool is()

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Cell.h"
+#include "Typed.h"
 #include "VM.h"
 #include <optional>
 #include <unordered_map>
@@ -42,7 +42,7 @@
     FIELD_VALUE_GETTER(__type, __name, __VA_ARGS__) \
     FIELD_VALUE_SETTER(__type, __name) \
 
-class Object : public Cell {
+class Object : public Typed {
 public:
     CELL(Object)
 
@@ -72,25 +72,30 @@ public:
     std::unordered_map<std::string, Value>::const_iterator begin() const { return m_fields.begin(); }
     std::unordered_map<std::string, Value>::const_iterator end() const { return m_fields.end(); }
 
+    bool operator==(const Object&) const;
+    Object* substitute(VM&, const Substitutions&) const;
+
     void visit(std::function<void(Value)>) const override;
     void dump(std::ostream& out) const override;
 
 protected:
-    Object(uint32_t inlineSize)
+    Object(Type* type, uint32_t inlineSize)
+        : Typed(type)
     {
         (void)inlineSize; // TODO
     }
 
     template<typename T>
-    Object(const std::unordered_map<std::string, T>& fields)
-     : m_fields(fields.begin(), fields.end())
+    Object(Type* type, const std::unordered_map<std::string, T>& fields)
+        : Typed(type)
+        , m_fields(fields.begin(), fields.end())
     {
     }
 
-    Object(const BytecodeBlock&, uint32_t, const Value*, const Value*);
+    Object(Type*, const BytecodeBlock&, uint32_t, const Value*, const Value*);
 
 private:
     std::unordered_map<std::string, Value> m_fields;
 };
 
-extern Object* createObject(VM&, uint32_t);
+extern Object* createObject(VM&, Type*, uint32_t);

@@ -1,17 +1,14 @@
 #pragma once
 
-#include "Cell.h"
+#include "Typed.h"
 #include "VM.h"
 
-class String : public Cell {
+class String : public Typed {
 public:
-    CELL(String)
+    CELL_TYPE(String)
+    CELL_CREATE_VM(String)
 
     const std::string& str() const { return m_str; }
-
-    void visit(std::function<void(Value)>) const override
-    {
-    }
 
     void dump(std::ostream& out) const override
     {
@@ -24,8 +21,9 @@ public:
     }
 
 private:
-    String(const std::string& str)
-        : m_str(str)
+    String(VM& vm, const std::string& str)
+        : Typed(vm.stringType)
+        , m_str(str)
     {
     }
 

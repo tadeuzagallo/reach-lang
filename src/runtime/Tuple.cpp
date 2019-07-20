@@ -2,6 +2,7 @@
 
 void Tuple::visit(std::function<void(Value)> visitor) const
 {
+    Typed::visit(visitor);
     for (auto item : m_items)
         visitor(item);
 }
@@ -19,7 +20,7 @@ void Tuple::dump(std::ostream& out) const
     out << ")";
 }
 
-Tuple* createTuple(VM& vm, uint32_t inlineSize)
+Tuple* createTuple(VM& vm, Type* type, uint32_t inlineSize)
 {
-    return Tuple::create(vm, inlineSize);
+    return Tuple::create(vm, type, inlineSize);
 }

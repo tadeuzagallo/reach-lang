@@ -6,21 +6,16 @@
 template<typename T>
 void TypeChecker::inferAsType(T& node, Register result)
 {
-    if (dynamic_cast<TypeExpression*>(node.get()) || dynamic_cast<Identifier*>(node.get())) {
-        node->infer(*this, result);
-        unify(node->location, result, typeType());
-        // If the node is not a type, return the unit type so we can continue
-        Register tmp = m_generator.newLocal();
-        m_generator.checkType(tmp, result, Type::Class::AnyType);
-        m_generator.branch(tmp, [&] { }, [&] {
-            m_generator.move(result, unitType());
-        });
-    } else {
-        node->check(*this, typeType());
-        generator().loadConstant(result, TypeHole::create(vm(), node->asHole(vm())));
-    }
-}
+    node->check(*this, typeType());
+    node->generateForTypeChecking(*this, result);
 
+    Register tmp = generator().newLocal();
+    generator().checkType(tmp, result, Type::Class::AnyType);
+    generator().branch(tmp, [&] { }, [&] {
+        // Recover, since we already unified and type errors will already be emitted
+        generator().move(result, topType());
+    });
+}
 
 // Declarations
 
@@ -73,9 +68,11 @@ void FunctionDeclaration::check(TypeChecker& tc, Register result)
                 auto& parameter = parameters[i];
                 if (parameter->name->name == name->name)
                     shadowsFunctionName = true;
-                parameter->infer(functionTC, parameterRegisters[parameters.size() - i - 1]);
                 if (parameter->inferred)
                     inferredParameters |= 1 << i;
+                else if (!dynamic_cast<TypeTypeExpression*>(parameter->type.get()))
+                    scope.bindParameter(parameter->name->name);
+                parameter->infer(functionTC, parameterRegisters[parameters.size() - i - 1]);
                 check(i + 1);
                 return;
             }
@@ -224,37 +221,6 @@ void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
     expression->infer(tc, result);
 }
 
-void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
-{
-    std::vector<std::pair<std::string, Register>> fieldRegisters;
-
-    for (const auto& pair : fields)
-        fieldRegisters.emplace_back(std::make_pair(pair.first->name, tc.generator().newLocal()));
-
-    unsigned i = 0;
-    for (auto& pair : fields) {
-        Register type = fieldRegisters[i++].second;
-        pair.second->infer(tc, type);
-        tc.generator().getTypeForValue(type, type);
-    }
-
-    tc.newRecordValue(result, fieldRegisters);
-}
-
-void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
-{
-    if (items.size()) {
-        items[0]->infer(tc, result);
-        tc.generator().getTypeForValue(result, result);
-    } else
-        tc.generator().move(result, tc.bottomType());
-
-    for (uint32_t i = 1; i < items.size(); i++)
-        items[i]->check(tc, result);
-
-    tc.newArrayValue(result, result);
-}
-
 void TupleExpression::infer(TypeChecker& tc, Register result)
 {
     tc.generator().newTupleType(result, items.size());
@@ -267,7 +233,7 @@ void TupleExpression::infer(TypeChecker& tc, Register result)
         tc.generator().setArrayIndex(itemsTypes, i, tmp);
     }
 
-    tc.generator().newValue(result, result);
+    generateForTypeChecking(tc, result);
 }
 
 void CallExpression::checkCallee(TypeChecker& tc, Register result, Label& done)
@@ -338,12 +304,13 @@ void CallExpression::checkArguments(TypeChecker& tc, Register calleeType, Label&
 
 void CallExpression::infer(TypeChecker& tc, Register result)
 {
-    TypeChecker::UnificationScope scope(tc);
+    TypeChecker::Scope scope(tc);
+    TypeChecker::UnificationScope unificationScope(tc);
     Label done = tc.generator().label();
     checkCallee(tc, result, done);
     checkArguments(tc, result, done);
     tc.generator().getField(result, result, TypeFunction::returnTypeField);
-    scope.resolve(result, result);
+    unificationScope.resolve(result, result);
     tc.newValue(result, result);
     tc.generator().emit(done);
 }
@@ -375,15 +342,48 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
     tc.generator().newValue(result, result);
 }
 
+void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
+{
+    std::vector<std::pair<std::string, Register>> fieldRegisters;
+
+    for (const auto& pair : fields)
+        fieldRegisters.emplace_back(std::make_pair(pair.first->name, tc.generator().newLocal()));
+
+    unsigned i = 0;
+    for (auto& pair : fields) {
+        Register type = fieldRegisters[i++].second;
+        pair.second->infer(tc, type);
+        tc.generator().getTypeForValue(type, type);
+    }
+
+    tc.newRecordType(result, fieldRegisters);
+    generateForTypeChecking(tc, result);
+}
+
+void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
+{
+    if (items.size()) {
+        items[0]->infer(tc, result);
+        tc.generator().getTypeForValue(result, result);
+    } else
+        tc.generator().move(result, tc.bottomType());
+
+    for (uint32_t i = 1; i < items.size(); i++)
+        items[i]->check(tc, result);
+
+    tc.generator().newArrayType(result, result);
+    generateForTypeChecking(tc, result);
+}
+
 void LiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    literal->infer(tc, result);
+    literal->generate(tc.generator(), result);
 }
 
 // Literals
 void BooleanLiteral::infer(TypeChecker& tc, Register result)
 {
-    tc.boolValue(result);
+    tc.generator().loadConstant(result, value);
 }
 
 void NumericLiteral::infer(TypeChecker& tc, Register result)
@@ -399,19 +399,19 @@ void StringLiteral::infer(TypeChecker& tc, Register result)
 // Types
 void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
-    tc.inferAsType(type, result);
-
-    Register tmp = tc.generator().newLocal();
-    tc.generator().checkType(tmp, result, Type::Class::Type);
-    tc.generator().branch(tmp, [&] {
+    if (dynamic_cast<TypeTypeExpression*>(type.get())) {
         tc.generator().newVarType(result, name->name, inferred, /* rigid */ true);
         tc.insert(name->name, result);
-    }, [&] {
-        if (inferred)
-            tc.generator().typeError(location, "Only type arguments can be inferred");
-        tc.generator().newValue(tmp, result);
-        tc.insert(name->name, tmp);
-    });
+        tc.generator().newBindingType(result, name->name, result);
+        return;
+    } else if (inferred)
+        tc.generator().typeError(location, "Only type arguments can be inferred");
+
+    tc.inferAsType(type, result);
+    Register tmp = tc.generator().newLocal();
+    tc.generator().newValue(tmp, result);
+    tc.insert(name->name, tmp);
+    tc.generator().newBindingType(result, name->name, result);
 }
 
 void TypeTypeExpression::infer(TypeChecker& tc, Register result)
@@ -427,21 +427,21 @@ void SynthesizedTypeExpression::infer(TypeChecker& tc, Register)
 void ArrayTypeExpression::infer(TypeChecker& tc, Register result)
 {
     itemType->check(tc, tc.typeType());
-    generate(tc.generator(), result);
+    generateForTypeChecking(tc, result);
 }
 
 void ObjectTypeExpression::infer(TypeChecker& tc, Register result)
 {
     for (auto& field : fields)
         field.second->check(tc, tc.typeType());
-    generate(tc.generator(), result);
+    generateForTypeChecking(tc, result);
 }
 
 void TupleTypeExpression::infer(TypeChecker& tc, Register result)
 {
     for (auto& item : items)
         item->check(tc, tc.typeType());
-    generate(tc.generator(), result);
+    generateForTypeChecking(tc, result);
 }
 
 void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
@@ -449,12 +449,12 @@ void FunctionTypeExpression::infer(TypeChecker& tc, Register result)
     for (auto& param : parameters)
         param->check(tc, tc.typeType());
     returnType->check(tc, tc.typeType());
-    generate(tc.generator(), result);
+    generateForTypeChecking(tc, result);
 }
 
 void UnionTypeExpression::infer(TypeChecker& tc, Register result)
 {
     lhs->check(tc, tc.typeType());
     rhs->check(tc, tc.typeType());
-    generate(tc.generator(), result);
+    generateForTypeChecking(tc, result);
 }

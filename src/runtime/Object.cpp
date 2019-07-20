@@ -2,7 +2,8 @@
 
 #include "BytecodeBlock.h"
 
-Object::Object(const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* values)
+Object::Object(Type* type, const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* values)
+    : Typed(type)
 {
     for (uint32_t i = 0; i < fieldCount; i++) {
         const std::string& key = block.identifier(keys[i].asNumber());
@@ -12,6 +13,7 @@ Object::Object(const BytecodeBlock& block, uint32_t fieldCount, const Value* key
 
 void Object::visit(std::function<void(Value)> visitor) const
 {
+    Typed::visit(visitor);
     for (auto field : m_fields)
         visitor(field.second);
 }
@@ -29,7 +31,7 @@ void Object::dump(std::ostream& out) const
     out << "}";
 }
 
-Object* createObject(VM& vm, uint32_t inlineSize)
+Object* createObject(VM& vm, Type* type, uint32_t inlineSize)
 {
-    return Object::create(vm, inlineSize);
+    return Object::create(vm, type, inlineSize);
 }

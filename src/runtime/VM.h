@@ -8,6 +8,7 @@
 
 class BytecodeBlock;
 class Environment;
+class Interpreter;
 class Scope;
 class Type;
 class TypeChecker;
@@ -19,9 +20,11 @@ public:
     VM();
 
     void typeError(InstructionStream::Offset, const std::string&);
+    bool hasTypeErrors() const;
     bool reportTypeErrors();
 
     Environment* globalEnvironment;
+    Interpreter* currentInterpreter { nullptr };
     BytecodeBlock* globalBlock;
     const BytecodeBlock* currentBlock;
     TypeChecker* typeChecker { nullptr };
@@ -33,13 +36,13 @@ public:
     Scope* typingScope { nullptr };
     UnificationScope* unificationScope { nullptr };
 
+    Type* stringType;
     Type* typeType;
     Type* topType;
     Type* bottomType;
     Type* unitType;
     Type* boolType;
     Type* numberType;
-    Type* stringType;
 
 private:
     struct TypeError {

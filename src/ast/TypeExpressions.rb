@@ -1,3 +1,5 @@
+import "expressions.h"
+
 import :memory
 import :vector
 
@@ -5,7 +7,6 @@ ast_node :TypeExpression < :InferredExpression,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
     "virtual void infer(TypeChecker&, Register) = 0",
-    "virtual Hole* asHole(VM&)",
   ]
 
 ast_node :TupleTypeExpression < :TypeExpression,
@@ -14,6 +15,7 @@ ast_node :TupleTypeExpression < :TypeExpression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void generateForTypeChecking(TypeChecker&, Register)",
     "virtual void infer(TypeChecker&, Register)",
   ]
 
@@ -24,6 +26,7 @@ ast_node :FunctionTypeExpression < :TypeExpression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void generateForTypeChecking(TypeChecker&, Register)",
     "virtual void infer(TypeChecker&, Register)",
   ]
 
@@ -34,6 +37,7 @@ ast_node :UnionTypeExpression < :TypeExpression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void generateForTypeChecking(TypeChecker&, Register)",
     "virtual void infer(TypeChecker&, Register)",
   ]
 
@@ -43,6 +47,7 @@ ast_node :ObjectTypeExpression < :TypeExpression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void generateForTypeChecking(TypeChecker&, Register)",
     "virtual void infer(TypeChecker&, Register)",
   ]
 
@@ -52,6 +57,7 @@ ast_node :ArrayTypeExpression < :TypeExpression,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
+    "virtual void generateForTypeChecking(TypeChecker&, Register)",
     "virtual void infer(TypeChecker&, Register)",
   ]
 
@@ -61,11 +67,13 @@ ast_node :SynthesizedTypeExpression < :TypeExpression,
     },
     extra_methods: [
         "virtual void generate(BytecodeGenerator&, Register)",
+        "virtual void generateForTypeChecking(TypeChecker&, Register)",
         "virtual void infer(TypeChecker&, Register)",
     ]
 
 ast_node :TypeTypeExpression < :TypeExpression,
     extra_methods: [
         "virtual void generate(BytecodeGenerator&, Register)",
+        "virtual void generateForTypeChecking(TypeChecker&, Register)",
         "virtual void infer(TypeChecker&, Register)",
     ]

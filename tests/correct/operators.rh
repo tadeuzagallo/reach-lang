@@ -12,7 +12,7 @@ function <|(x: Number, y: Number) -> Number {
 }
 
 // TODO: it's unfortunate how functions are printed
-inspect((<|)) // CHECK-L: <function <|> : (Number, Number) -> Number
+inspect((<|)) // CHECK-L: <function <|> : (x: Number, y: Number) -> Number
 inspect((<|)(3, 5)) // CHECK: 3 : Number
 inspect((<|)(5, 3)) // CHECK: 5 : Number
 

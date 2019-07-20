@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 class Binding;
@@ -85,11 +86,15 @@ FOR_EACH_BASE_TYPE(DECLARE_TYPE_VALUE_GETTER)
         void addFunction(const FunctionDeclaration&);
         std::optional<std::vector<bool>> getFunction(const std::string&);
 
+        void bindParameter(const std::string&);
+        void lookup(Register, const std::string&);
+
     private:
         bool m_shouldGenerateBytecode;
         Scope* m_previousScope;
         TypeChecker& m_typeChecker;
         std::unordered_map<std::string, std::vector<bool>> m_functions;
+        std::unordered_set<std::string> m_boundParameters;
     };
 
     class UnificationScope {

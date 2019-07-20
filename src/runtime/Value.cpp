@@ -1,6 +1,7 @@
 #include "Value.h"
 
 #include "Assert.h"
+#include "Equality.h"
 #include "Function.h"
 #include "Type.h"
 #include "VM.h"
@@ -47,7 +48,7 @@ Value::Value(double d)
     m_bits = u.i + DoubleEncodeOffset;
 }
 
-Value::Value(Cell* cell)
+Value::Value(const Cell* cell)
 {
     m_bits = reinterpret_cast<intptr_t>(cell);
 }
@@ -77,7 +78,10 @@ bool Value::operator==(const Value& other) const
     CHECK();
     if (m_bits == other.m_bits)
         return true;
-    // TODO: proper equality for cells
+    if ((m_bits & TagMask) != (other.m_bits & TagMask))
+        return false;
+    if (isCell())
+        return isEqual(asCell(), other.asCell());
     return false;
 }
 
@@ -177,11 +181,15 @@ Type* Value::type(VM& vm) const
 
     ASSERT(isCell(), "OOPS");
     Cell* cell = asCell();
-    if (cell->is<Function>())
-        return cell->cast<Function>()->type();
 
-    ASSERT(cell->is<Type>(), "OOPS");
-    return vm.typeType;
+    if (cell->is<Type>())
+        return vm.typeType;
+
+    if (cell->is<Typed>())
+        return cell->cast<Typed>()->type();
+
+    ASSERT_NOT_REACHED();
+    return nullptr;
 }
 
 bool Value::isCrash() const

@@ -33,7 +33,7 @@ BytecodeBlock& BytecodeBlock::functionBlock(uint32_t index) const
     return *m_functionBlocks[index];
 }
 
-uint32_t BytecodeBlock::addFunctionBlock(std::unique_ptr<BytecodeBlock> block)
+uint32_t BytecodeBlock::addFunctionBlock(BytecodeBlock* block)
 {
     uint32_t functionIndex = m_functionBlocks.size();
     m_functionBlocks.emplace_back(std::move(block));
@@ -59,11 +59,10 @@ void BytecodeBlock::visit(std::function<void(Value)> visitor) const
         visitor(value);
 
     for (auto& block : m_functionBlocks)
-        block->visit(visitor);
+        visitor(block);
 
     for (auto* function : m_functions)
-        if (function)
-            function->visit(visitor);
+        visitor(function);
 }
 
 void BytecodeBlock::dump(std::ostream& out) const

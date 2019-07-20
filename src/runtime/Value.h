@@ -3,6 +3,10 @@
 #include "AbstractValue.h"
 #include "Cell.h"
 #include <iostream>
+#include <unordered_map>
+
+class Type;
+using Substitutions = std::unordered_map<uint32_t, Type*>;
 
 class Value {
     friend class Heap;
@@ -18,7 +22,7 @@ public:
     Value(double);
     Value(uint32_t);
     Value(int32_t);
-    Value(Cell*);
+    Value(const Cell*);
     Value(AbstractValue);
 
     bool isUnit() const;
@@ -35,6 +39,8 @@ public:
     Type* asType() const;
 
     Type* type(VM&) const;
+    bool hasHole() const;
+    Value substitute(VM&, const Substitutions&) const;
 
     template<typename T>
     T* asCell() const { return asCell()->cast<T>(); }

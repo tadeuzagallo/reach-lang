@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Array.h"
-#include "Hole.h"
 #include "Object.h"
+#include "Register.h"
 #include "RhString.h"
 #include <iostream>
 #include <optional>
@@ -12,11 +12,11 @@
 #include <unordered_map>
 
 class BytecodeBlock;
+class BytecodeGenerator;
 class Type;
 
 using Types = std::vector<Value>;
 using Fields = std::unordered_map<std::string, Value>;
-using Substitutions = std::unordered_map<uint32_t, Type*>;
 
 class Type : public Object {
     friend class JIT;
@@ -37,6 +37,7 @@ public:
         Tuple,
         Union,
         Hole,
+        Binding,
     };
 
     CELL_TYPE(Type);
@@ -55,7 +56,9 @@ public:
     friend std::ostream& operator<<(std::ostream&, const Type&);
 
     virtual Type* instantiate(VM&);
-    virtual Type* substitute(VM&, Substitutions&) = 0;
+    virtual void generate(BytecodeGenerator&, Register) const;
+    virtual Type* substitute(VM&, const Substitutions&) const = 0;
+    bool operator==(const Type&) const;
 
 protected:
     Type(Class);
@@ -67,7 +70,7 @@ class TypeType : public Type {
 public:
     CELL_CREATE(TypeType);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
     void dump(std::ostream&) const override;
 
 private:
@@ -78,7 +81,7 @@ class TypeTop : public Type {
 public:
     CELL_CREATE(TypeTop);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
     void dump(std::ostream&) const override;
 
 private:
@@ -89,7 +92,7 @@ class TypeBottom : public Type {
 public:
     CELL_CREATE(TypeBottom);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
     void dump(std::ostream&) const override;
 
 private:
@@ -100,8 +103,9 @@ class TypeName : public Type {
 public:
     CELL_CREATE(TypeName);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeName*) const;
 
     CELL_FIELD(String, name);
 
@@ -120,10 +124,14 @@ public:
 
     Type* instantiate(VM&) override;
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
+    TypeFunction* partiallyEvaluate(VM&, Environment*) const;
+    void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeFunction*) const;
 
     CELL_FIELD(Array, params);
+    CELL_FIELD(Array, parameterNames);
     CELL_FIELD(Array, implicitParams);
     CELL_FIELD(Array, explicitParams);
     VALUE_FIELD(uint32_t, implicitParamCount, .asNumber());
@@ -140,8 +148,11 @@ class TypeArray : public Type {
 public:
     CELL_CREATE(TypeArray);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
+    TypeArray* partiallyEvaluate(VM&, Environment*) const;
+    void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeArray*) const;
 
     VALUE_FIELD(Value, itemType);
 
@@ -153,8 +164,11 @@ class TypeTuple : public Type {
 public:
     CELL_CREATE(TypeTuple);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
+    TypeTuple* partiallyEvaluate(VM&, Environment*) const;
+    void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeTuple*) const;
 
     CELL_FIELD(Array, itemsTypes);
 
@@ -168,10 +182,11 @@ public:
 
     Type* field(const std::string&) const;
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
+    TypeRecord* partiallyEvaluate(VM&, Environment*) const;
+    void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
-
-    CELL_FIELD(Object, fields)
+    bool isEqual(const TypeRecord*) const;
 
 private:
     TypeRecord(const Fields&);
@@ -186,8 +201,9 @@ public:
 
     void fresh(VM&, Substitutions&) const;
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeVar*) const;
 
     VALUE_FIELD(uint32_t, uid, .asNumber());
     VALUE_FIELD(bool, inferred, .asBool());
@@ -206,8 +222,11 @@ public:
 
     Type* collapse(VM&);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
+    TypeUnion* partiallyEvaluate(VM&, Environment*) const;
+    void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeUnion*) const;
 
     VALUE_FIELD(Value, lhs);
     VALUE_FIELD(Value, rhs);
@@ -216,17 +235,21 @@ private:
     TypeUnion(Value, Value);
 };
 
-class TypeHole : public Type {
+class TypeBinding : public Type {
 public:
-    CELL_CREATE(TypeHole);
+    CELL_CREATE(TypeBinding);
 
-    Type* substitute(VM&, Substitutions&) override;
+    Type* substitute(VM&, const Substitutions&) const override;
+    TypeBinding* partiallyEvaluate(VM&, Environment*) const;
+    void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
+    bool isEqual(const TypeBinding*) const;
 
-    CELL_FIELD(Hole, hole);
+    CELL_FIELD(String, name);
+    CELL_FIELD(Type, type);
 
 private:
-    TypeHole(Hole*);
+    TypeBinding(String*, Type*);
 };
 
 template<typename T, typename>
@@ -259,5 +282,8 @@ TypeVar* createTypeVar(VM&, const std::string&, bool, bool);
 TypeName* createTypeName(VM&, const std::string&);
 TypeArray* createTypeArray(VM&, Value);
 TypeRecord* createTypeRecord(VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*);
+TypeTuple* createTypeTuple(VM&, uint32_t);
 TypeFunction* createTypeFunction(VM&, uint32_t, const Value*, Value, uint32_t);
+TypeUnion* createTypeUnion(VM&, Value, Value);
+TypeBinding* createTypeBinding(VM&, const std::string&, Type*);
 };
