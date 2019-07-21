@@ -105,9 +105,18 @@ void UnificationScope::unifies(const Constraint& constraint)
     if (lhsType == rhsType)
         return;
 
-    // Γ, x: σ ⊢ σ <: τ
-    // ---------------------------------------- T-Binding
+    // Γ ⊢ σ <: τ
+    // ---------------------------------------- T-Binding-L
     // Γ ⊢ x : σ <: τ
+    if (lhsType->is<TypeBinding>()) {
+        TypeBinding* binding = lhsType->as<TypeBinding>();
+        unifies(constraint.bytecodeOffset, AbstractValue { binding->type() }, constraint.rhs);
+        return;
+    }
+
+    // Γ, x: σ ⊢ σ <: τ
+    // ---------------------------------------- T-Binding-R
+    // Γ ⊢ σ <: x : τ
     if (rhsType->is<TypeBinding>()) {
         TypeBinding* binding = rhsType->as<TypeBinding>();
         m_environment->set(binding->name()->str(), constraint.lhs);
@@ -161,6 +170,14 @@ void UnificationScope::unifies(const Constraint& constraint)
         // NOTE: There's no T-Var-Type.
         // T-Type-Var is meant for type type arguments being passed explicit to
         // functions, so it's converse does not make sense.
+
+        // Apply T-Binding-L again, since we're now looking at lhs.asType() rather than lhs.type(),
+        // but don't wrap lhs in an AbstractValue, since it was already a type
+        if (lhsType->is<TypeBinding>()) {
+            TypeBinding* binding = lhsType->as<TypeBinding>();
+            unifies(constraint.bytecodeOffset, binding->type(), constraint.rhs);
+            return;
+        }
     }
 
     // ---------------------------------------- T-Top

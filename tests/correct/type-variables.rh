@@ -48,5 +48,5 @@ inspect(inferArray(x)) // CHECK-L: Bool : Type
 function x(x: Number, y: String) -> Bool { false }
 function inferFunction(%S: Type, %T: Type, %U: Type, x: (S, T) -> U) -> Type[] { [S, T, U] }
 inspect(x) // CHECK-L: <function x> : (x: Number, y: String) -> Bool
-inspect(inferFunction) // CHECK-L: <function inferFunction> : (S: Type, T: Type, U: Type, x: (S, T) -> U) -> Type[]
+inspect(inferFunction) // CHECK-L: <function inferFunction> : (S: Type, T: Type, U: Type, x: (S: Type, T: Type) -> U) -> Type[]
 inspect(inferFunction(x)) // CHECK-L: [Number, String, Bool] : Type[]

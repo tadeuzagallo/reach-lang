@@ -243,6 +243,7 @@ public:
     TypeBinding* partiallyEvaluate(VM&, Environment*) const;
     void generate(BytecodeGenerator&, Register) const override;
     void dump(std::ostream&) const override;
+    void fullDump(std::ostream&) const;
     bool isEqual(const TypeBinding*) const;
 
     CELL_FIELD(String, name);

@@ -161,13 +161,36 @@ void IfStatement::infer(TypeChecker& tc, Register result)
 
 void IfStatement::check(TypeChecker& tc, Register type)
 {
+    bool shouldRefine = false;
+    Register constantTmp = Register::invalid();
+    Register conditionType = Register::invalid();
+    if (auto* condition_ = dynamic_cast<InferredExpression*>(condition.get())) {
+        shouldRefine = true;
+        constantTmp = tc.generator().newLocal();
+        conditionType = tc.generator().newLocal();
+        condition_->infer(tc, conditionType);
+        tc.generator().getTypeForValue(conditionType, conditionType);
+    }
+
+    const auto& refine = [&](bool value, const auto& functor) {
+        if (!shouldRefine) {
+            functor();
+            return;
+        }
+
+        TypeChecker::UnificationScope scope(tc);
+        tc.generator().loadConstant(constantTmp, value);
+        tc.unify(consequent->location, constantTmp, conditionType);
+        functor();
+    };
+
     condition->check(tc, tc.boolType());
     if (alternate) {
-        consequent->check(tc, type);
-        (*alternate)->check(tc, type);
+        refine(true, [&] { consequent->check(tc, type); });
+        refine(false, [&] { (*alternate)->check(tc, type); });
     } else {
         tc.unify(location, type, tc.unitType());
-        consequent->check(tc, tc.unitType());
+        refine(true, [&] { consequent->check(tc, tc.unitType()); });
     }
 }
 
@@ -322,18 +345,16 @@ void CallExpression::infer(TypeChecker& tc, Register result)
 
 void SubscriptExpression::infer(TypeChecker& tc, Register result)
 {
-    target->infer(tc, result);
-    Register tmp = tc.generator().newLocal();
-    tc.generator().checkTypeOf(tmp, result, Type::Class::Array);
-    tc.generator().branch(tmp, [&] {
-        tc.generator().getTypeForValue(result, result);
-        tc.generator().getField(result, result, TypeArray::itemTypeField);
-        tc.generator().newValue(result, result);
-    }, [&] {
-        tc.generator().typeError(location, "Trying to subscript non-array");
-    });
+    TypeChecker::UnificationScope scope(tc);
 
     index->check(tc, tc.numberType());
+
+    Register tmp = tc.generator().newLocal();
+    tc.generator().newVarType(tmp, "T", /* inferred */ true, /* rigid */ false);
+    tc.generator().newArrayType(result, tmp);
+    target->check(tc, result);
+    scope.resolve(result, tmp);
+    tc.generator().newValue(result, result);
 }
 
 void MemberExpression::infer(TypeChecker& tc, Register result)
@@ -367,6 +388,7 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 
 void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
+    // TODO: this should be a union of the types of all members
     if (items.size()) {
         items[0]->infer(tc, result);
         tc.generator().getTypeForValue(result, result);
@@ -406,17 +428,17 @@ void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
     if (dynamic_cast<TypeTypeExpression*>(type.get())) {
         tc.generator().newVarType(result, name->name, inferred, /* rigid */ true);
-        tc.insert(name->name, result);
         tc.generator().newBindingType(result, name->name, result);
+        tc.insert(name->name, result);
         return;
     } else if (inferred)
         tc.generator().typeError(location, "Only type arguments can be inferred");
 
     tc.inferAsType(type, result);
     Register tmp = tc.generator().newLocal();
+    tc.generator().newBindingType(result, name->name, result);
     tc.generator().newValue(tmp, result);
     tc.insert(name->name, tmp);
-    tc.generator().newBindingType(result, name->name, result);
 }
 
 void TypeTypeExpression::infer(TypeChecker& tc, Register result)

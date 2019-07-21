@@ -39,3 +39,19 @@ function mkSingle(x: Bool[], y: isSingleton(x)) -> isSingleton(x)
 
 inspect(mkSingle([true], [42])) // CHECK-L: 40:26: Unification failure: expected `Number` but found `Number[]`
 inspect(mkSingle([false], 42)) // CHECK-L: 41:27: Unification failure: expected `Number[]` but found `Number`
+
+function isSingleton(b: Bool) -> Type
+{
+    if (b)
+        Number
+    else
+        Number[]
+}
+
+function mkSingle(b: Bool) -> isSingleton(b)
+{
+    if (b)
+        [42] // CHECK-L: 54:9: Unification failure: expected `Number` but found `Number[]`
+    else
+        42 // CHECK-L: 56:9: Unification failure: expected `Number[]` but found `Number`
+}

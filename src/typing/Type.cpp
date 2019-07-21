@@ -127,8 +127,15 @@ void TypeFunction::dump(std::ostream& out) const
     for (Value param : *params()) {
         if (!isFirst)
             out << ", ";
-        out << param;
         isFirst = false;
+        if (param.isCell<Type>()) {
+            Type* type = param.asCell<Type>();
+            if (type->is<TypeBinding>()) {
+                type->as<TypeBinding>()->fullDump(out);
+                continue;
+            }
+        }
+        out << param;
     }
     out << ") -> " << returnType();
 }
@@ -275,6 +282,11 @@ TypeBinding::TypeBinding(String* name, Type* type)
 }
 
 void TypeBinding::dump(std::ostream& out) const
+{
+    type()->dump(out);
+}
+
+void TypeBinding::fullDump(std::ostream& out) const
 {
     out << name()->str() << ": ";
     Type* type = this->type();

@@ -20,6 +20,18 @@ function isSingleton(b: Bool) -> Type
 }
 inspect(isSingleton) // CHECK-L: <function isSingleton> : (b: Bool) -> Type
 
+function mkSingle(b: Bool) -> isSingleton(b)
+{
+    if (b)
+        42
+    else
+        [42]
+}
+inspect(mkSingle) // CHECK-L: <function mkSingle> : (b: Bool) -> isSingleton(b)
+
+inspect(mkSingle(true)) // CHECK-L: 42 : Number
+inspect(mkSingle(false)) // CHECK-L: [42] : Number[]
+
 function mkSingle(x: Bool, y: isSingleton(x)) -> isSingleton(x)
 {
     y
