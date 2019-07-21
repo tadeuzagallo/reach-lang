@@ -1,0 +1,26 @@
+// RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+function Nat() -> Type
+{
+    {predecessor: #Nat()} | {:}
+}
+inspect(Nat) // CHECK-L: <function Nat> : () -> Type
+
+let z : #Nat() = {}
+inspect(z) // CHECK-L: {} : Nat()
+
+function succ(n: #Nat()) -> #Nat()
+{
+    {predecessor = n}
+}
+inspect(succ) // CHECK-L: <function succ> : (n: Nat()) -> Nat()
+
+let x : #Nat() = succ(succ(succ(#z)))
+inspect(x) // CHECK-L: {predecessor = {predecessor = {predecessor = {}}}} : Nat()
