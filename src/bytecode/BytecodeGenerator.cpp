@@ -174,6 +174,13 @@ void BytecodeGenerator::getField(Register dst, Register object, const std::strin
     emit<GetField>(dst, object, fieldIndex);
 }
 
+void BytecodeGenerator::tryGetField(Register dst, Register object, const std::string& field, Label& target)
+{
+    m_block->recordJump<TryGetField>(target);
+    uint32_t fieldIndex = uniqueIdentifier(field);
+    emit<TryGetField>(dst, object, fieldIndex, 0);
+}
+
 void BytecodeGenerator::jump(Label& target)
 {
     m_block->recordJump<Jump>(target);
@@ -191,6 +198,17 @@ void BytecodeGenerator::isEqual(Register dst, Register lhs, Register rhs)
     emit<IsEqual>(dst, lhs, rhs);
 }
 
+void BytecodeGenerator::runtimeError(const SourceLocation& location, const char* message)
+{
+    emitLocation(location);
+    uint32_t messageIndex = uniqueIdentifier(message);
+    emit<RuntimeError>(messageIndex);
+}
+
+void BytecodeGenerator::isCell(Register dst, Register value, Cell::Kind kind)
+{
+    emit<IsCell>(dst, value, kind);
+}
 
 // Type checking
 
@@ -362,9 +380,10 @@ void BytecodeGenerator::emit(uint32_t word)
     m_block->instructions().emit(word);
 }
 
-void BytecodeGenerator::emit(Type::Class tc)
+template<typename T>
+std::enable_if_t<std::is_enum<T>::value, void> BytecodeGenerator::emit(T t)
 {
-    m_block->instructions().emit(static_cast<uint8_t>(tc));
+    emit(static_cast<std::underlying_type_t<T>>(t));
 }
 
 uint32_t BytecodeGenerator::uniqueIdentifier(const std::string& ident)

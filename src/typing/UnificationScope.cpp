@@ -152,32 +152,33 @@ void UnificationScope::unifies(const Constraint& constraint)
         }
     }
 
-    if (constraint.lhs.isType()) {
+    // TODO: Is it safe to move this up? Find out and either move it or document why can't it be moved.
+    if (constraint.lhs.isType())
         lhsType = constraint.lhs.asType()->substitute(m_vm, m_substitutions);
-        // isType(σ) // implicit, constraint.rhs is always a type
-        // isInferred(T)
-        // !isRigid(T)
-        // ---------------------------------------- T-InferredVar-Type
-        // T <: σ => [T/σ]
-        if (lhsType->is<TypeVar>()) {
-            TypeVar* var = lhsType->as<TypeVar>();
-            if (var->inferred() && !var->isRigid()) {
-                bind(var, rhsType->substitute(m_vm, m_substitutions));
-                return;
-            }
-        }
 
-        // NOTE: There's no T-Var-Type.
-        // T-Type-Var is meant for type type arguments being passed explicit to
-        // functions, so it's converse does not make sense.
-
-        // Apply T-Binding-L again, since we're now looking at lhs.asType() rather than lhs.type(),
-        // but don't wrap lhs in an AbstractValue, since it was already a type
-        if (lhsType->is<TypeBinding>()) {
-            TypeBinding* binding = lhsType->as<TypeBinding>();
-            unifies(constraint.bytecodeOffset, binding->type(), constraint.rhs);
+    // isType(σ) // implicit, constraint.rhs is always a type
+    // isInferred(T)
+    // !isRigid(T)
+    // ---------------------------------------- T-InferredVar-Type
+    // T <: σ => [T/σ]
+    if (lhsType->is<TypeVar>()) {
+        TypeVar* var = lhsType->as<TypeVar>();
+        if (var->inferred() && !var->isRigid()) {
+            bind(var, rhsType->substitute(m_vm, m_substitutions));
             return;
         }
+    }
+
+    // NOTE: There's no T-Var-Type.
+    // T-Type-Var is meant for type type arguments being passed explicit to
+    // functions, so it's converse does not make sense.
+
+    // Apply T-Binding-L again, since we're now looking at lhs.asType() rather than lhs.type(),
+    // but don't wrap lhs in an AbstractValue, since it was already a type
+    if (lhsType->is<TypeBinding>()) {
+        TypeBinding* binding = lhsType->as<TypeBinding>();
+        unifies(constraint.bytecodeOffset, binding->type(), constraint.rhs);
+        return;
     }
 
     // ---------------------------------------- T-Top

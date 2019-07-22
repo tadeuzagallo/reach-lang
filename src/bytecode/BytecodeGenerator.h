@@ -48,9 +48,12 @@ public:
     void newObject(Register, Register, uint32_t);
     void setField(Register, const std::string&, Register);
     void getField(Register, Register, const std::string&);
+    void tryGetField(Register, Register, const std::string&, Label&);
     void jump(Label&);
     void jumpIfFalse(Register, Label&);
     void isEqual(Register, Register, Register);
+    void runtimeError(const SourceLocation&, const char*);
+    void isCell(Register, Register, Cell::Kind);
 
     // Type checking operations
     void pushScope();
@@ -87,7 +90,9 @@ public:
     void emit(Register);
     void emit(Label&);
     void emit(uint32_t);
-    void emit(Type::Class);
+
+    template<typename T>
+    std::enable_if_t<std::is_enum<T>::value, void> emit(T);
 
 private:
     template<typename Instruction, typename... Args>

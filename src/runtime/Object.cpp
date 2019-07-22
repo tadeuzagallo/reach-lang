@@ -35,3 +35,8 @@ Object* createObject(VM& vm, Type* type, uint32_t inlineSize)
 {
     return Object::create(vm, type, inlineSize);
 }
+
+int64_t tryGetJIT(Object* object, const std::string& field)
+{
+    return object->tryGet(field).value_or(Value::crash()).bits();
+}

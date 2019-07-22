@@ -25,6 +25,8 @@ public:
     Value(const Cell*);
     Value(AbstractValue);
 
+    int64_t bits() const { return m_bits; }
+
     bool isUnit() const;
     bool isNumber() const;
     bool isBool() const;

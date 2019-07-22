@@ -98,4 +98,8 @@ private:
     std::unordered_map<std::string, Value> m_fields;
 };
 
-extern Object* createObject(VM&, Type*, uint32_t);
+// JIT helpers
+extern "C" {
+Object* createObject(VM&, Type*, uint32_t);
+int64_t tryGetJIT(Object*, const std::string&);
+}

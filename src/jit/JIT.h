@@ -74,6 +74,7 @@ private:
     void move(uint64_t, Register);
     void lea(Offset, Register);
     void call(void*);
+    void compare32(Register, uint32_t);
     void compare(Register, Value);
     void compare(Register, Register);
     void setEqual(Register dst);

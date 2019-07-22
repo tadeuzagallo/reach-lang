@@ -1,0 +1,81 @@
+// RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+let x : {x : Number} | {:} = {x = 1}
+
+function testA() -> Bool | Number
+{
+    match (x) {
+    case {}: false
+    case {x = x}: 32
+    }
+}
+
+function testB() -> Number | Bool
+{
+    match (x) {
+    case {x = x}: 32
+    case {}: false
+    }
+}
+
+function testC() -> Bool
+{
+    match (x) {
+    case {}: false
+    }
+}
+
+function testD() -> Number
+{
+    match ({x = 1, y = 2}) {
+    case {x = _, y = y}: y
+    }
+}
+
+function testE() -> Number
+{
+    match ({x = 1, y = 2}) {
+    default: 1
+    }
+}
+
+function testF() -> Number
+{
+    match (x) {
+    default: 1
+    case {}: 2
+    }
+}
+
+function testG() -> Number
+{
+    match (x) {
+    case {x = 2}: 1
+    case {x = 1}: 2
+    }
+}
+
+function testH() -> Number
+{
+    match (x) {
+    case {x = 2}: 1
+    case {x = _}: 42
+    }
+}
+
+
+inspect(testA()) // CHECK-L: false : Bool | Number
+inspect(testB()) // CHECK-L: 32 : Number | Bool
+inspect(testC()) // CHECK-L: false : Bool
+inspect(testD()) // CHECK-L: 2 : Number
+inspect(testE()) // CHECK-L: 1 : Number
+inspect(testF()) // CHECK-L: 2 : Number
+inspect(testG()) // CHECK-L: 2 : Number
+inspect(testH()) // CHECK-L: 42 : Number

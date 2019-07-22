@@ -6,7 +6,6 @@ declare :Hole
 ast_node :Literal < :Node,
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register) = 0",
-    "virtual void infer(TypeChecker&, Register) = 0",
   ]
 
 ast_node :BooleanLiteral < :Literal,
@@ -15,7 +14,6 @@ ast_node :BooleanLiteral < :Literal,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
   ]
 
 ast_node :NumericLiteral < :Literal,
@@ -24,7 +22,6 @@ ast_node :NumericLiteral < :Literal,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
   ]
 
 ast_node :StringLiteral < :Literal,
@@ -33,5 +30,4 @@ ast_node :StringLiteral < :Literal,
   },
   extra_methods: [
     "virtual void generate(BytecodeGenerator&, Register)",
-    "virtual void infer(TypeChecker&, Register)",
   ]

@@ -20,6 +20,7 @@ public:
     VM();
 
     void typeError(InstructionStream::Offset, const std::string&);
+    void runtimeError(InstructionStream::Offset, const std::string&);
     bool hasTypeErrors() const;
     bool reportTypeErrors();
 

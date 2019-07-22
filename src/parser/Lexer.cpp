@@ -160,6 +160,7 @@ Token::Type Lexer::nextTokenType()
         SIMPLE_CASE(':', COLON);
         SIMPLE_CASE(';', SEMICOLON);
         SIMPLE_CASE('#', HASH);
+        SIMPLE_CASE('_', UNDERSCORE);
 
         SIMPLE_CASE('+', PLUS);
         SIMPLE_CASE('%', MOD);
@@ -212,7 +213,7 @@ Token::Type Lexer::nextTokenType()
 
         if (isalpha(m_nextChar) || m_nextChar == '_' || m_nextChar == '$') {
             do nextChar();
-            while (isalpha(m_nextChar) || m_nextChar == '_' || m_nextChar == '$');
+            while (isalpha(m_nextChar) || isdigit(m_nextChar) || m_nextChar == '_' || m_nextChar == '$');
             return Token::IDENTIFIER;
         }
 
@@ -279,6 +280,9 @@ void Lexer::checkKeyword()
     KEYWORD(true, TRUE)
     KEYWORD(false, FALSE)
     KEYWORD(Type, TYPE)
+    KEYWORD(match, MATCH)
+    KEYWORD(case, CASE)
+    KEYWORD(default, DEFAULT)
 
 #undef KEYWORD
 }

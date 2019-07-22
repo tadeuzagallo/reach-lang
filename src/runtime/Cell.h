@@ -33,9 +33,10 @@ class VM;
 
 class Cell {
     friend class Heap;
+    friend class JIT;
 
 public:
-    enum class Kind : uint16_t {
+    enum class Kind : uint32_t {
         Typed       = 0x1,
         Object      = 0x2 | Typed,
         String      = 0x4 | Typed,
@@ -76,8 +77,9 @@ public:
     virtual void visit(std::function<void(Value)>) const = 0;
     virtual void dump(std::ostream& out) const = 0;
 
-    bool isMarked;
-
 protected:
+    bool m_isMarked;
     Kind m_kind { Kind::InvalidCell };
 };
+
+std::ostream& operator<<(std::ostream&, Cell::Kind);

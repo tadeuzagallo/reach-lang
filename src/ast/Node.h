@@ -75,6 +75,20 @@ void dumpValue(std::ostream& out, unsigned indentation, const std::map<K, V>& va
   out << indent(indentation) << "}";
 }
 
+template<typename K, typename V>
+void dumpValue(std::ostream& out, unsigned indentation, const std::unordered_map<K, V>& value)
+{
+  out << "{" << std::endl;
+  for (const auto& it : value) {
+    out << indent(indentation + 1);
+    dumpValue(out, indentation + 1, it.first);
+    out << " = ";
+    dumpValue(out, 0, it.second);
+    out << "," << std::endl;
+  }
+  out << indent(indentation) << "}";
+}
+
 template <typename... T>
 void dumpValue(std::ostream& out, unsigned indentation, const std::variant<T...>& value)
 {

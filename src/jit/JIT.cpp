@@ -263,6 +263,16 @@ OP(GetField)
     store(regR0, ip.dst);
 }
 
+OP(TryGetField)
+{
+    load(ip.object, regA0);
+    move(&m_block.identifier(ip.fieldIndex), regA1);
+    call(tryGetJIT);
+    compare(regR0, Value::crash());
+    jumpIfEqual(ip.target);
+    store(regR0, ip.dst);
+}
+
 OP(Jump)
 {
     jump(ip.target);
@@ -277,12 +287,63 @@ OP(JumpIfFalse)
 
 OP(IsEqual)
 {
+    Label fastPath = label();
+    Label doStore = label();
+
     load(ip.lhs, regT0);
     load(ip.rhs, regT1);
     compare(regT0, regT1);
+    jumpIfEqual(fastPath);
+
+    lea(ip.lhs, regT0);
+    lea(ip.rhs, regT1);
+    call(&Value::operator==);
+    bitOr(Value::TagTypeBool, regR0);
+    jump(doStore);
+
+    emitLabel(fastPath);
+    move(Value { false }, regR0);
+    setEqual(regR0);
+
+    emitLabel(doStore);
+    store(regR0, ip.dst);
+}
+
+OP(RuntimeError)
+{
+    move(vm(), regA0);
+    move(m_bytecodeOffset, regA1);
+    move(&m_block.identifier(ip.messageIndex), regA2);
+    call(&VM::runtimeError);
+}
+
+OP(IsCell)
+{
+    Label isCell = label();
+    Label doStore = label();
+
+    load(ip.value, regT0);
+    move(regT0, regT1);
+    bitAnd(Value::TagMask, regT0);
+    compare(regT0, Value { nullptr });
+    jumpIfEqual(isCell);
+
+    move(Value { false }, regT0);
+    jump(doStore);
+
+    emitLabel(isCell);
+    move(Offset { OFFSETOF(Cell, m_kind), regT1 }, regT0);
+    compare32(regT0, static_cast<uint32_t>(ip.kind));
+    // TODO: this is terrible, should be xor + sete + or
     setEqual(regT0);
     bitOr(Value::TagTypeBool, regT0);
+    bitAnd(Value { true }.m_bits, regT0);
+
+    emitLabel(doStore);
+    store(regT0, ip.dst);
 }
+
+// Types
 
 OP(NewVarType)
 {

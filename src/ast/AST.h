@@ -5,4 +5,5 @@
 #include "literals.h"
 #include "program.h"
 #include "statements.h"
+#include "MatchStatement.h"
 #include "TypeExpressions.h"

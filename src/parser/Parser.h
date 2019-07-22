@@ -48,6 +48,14 @@ public:
     std::unique_ptr<LazyExpression> parseLazyExpression(const Token&);
     std::unique_ptr<TupleTypeExpression> parseTupleTypeExpression(const Token&);
 
+    std::unique_ptr<MatchStatement> parseMatchStatement(const Token&);
+    std::unique_ptr<MatchCase> parseMatchCase(const Token&);
+    std::unique_ptr<Pattern> parsePattern(const Token&);
+    std::unique_ptr<IdentifierPattern> parseIdentifierPattern(const Token&);
+    std::unique_ptr<ObjectPattern> parseObjectPattern(const Token&);
+    std::unique_ptr<UnderscorePattern> parseUnderscorePattern(const Token&);
+    std::unique_ptr<LiteralPattern> parseLiteralPattern(const Token&);
+
     std::unique_ptr<Literal> parseLiteral(const Token&);
     std::unique_ptr<NumericLiteral> parseNumericLiteral(const Token&);
     std::unique_ptr<StringLiteral> parseStringLiteral(const Token&);

@@ -75,12 +75,14 @@ enum JIT::Opcode : uint8_t {
     OP_GROUP2_EvIb = 0xC1,
     OP_AND_EvGv = 0x21,
     OP_OR_EvGv = 0x09,
+    OP_GROUP1_EvIz = 0x81,
 };
 
 static constexpr uint8_t OP2_JCC_rel32 = 0x80;
-static constexpr uint8_t OP2_SETCC = 0x9A;
+static constexpr uint8_t OP2_SETCC = 0x90;
 static constexpr uint8_t GROUP5_OP_CALLN = 0x2;
 static constexpr uint8_t GROUP2_OP_SHL = 0x4;
+static constexpr uint8_t GROUP1_OP_CMP = 0x7;
 static constexpr uint8_t ConditionE = 0x4;
 
 enum class JIT::ModRM : uint8_t {
@@ -122,7 +124,7 @@ void JIT::lea(Offset offset, Register dst)
 void JIT::call(void* target)
 {
     move(target, tmpRegister);
-    emitRex(REX::NoR, REX::NoX, tmpRegister);
+    emitRex(GROUP5_OP_CALLN, REX::NoX, tmpRegister);
     emitOpcode(OP_GROUP5_Ev);
     emitModRm(ModRM::Register, GROUP5_OP_CALLN, tmpRegister);
 }
@@ -131,6 +133,14 @@ void JIT::compare(Register reg, Value value)
 {
     move(value.m_bits, tmpRegister);
     compare(reg, tmpRegister);
+}
+
+void JIT::compare32(Register reg, uint32_t value)
+{
+    //emitRex(GROUP1_OP_CMP, REX::NoX, reg);
+    emitOpcode(OP_GROUP1_EvIz);
+    emitModRm(ModRM::Register, GROUP1_OP_CMP, reg);
+    emitLong(value);
 }
 
 void JIT::compare(Register lhs, Register rhs)
@@ -142,6 +152,7 @@ void JIT::compare(Register lhs, Register rhs)
 
 void JIT::setEqual(Register dst)
 {
+    emitRex(REX::NoR, REX::NoX, dst);
     emitOpcode(OP_2BYTE_ESCAPE);
     emitOpcode(OP2_SETCC, ConditionE);
     emitModRm(ModRM::Register, /* ignored */ 0, dst);
@@ -162,7 +173,7 @@ void JIT::sub(Register lhs, Register rhs)
 
 void JIT::shiftl(uint8_t immediate, Register reg)
 {
-    emitRex(REX::NoR, REX::NoX, reg);
+    emitRex(GROUP2_OP_SHL, REX::NoX, reg);
     emitOpcode(OP_GROUP2_EvIb);
     emitModRm(ModRM::Register, GROUP2_OP_SHL, reg);
     emitByte(immediate);
@@ -243,7 +254,7 @@ void JIT::move(Opcode op, Register reg, Offset offset)
     }
 }
 
-void  JIT::emitRex(Register r, Register x, Register b)
+void  JIT::emitRex(uint8_t r, Register x, Register b)
 {
     emitByte(0x40 | 0x8 | (r >> 3) << 2 | (x >> 3) << 1 | (b >> 3));
 }

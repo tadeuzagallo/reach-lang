@@ -74,6 +74,12 @@ void VM::typeError(InstructionStream::Offset bytecodeOffset, const std::string& 
     m_typeErrors.emplace_back(TypeError { currentBlock->locationInfo(bytecodeOffset), message });
 }
 
+void VM::runtimeError(InstructionStream::Offset bytecodeOffset, const std::string& message)
+{
+    std::cerr << currentBlock->locationInfo(bytecodeOffset) << ": " << message << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 bool VM::hasTypeErrors() const
 {
     return !m_typeErrors.empty();

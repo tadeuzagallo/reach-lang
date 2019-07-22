@@ -133,15 +133,15 @@ void Heap::mark()
 
 bool Heap::isMarked(Cell* cell)
 {
-    return cell->isMarked;
+    return cell->m_isMarked;
 }
 
 void Heap::setMarked(Cell* cell)
 {
-    cell->isMarked = true;
+    cell->m_isMarked = true;
 }
 
 void Heap::clearMarked(Cell* cell)
 {
-    cell->isMarked = false;
+    cell->m_isMarked = false;
 }

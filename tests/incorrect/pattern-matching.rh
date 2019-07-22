@@ -1,0 +1,18 @@
+// RUN: %not %reach | %check
+
+function A() -> Bool {
+    let x : {x : Number} | {:} = {}
+
+    match (x) {
+    case {x = x}: false // CHECK-L: All patterns failed to match
+    }
+}
+
+function B() -> Void {
+    match ({x = 1, y = 2}) {
+    case {x = _, y = y, z = z}: z
+    }
+}
+
+A()
+B()

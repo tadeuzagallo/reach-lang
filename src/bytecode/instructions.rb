@@ -86,6 +86,12 @@ instruction :GetField,
     object: :Register,
     fieldIndex: :uint32_t
 
+instruction :TryGetField,
+    dst: :Register,
+    object: :Register,
+    fieldIndex: :uint32_t,
+    target: :int32_t
+
 instruction :Jump,
     target: :int32_t
 
@@ -97,6 +103,14 @@ instruction :IsEqual,
     dst: :Register,
     lhs: :Register,
     rhs: :Register
+
+instruction :RuntimeError,
+    messageIndex: :uint32_t
+
+instruction :IsCell,
+    dst: :Register,
+    value: :Register,
+    kind: "Cell::Kind"
 
 # Type checking instructions
 instruction :PushScope

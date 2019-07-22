@@ -214,6 +214,54 @@ void ForStatement::check(TypeChecker&, Register)
     ASSERT_NOT_REACHED();
 }
 
+void MatchStatement::infer(TypeChecker& tc, Register result)
+{
+    Register scrutineeType = tc.generator().newLocal();
+    Register tmp = tc.generator().newLocal();
+    scrutinee->infer(tc, scrutineeType);
+    tc.generator().getTypeForValue(scrutineeType, scrutineeType);
+    for (uint32_t i = 0; i < cases.size(); i++) {
+        auto& kase = cases[i];
+        kase->pattern->infer(tc, tmp);
+        tc.unify(kase->pattern->location, tmp, scrutineeType);
+        if (!i) {
+            kase->statement->infer(tc, result);
+            tc.generator().getTypeForValue(result, result);
+            continue;
+        }
+        kase->statement->infer(tc, tmp);
+        tc.generator().getTypeForValue(tmp, tmp);
+        tc.generator().newUnionType(result, result, tmp);
+    }
+    if (defaultCase) {
+        if (cases.size()) {
+            defaultCase->infer(tc, tmp);
+            tc.generator().getTypeForValue(tmp, tmp);
+            tc.generator().newUnionType(result, result, tmp);
+        } else {
+            defaultCase->infer(tc, result);
+            tc.generator().getTypeForValue(result, result);
+        }
+    }
+    tc.generator().resolveType(result, result);
+    tc.generator().newValue(result, result);
+}
+
+void MatchStatement::check(TypeChecker& tc, Register type)
+{
+    Register scrutineeType = tc.generator().newLocal();
+    Register tmp = tc.generator().newLocal();
+    scrutinee->infer(tc, scrutineeType);
+    tc.generator().getTypeForValue(scrutineeType, scrutineeType);
+    for (auto& kase : cases) {
+        kase->pattern->infer(tc, tmp);
+        tc.unify(kase->pattern->location, tmp, scrutineeType);
+        kase->statement->check(tc, type);
+    }
+    if (defaultCase)
+        defaultCase->check(tc, type);
+}
+
 void ExpressionStatement::infer(TypeChecker& tc, Register result)
 {
     expression->infer(tc, result);
@@ -224,6 +272,7 @@ void ExpressionStatement::check(TypeChecker& tc, Register result)
     expression->check(tc, result);
 }
 
+// Expressions
 
 void InferredExpression::check(TypeChecker& tc, Register type)
 {
@@ -231,8 +280,6 @@ void InferredExpression::check(TypeChecker& tc, Register type)
     infer(tc, tmp);
     tc.unify(location, tmp, type);
 }
-
-// Expressions
 
 void Identifier::infer(TypeChecker& tc, Register result)
 {
@@ -407,22 +454,6 @@ void LiteralExpression::infer(TypeChecker& tc, Register result)
     literal->generate(tc.generator(), result);
 }
 
-// Literals
-void BooleanLiteral::infer(TypeChecker& tc, Register result)
-{
-    tc.generator().loadConstant(result, value);
-}
-
-void NumericLiteral::infer(TypeChecker& tc, Register result)
-{
-    return tc.numberValue(result);
-}
-
-void StringLiteral::infer(TypeChecker& tc, Register result)
-{
-    return tc.stringValue(result);
-}
-
 // Types
 void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
@@ -484,4 +515,35 @@ void UnionTypeExpression::infer(TypeChecker& tc, Register result)
     lhs->check(tc, tc.typeType());
     rhs->check(tc, tc.typeType());
     generateForTypeChecking(tc, result);
+}
+
+// Patterns
+
+void IdentifierPattern::infer(TypeChecker& tc, Register result)
+{
+    tc.generator().newVarType(result, "T", /* inferred */ true, /* rigid */ false);
+    tc.generator().newValue(result, result);
+    tc.insert(name->name, result);
+}
+
+void ObjectPattern::infer(TypeChecker& tc, Register result)
+{
+    Register tmp = tc.generator().newLocal();
+    tc.generator().newRecordType(result, { });
+    for (auto& entry : entries) {
+        entry.second->infer(tc, tmp);
+        tc.generator().getTypeForValue(tmp, tmp);
+        tc.generator().setField(result, entry.first->name, tmp);
+    }
+    tc.generator().newValue(result, result);
+}
+
+void UnderscorePattern::infer(TypeChecker& tc, Register result)
+{
+    tc.bottomValue(result);
+}
+
+void LiteralPattern::infer(TypeChecker& tc, Register result)
+{
+    literal->generate(tc.generator(), result);
 }

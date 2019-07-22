@@ -299,6 +299,17 @@ OP(GetField)
     DISPATCH();
 }
 
+OP(TryGetField)
+{
+    Object* object = m_cfr[ip.object].asCell<Object>();
+    const std::string& field = m_block.identifier(ip.fieldIndex);
+    auto value = object->tryGet(field);
+    if (!value)
+        JUMP(ip.target);
+    m_cfr[ip.dst] = *value;
+    DISPATCH();
+}
+
 OP(Jump)
 {
     JUMP(ip.target);
@@ -315,6 +326,20 @@ OP(JumpIfFalse)
 OP(IsEqual)
 {
     m_cfr[ip.dst] = m_cfr[ip.lhs] == m_cfr[ip.rhs];
+    DISPATCH();
+}
+
+OP(RuntimeError)
+{
+    const std::string& message = m_block.identifier(ip.messageIndex);
+    m_vm.runtimeError(m_ip.offset(), message);
+    DISPATCH();
+}
+
+OP(IsCell)
+{
+    Value value = m_cfr[ip.value];
+    m_cfr[ip.dst] = value.isCell() && value.asCell()->kind() == ip.kind;
     DISPATCH();
 }
 

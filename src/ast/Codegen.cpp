@@ -1,4 +1,4 @@
-#include "program.h"
+#include "AST.h"
 #include "BytecodeGenerator.h"
 #include "RhString.h"
 #include "TypeExpressions.h"
@@ -96,6 +96,27 @@ void WhileStatement::generate(BytecodeGenerator&, Register)
 void ForStatement::generate(BytecodeGenerator&, Register)
 {
     ASSERT_NOT_REACHED();
+}
+
+void MatchStatement::generate(BytecodeGenerator& generator, Register result)
+{
+    Label end = generator.label();
+    Label next = generator.label();
+
+    scrutinee->generate(generator, result);
+    for (auto& kase : cases) {
+        kase->pattern->generate(generator, result, next);
+        kase->statement->generate(generator, result);
+        generator.jump(end);
+        generator.emit(next);
+        next = generator.label();
+    }
+
+    if (defaultCase) {
+        defaultCase->generate(generator, result);
+    } else
+        generator.runtimeError(location, "All patterns failed to match");
+    generator.emit(end);
 }
 
 void ExpressionStatement::generate(BytecodeGenerator& generator, Register result)
@@ -262,4 +283,36 @@ void ArrayTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 void SynthesizedTypeExpression::generate(BytecodeGenerator& generator, Register dst)
 {
     return generator.loadConstantIndex(dst, typeIndex);
+}
+
+// Patterns
+
+void IdentifierPattern::generate(BytecodeGenerator& generator, Register value, Label&)
+{
+    generator.setLocal(name->name, value);
+}
+
+void ObjectPattern::generate(BytecodeGenerator& generator, Register value, Label& next)
+{
+    Register tmp = generator.newLocal();
+    generator.isCell(tmp, value, Cell::Kind::Object);
+    generator.jumpIfFalse(tmp, next);
+
+    for (auto& entry : entries) {
+        generator.tryGetField(tmp, value, entry.first->name, next);
+        entry.second->generate(generator, tmp, next);
+    }
+}
+
+void UnderscorePattern::generate(BytecodeGenerator&, Register, Label&)
+{
+    // Nothing to do here
+}
+
+void LiteralPattern::generate(BytecodeGenerator& generator, Register value, Label& next)
+{
+    Register tmp = generator.newLocal();
+    literal->generate(generator, tmp);
+    generator.isEqual(tmp, value, tmp);
+    generator.jumpIfFalse(tmp, next);
 }

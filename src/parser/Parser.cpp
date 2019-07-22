@@ -135,6 +135,8 @@ std::unique_ptr<Statement> Parser::parseStatement(const Token& t, IsTopLevel isT
         return parseReturnStatement(t);
     case Token::SEMICOLON:
         return std::make_unique<EmptyStatement>(t);
+    case Token::MATCH:
+        return parseMatchStatement(t);
     case Token::L_BRACE:
         if (isTopLevel == IsTopLevel::No)
             return parseBlockStatement(t);
@@ -165,6 +167,7 @@ std::unique_ptr<IfStatement> Parser::parseIfStatement(const Token& t)
 
     CHECK(t, Token::IF);
     CONSUME(Token::L_PAREN);
+    EndsWith endsWith(*this, Token::R_PAREN);
     ifStmt->condition = parseCheckedExpression(m_lexer.next());
     CONSUME(Token::R_PAREN);
 
@@ -477,6 +480,114 @@ std::unique_ptr<TupleTypeExpression> Parser::parseTupleTypeExpression(const Toke
     if (tupleType->items.size() < 2)
         parseError(t, "Tuple type should have at least two members");
     return tupleType;
+}
+
+std::unique_ptr<MatchStatement> Parser::parseMatchStatement(const Token& t)
+{
+    auto match = std::make_unique<MatchStatement>(t);
+
+    CHECK(t, Token::MATCH);
+    CONSUME(Token::L_PAREN);
+    {
+        EndsWith endsWith(*this, Token::R_PAREN);
+        match->scrutinee = parseInferredExpression(m_lexer.next());
+    }
+    CONSUME(Token::R_PAREN);
+
+    CONSUME(Token::L_BRACE);
+    {
+        EndsWith endsWith(*this, Token::R_BRACE);
+        for (;;) {
+            switch (m_lexer.peek().type) {
+            case Token::DEFAULT:
+                if (match->defaultCase)
+                    parseError(m_lexer.peek(), "Found multiple `default` cases in match statement, but it should only have one");
+
+                CONSUME(Token::DEFAULT);
+                CONSUME(Token::COLON);
+                match->defaultCase = parseStatement(m_lexer.next());
+                break;
+            case Token::CASE:
+                match->cases.emplace_back(parseMatchCase(m_lexer.next()));
+                break;
+            case Token::R_BRACE:
+                goto end;
+            default:
+                unexpectedToken(m_lexer.next());
+                goto end;
+            }
+        }
+    }
+end:
+    CONSUME(Token::R_BRACE);
+
+    if (!match->cases.size() && !match->defaultCase)
+        parseError(t, "Invalid `match` statement with no cases");
+
+    return match;
+}
+
+std::unique_ptr<MatchCase> Parser::parseMatchCase(const Token& t)
+{
+    auto kase = std::make_unique<MatchCase>(t);
+    CHECK(t, Token::CASE);
+    kase->pattern = parsePattern(m_lexer.next());
+    CONSUME(Token::COLON);
+    kase->statement = parseStatement(m_lexer.next());
+    return kase;
+}
+
+std::unique_ptr<Pattern> Parser::parsePattern(const Token& t)
+{
+    switch (t.type) {
+    case Token::IDENTIFIER:
+        return parseIdentifierPattern(t);
+    case Token::UNDERSCORE:
+        return parseUnderscorePattern(t);
+    case Token::L_BRACE: {
+        EndsWith endsWith(*this, Token::R_BRACE);
+        return parseObjectPattern(t);
+    }
+    default:
+        return parseLiteralPattern(t);
+    }
+}
+
+std::unique_ptr<IdentifierPattern> Parser::parseIdentifierPattern(const Token& t)
+{
+    auto pattern = std::make_unique<IdentifierPattern>(t);
+    pattern->name = parseIdentifier(t);
+    return pattern;
+}
+
+std::unique_ptr<ObjectPattern> Parser::parseObjectPattern(const Token& t)
+{
+    auto pattern = std::make_unique<ObjectPattern>(t);
+    CHECK(t, Token::L_BRACE);
+    while (m_lexer.peek().type != Token::R_BRACE) {
+        auto name = parseIdentifier(m_lexer.next());
+        CONSUME(Token::EQUAL);
+        auto value = parsePattern(m_lexer.next());
+        pattern->entries[std::move(name)] = std::move(value);
+        if (m_lexer.peek().type != Token::COMMA)
+            break;
+        CONSUME(Token::COMMA);
+    }
+    CONSUME(Token::R_BRACE);
+    return pattern;
+}
+
+std::unique_ptr<UnderscorePattern> Parser::parseUnderscorePattern(const Token& t)
+{
+    CHECK(t, Token::UNDERSCORE);
+    return std::make_unique<UnderscorePattern>(t);
+}
+
+std::unique_ptr<LiteralPattern> Parser::parseLiteralPattern(const Token& t)
+{
+    auto pattern = std::make_unique<LiteralPattern>(t);
+    pattern->literal = parseLiteral(t);
+    return pattern;
 }
 
 std::unique_ptr<Identifier> Parser::parseIdentifier(const Token& t)

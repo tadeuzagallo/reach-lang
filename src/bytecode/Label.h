@@ -8,6 +8,8 @@ class Label {
 
 public:
     Label() = default;
+    Label(Label&&) = default;
+    Label& operator=(Label&&) = default;
 
     // disable copying
     Label(const Label&) = delete;

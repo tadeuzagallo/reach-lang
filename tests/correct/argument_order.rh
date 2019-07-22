@@ -11,7 +11,7 @@ function g(x: Number, y: Number, z: Number) -> Number {
     inspect([x, y, z]) // CHECK-L: [7, 13, 42] : Number[]
     x
 }
-function f(_: String, x: Number, y: Number, z: Number) -> Number {
+function f(unused: String, x: Number, y: Number, z: Number) -> Number {
     g(x, y, z)
 }
 

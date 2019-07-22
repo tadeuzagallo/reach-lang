@@ -24,3 +24,14 @@ inspect(succ) // CHECK-L: <function succ> : (n: Nat()) -> Nat()
 
 let x : #Nat() = succ(succ(succ(#z)))
 inspect(x) // CHECK-L: {predecessor = {predecessor = {predecessor = {}}}} : Nat()
+
+function predecessor(n: #Nat()) -> #Nat()
+{
+    match (n) {
+    case {predecessor = n}: n
+    case {}: z
+    }
+}
+
+inspect(predecessor(z)) // CHECK-L: {} : {predecessor: Nat()} | {:}
+inspect(predecessor(succ(succ(z)))) // CHECK-L: {predecessor = {}} : {predecessor: Nat()} | {:}

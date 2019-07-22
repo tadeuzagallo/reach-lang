@@ -26,6 +26,9 @@ public:
       TRUE,
       FALSE,
       TYPE,
+      MATCH,
+      CASE,
+      DEFAULT,
 
       // simple tokens
       END_OF_FILE,
@@ -34,6 +37,7 @@ public:
       COLON,
       SEMICOLON,
       HASH,
+      UNDERSCORE,
 
       MOD,
       PLUS,
