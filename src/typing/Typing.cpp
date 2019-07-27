@@ -219,11 +219,11 @@ void MatchStatement::infer(TypeChecker& tc, Register result)
     Register scrutineeType = tc.generator().newLocal();
     Register tmp = tc.generator().newLocal();
     scrutinee->infer(tc, scrutineeType);
-    tc.generator().getTypeForValue(scrutineeType, scrutineeType);
     for (uint32_t i = 0; i < cases.size(); i++) {
         auto& kase = cases[i];
         kase->pattern->infer(tc, tmp);
-        tc.unify(kase->pattern->location, tmp, scrutineeType);
+        tc.generator().getTypeForValue(tmp, tmp);
+        tc.match(kase->pattern->location, scrutineeType, tmp);
         if (!i) {
             kase->statement->infer(tc, result);
             tc.generator().getTypeForValue(result, result);
@@ -252,10 +252,10 @@ void MatchStatement::check(TypeChecker& tc, Register type)
     Register scrutineeType = tc.generator().newLocal();
     Register tmp = tc.generator().newLocal();
     scrutinee->infer(tc, scrutineeType);
-    tc.generator().getTypeForValue(scrutineeType, scrutineeType);
     for (auto& kase : cases) {
         kase->pattern->infer(tc, tmp);
-        tc.unify(kase->pattern->location, tmp, scrutineeType);
+        tc.generator().getTypeForValue(tmp, tmp);
+        tc.match(kase->pattern->location, scrutineeType, tmp);
         kase->statement->check(tc, type);
     }
     if (defaultCase)
@@ -540,7 +540,7 @@ void ObjectPattern::infer(TypeChecker& tc, Register result)
 
 void UnderscorePattern::infer(TypeChecker& tc, Register result)
 {
-    tc.bottomValue(result);
+    tc.topValue(result);
 }
 
 void LiteralPattern::infer(TypeChecker& tc, Register result)

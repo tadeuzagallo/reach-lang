@@ -61,6 +61,7 @@ public:
     void pushUnificationScope();
     void popUnificationScope();
     void unify(Register, Register);
+    void match(Register, Register);
     void resolveType(Register, Register);
     void checkType(Register, Register, Type::Class);
     void checkTypeOf(Register, Register, Type::Class);

@@ -1,18 +1,9 @@
 // RUN: %not %reach | %check
 
-function A() -> Bool {
-    let x : {x : Number} | {:} = {}
-
-    match (x) {
-    case {x = x}: false // CHECK-L: All patterns failed to match
-    }
-}
-
-function B() -> Void {
+function A() -> Void {
     match ({x = 1, y = 2}) {
-    case {x = _, y = y, z = z}: z
+        case {x = _, y = y, z = z}: z // CHECK-L: 5:14: Unification failure: expected `{x: ⊤, y: T, z: T}` but found `{x: Number, y: Number}`
     }
 }
 
 A()
-B()

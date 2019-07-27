@@ -393,6 +393,12 @@ OP(Unify)
     DISPATCH();
 }
 
+OP(Match)
+{
+    m_vm.unificationScope->match(m_ip.offset(), m_cfr[ip.lhs], m_cfr[ip.rhs]);
+    DISPATCH();
+}
+
 OP(ResolveType)
 {
     Type* type = m_cfr[ip.type].asType();

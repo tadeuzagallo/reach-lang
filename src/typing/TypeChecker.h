@@ -74,6 +74,7 @@ FOR_EACH_BASE_TYPE(DECLARE_TYPE_VALUE_GETTER)
     void insert(const std::string&, Register);
 
     void unify(const SourceLocation&, Register, Register);
+    void match(const SourceLocation&, Register, Register);
 
     template<typename T>
     void inferAsType(T&, Register);

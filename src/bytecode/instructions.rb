@@ -125,6 +125,10 @@ instruction :Unify,
     lhs: :Register,
     rhs: :Register
 
+instruction :Match,
+    lhs: :Register,
+    rhs: :Register
+
 instruction :ResolveType,
     dst: :Register,
     type: :Register

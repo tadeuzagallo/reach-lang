@@ -237,6 +237,11 @@ void BytecodeGenerator::unify(Register lhs, Register rhs)
     emit<Unify>(lhs, rhs);
 }
 
+void BytecodeGenerator::match(Register lhs, Register rhs)
+{
+    emit<Match>(lhs, rhs);
+}
+
 void BytecodeGenerator::resolveType(Register dst, Register type)
 {
     emit<ResolveType>(dst, type);

@@ -156,6 +156,13 @@ void TypeChecker::unify(const SourceLocation& location, Register lhs, Register r
     m_generator.unify(lhs, rhs);
 }
 
+void TypeChecker::match(const SourceLocation& location, Register lhs, Register rhs)
+{
+    LOG(ConstraintSolving, "match: " << location << ": " << lhs << " U " << rhs);
+    m_generator.emitLocation(location);
+    m_generator.match(lhs, rhs);
+}
+
 TypeChecker::Scope::Scope(TypeChecker& typeChecker)
     : Scope(typeChecker, !typeChecker.m_doNotEmitScopeInstructions)
 {

@@ -16,20 +16,28 @@ public:
 
     void visit(const Visitor&) const;
     void unify(InstructionStream::Offset, Value, Value);
+    void match(InstructionStream::Offset, Value, Value);
     Value resolve(Type*);
     Type* infer(InstructionStream::Offset, TypeVar*);
 
 private:
     struct Constraint {
+        enum class Type {
+            Subtyping,
+            PatternMatching,
+        };
+
         InstructionStream::Offset bytecodeOffset;
         Value lhs;
         Value rhs;
+        Type type;
     };
 
     void finalize();
     void solveConstraints();
     void unifies(const Constraint&);
     void unifies(InstructionStream::Offset, Value, Value);
+    void matches(InstructionStream::Offset, Value, Value);
     void bind(TypeVar*, Type*);
     void unificationOr(const std::function<void()>&, const std::function<void()>&);
     Type* eval(Value);
