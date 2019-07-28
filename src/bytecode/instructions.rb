@@ -23,6 +23,11 @@ instruction :GetLocal,
     dst: :Register,
     identifierIndex: :uint32_t
 
+instruction :GetLocalOrConstant,
+    dst: :Register,
+    identifierIndex: :uint32_t,
+    constantIndex: :uint32_t
+
 instruction :SetLocal,
     identifierIndex: :uint32_t,
     src: :Register

@@ -86,6 +86,14 @@ void BytecodeGenerator::getLocal(Register dst, const std::string& ident)
     emit<GetLocal>(dst, index);
 }
 
+void BytecodeGenerator::getLocalOrConstant(Register dst, const std::string& ident, Value constant)
+{
+    uint32_t identIndex = uniqueIdentifier(ident);
+    uint32_t constantIndex = m_block->m_constants.size();
+    m_block->m_constants.push_back(constant);
+    emit<GetLocalOrConstant>(dst, identIndex, constantIndex);
+}
+
 void BytecodeGenerator::setLocal(const Identifier& ident, Register src)
 {
     setLocal(ident.name, src);

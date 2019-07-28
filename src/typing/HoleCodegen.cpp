@@ -109,7 +109,7 @@ void holeCodegen(Value value, BytecodeGenerator& generator, Register dst)
 
 void HoleVariable::generate(BytecodeGenerator& generator, Register dst) const
 {
-    generator.getLocal(dst, name()->str());
+    generator.getLocalOrConstant(dst, name()->str(), this);
 }
 
 void HoleCall::generate(BytecodeGenerator& generator, Register dst) const

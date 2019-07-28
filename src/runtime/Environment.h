@@ -29,4 +29,11 @@ private:
     Map m_typeMap;
 };
 
-extern Environment* createEnvironment(VM&, Environment*);
+// JIT helpers
+extern "C" {
+
+Environment* createEnvironment(VM&, Environment*);
+int64_t jitEnvironmentGet(Environment*, const std::string&);
+void jitUnknownVariable(VM&, uint32_t, const std::string&);
+
+}

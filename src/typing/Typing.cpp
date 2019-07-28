@@ -220,6 +220,7 @@ void MatchStatement::infer(TypeChecker& tc, Register result)
     Register tmp = tc.generator().newLocal();
     scrutinee->infer(tc, scrutineeType);
     for (uint32_t i = 0; i < cases.size(); i++) {
+        // TODO: add unification scope here for dependent pattern matching
         auto& kase = cases[i];
         kase->pattern->infer(tc, tmp);
         tc.generator().getTypeForValue(tmp, tmp);
@@ -234,6 +235,7 @@ void MatchStatement::infer(TypeChecker& tc, Register result)
         tc.generator().newUnionType(result, result, tmp);
     }
     if (defaultCase) {
+        // TODO: add unification scope here for dependent pattern matching
         if (cases.size()) {
             defaultCase->infer(tc, tmp);
             tc.generator().getTypeForValue(tmp, tmp);
@@ -417,19 +419,6 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
 
 void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    std::vector<std::pair<std::string, Register>> fieldRegisters;
-
-    for (const auto& pair : fields)
-        fieldRegisters.emplace_back(std::make_pair(pair.first->name, tc.generator().newLocal()));
-
-    unsigned i = 0;
-    for (auto& pair : fields) {
-        Register type = fieldRegisters[i++].second;
-        pair.second->infer(tc, type);
-        tc.generator().getTypeForValue(type, type);
-    }
-
-    tc.newRecordType(result, fieldRegisters);
     generateForTypeChecking(tc, result);
 }
 

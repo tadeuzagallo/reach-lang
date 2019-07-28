@@ -33,6 +33,7 @@ public:
     void getLocal(Register, const Identifier&);
     void setLocal(const Identifier&, Register);
     void getLocal(Register, const std::string&);
+    void getLocalOrConstant(Register, const std::string&, Value);
     void setLocal(const std::string&, Register);
     void call(Register, Register, const std::vector<Register>&);
     void newArray(Register, Register, unsigned);

@@ -175,6 +175,16 @@ OP(GetLocal)
     DISPATCH();
 }
 
+OP(GetLocalOrConstant)
+{
+    bool success;
+    const std::string& variable = m_block.identifier(ip.identifierIndex);
+    m_cfr[ip.dst] = m_environment->get(variable, success);
+    if (!success || m_cfr[ip.dst].isAbstractValue())
+        m_cfr[ip.dst] = m_block.constant(ip.constantIndex);
+    DISPATCH();
+}
+
 OP(SetLocal)
 {
     m_environment->set(m_block.identifier(ip.identifierIndex), m_cfr[ip.src]);

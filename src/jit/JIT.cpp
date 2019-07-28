@@ -5,6 +5,7 @@
 #include "Environment.h"
 #include "Function.h"
 #include "Hole.h"
+#include "Log.h"
 #include "Object.h"
 #include "Scope.h"
 #include "Tuple.h"
@@ -24,6 +25,12 @@
 static int32_t offset(JIT::VirtualRegister r)
 {
     return r.offset() * 8;
+}
+
+template<typename T>
+void logJITDispatch(const BytecodeBlock& block, InstructionStream::Offset bytecodeOffset, const T& instruction)
+{
+    std::cerr << "[JITDispatch] " << block.name() << "#" << bytecodeOffset << ": " << instruction << " @ " << block.locationInfo(bytecodeOffset) << std::endl;
 }
 
 struct JIT::Offset {
@@ -64,6 +71,20 @@ void* JIT::compile()
 {
 #define CASE(Instruction) \
     case Instruction::ID: \
+        if (LOG_CHANNEL_ENABLED(JITDispatch)) { \
+            push(regA0); \
+            push(regA1); \
+            push(regA2); \
+            push(regA3); \
+            move(&m_block, regA0); \
+            move(m_bytecodeOffset, regA1); \
+            move(instruction.get(), regA2); \
+            call<void, const BytecodeBlock&, InstructionStream::Offset, const Instruction&>(logJITDispatch); \
+            pop(regA3); \
+            pop(regA2); \
+            pop(regA1); \
+            pop(regA0); \
+        } \
         emit##Instruction(*reinterpret_cast<const Instruction*>(instruction.get())); \
         break;
 
@@ -143,15 +164,30 @@ OP(StoreConstant)
 
 OP(GetLocal)
 {
-    push(regT2);
-    push(regT3);
+    Label error = label();
+    Label end = label();
+
     load(m_block.environmentRegister(), regA0);
     move(&m_block.identifier(ip.identifierIndex), regA1);
-    lea(Offset { 0x0, regSP }, regA2);
-    call(&Environment::get);
-    pop(regT3);
-    pop(regT2);
+    call(&jitEnvironmentGet);
     store(regR0, ip.dst);
+    compare(regR0, Value::crash());
+    jumpIfEqual(error);
+    jump(end);
+
+    emitLabel(error);
+    move(vm(), regA0);
+    move(m_bytecodeOffset, regA1);
+    move(&m_block.identifier(ip.identifierIndex), regA2);
+    call(jitUnknownVariable);
+
+    emitLabel(end);
+}
+
+OP(GetLocalOrConstant)
+{
+    UNUSED(ip);
+    ASSERT(false, "GetLocalOrConstant should only be used during type checking, and type checking shouldn't JIT");
 }
 
 OP(SetLocal)

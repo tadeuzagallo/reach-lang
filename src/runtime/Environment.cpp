@@ -2,6 +2,7 @@
 
 #include "expressions.h"
 #include "Value.h"
+#include <sstream>
 
 Environment::Environment(Environment* parent)
     : m_parent(parent)
@@ -57,7 +58,24 @@ void Environment::dump(std::ostream& out) const
     out << "}";
 }
 
+// JIT helpers
 Environment* createEnvironment(VM& vm, Environment* parentEnvironment)
 {
     return Environment::create(vm, parentEnvironment);
+}
+
+int64_t jitEnvironmentGet(Environment* env, const std::string& variable)
+{
+    bool success;
+    Value value = env->get(variable, success);
+    if (!success)
+        value = Value::crash();
+    return value.bits();
+}
+
+void jitUnknownVariable(VM& vm, uint32_t bytecodeOffset, const std::string& variable)
+{
+        std::stringstream message;
+        message << "Unknown variable: `" << variable << "`";
+        vm.typeError(bytecodeOffset, message.str());
 }

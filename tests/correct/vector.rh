@@ -1,0 +1,44 @@
+// RUN: %reach | %check
+
+function inspect(%T: Type, x: T) -> Void
+{
+    print(x.stringify())
+    print(" : ")
+    println(T.stringify())
+}
+
+function Nat() -> Type {
+    {predecessor: #Nat()} | {:}
+}
+
+let nil = {}
+function succ(n: #Nat()) -> #Nat()
+{
+    {predecessor = n}
+}
+
+function Vector(n: #Nat(), T: Type) -> Type {
+    match (n) {
+    case {predecessor = p}: {
+        {head: T, tail: #Vector(p, T)}
+    }
+    case {}: {
+        {:}
+    }
+    }
+}
+inspect(Vector) // CHECK-L: <function Vector> : (n: Nat(), T: Type) -> Type
+
+function insert(n: Nat(), T: Type, item: T, vec: #Vector(n, T)) -> #Vector(succ(n), T)
+{
+    {head = item, tail = vec}
+}
+inspect(insert) // CHECK-L: <function insert> : (n: Nat(), T: Type, item: T, vec: Vector(n, T)) -> Vector(succ(n), T)
+
+let one = insert(nil, Number, 1, nil)
+inspect(one) // CHECK-L: {tail = {}, head = 1} : {tail: Vector({}, Number), head: Number}
+inspect(one.head) // CHECK-L: 1 : Number
+inspect(one.tail) // CHECK-L: {} : Vector({}, Number)
+
+// TODO
+// insert(succ(nil), Number, 2, one)

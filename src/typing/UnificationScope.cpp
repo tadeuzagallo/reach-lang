@@ -134,6 +134,7 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
     // Γ ⊢ σ <: x : τ
     if (rhsType->is<TypeBinding>()) {
         TypeBinding* binding = rhsType->as<TypeBinding>();
+        LOG(ConstraintSolving, "Setting variable `" << binding->name()->str() << "` to `" << lhs << "`" << " @ " << m_vm.currentBlock->locationInfo(bytecodeOffset));
         m_environment->set(binding->name()->str(), lhs);
         unifies(bytecodeOffset, lhs, binding->type());
         return;

@@ -20,6 +20,19 @@ void LazyExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 
 void ObjectLiteralExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 {
+    std::vector<std::pair<std::string, Register>> fieldRegisters;
+
+    for (const auto& pair : fields)
+        fieldRegisters.emplace_back(std::make_pair(pair.first->name, tc.generator().newLocal()));
+
+    unsigned i = 0;
+    for (auto& pair : fields) {
+        Register type = fieldRegisters[i++].second;
+        pair.second->infer(tc, type);
+        tc.generator().getTypeForValue(type, type);
+    }
+
+    tc.newRecordType(dst, fieldRegisters);
     // TODO: add concept of structures
     tc.generator().newObject(dst, dst, fields.size());
     Register tmp = tc.generator().newLocal();

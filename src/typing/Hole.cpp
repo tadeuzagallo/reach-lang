@@ -171,7 +171,11 @@ bool Value::hasHole() const
 
 HoleCall* createHoleCall(VM& vm, Value callee, uint32_t argumentCount, Value* arguments)
 {
-    Array* array = Array::create(vm, nullptr, argumentCount, arguments);
+    std::vector<Value> args(argumentCount);
+    for (uint32_t i = 0; i < argumentCount; i++) {
+        args[i] = arguments[-static_cast<int32_t>(i)];
+    }
+    Array* array = Array::create(vm, nullptr, std::move(args));
     return HoleCall::create(vm, callee, array);
 }
 
