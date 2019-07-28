@@ -37,7 +37,7 @@ void ObjectLiteralExpression::generateForTypeChecking(TypeChecker& tc, Register 
     tc.generator().newObject(dst, dst, fields.size());
     Register tmp = tc.generator().newLocal();
     for (const auto& field : fields) {
-        field.second->infer(tc, tmp);
+        field.second->generateForTypeChecking(tc, tmp);
         //tc.generator().getTypeForValue(tmp, tmp);
         tc.generator().setField(dst, field.first->name, tmp);
     }
@@ -45,10 +45,22 @@ void ObjectLiteralExpression::generateForTypeChecking(TypeChecker& tc, Register 
 
 void ArrayLiteralExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 {
+    // TODO: this should be a union of the types of all members
+    if (items.size()) {
+        items[0]->infer(tc, dst);
+        tc.generator().getTypeForValue(dst, dst);
+    } else
+        tc.generator().move(dst, tc.bottomType());
+
+    for (uint32_t i = 1; i < items.size(); i++)
+        items[i]->check(tc, dst);
+
+    tc.generator().newArrayType(dst, dst);
+
     tc.generator().newArray(dst, dst, items.size());
     for (unsigned i = 0; i < items.size(); i++) {
         Register tmp = tc.generator().newLocal();
-        items[i]->infer(tc, tmp);
+        items[i]->generateForTypeChecking(tc, tmp);
         //tc.generator().getTypeForValue(tmp, tmp);
         tc.generator().setArrayIndex(dst, i, tmp);
     }
@@ -56,10 +68,20 @@ void ArrayLiteralExpression::generateForTypeChecking(TypeChecker& tc, Register d
 
 void TupleExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 {
+    tc.generator().newTupleType(dst, items.size());
+    Register itemsTypes = tc.generator().newLocal();
+    tc.generator().getField(itemsTypes, dst, TypeTuple::itemsTypesField);
+    Register tmp = tc.generator().newLocal();
+    for (uint32_t i = 0; i < items.size(); i++) {
+        items[i]->infer(tc, tmp);
+        tc.generator().getTypeForValue(tmp, tmp);
+        tc.generator().setArrayIndex(itemsTypes, i, tmp);
+    }
+
     tc.generator().newTuple(dst, dst, items.size());
     for (unsigned i = 0; i < items.size(); i++) {
         Register tmp = tc.generator().newLocal();
-        items[i]->infer(tc, tmp);
+        items[i]->generateForTypeChecking(tc, tmp);
         //tc.generator().getTypeForValue(tmp, tmp);
         tc.generator().setTupleIndex(dst, i, tmp);
     }
@@ -68,7 +90,7 @@ void TupleExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 void CallExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 {
     Register calleeReg = tc.generator().newLocal();
-    callee->infer(tc, calleeReg);
+    callee->generateForTypeChecking(tc, calleeReg);
     //tc.generator().getTypeForValue(calleeReg, calleeReg);
     std::vector<Register> args;
     for (size_t i = 0; i < arguments.size(); i++)

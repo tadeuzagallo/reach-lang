@@ -29,6 +29,12 @@ function Vector(n: #Nat(), T: Type) -> Type {
 }
 inspect(Vector) // CHECK-L: <function Vector> : (n: Nat(), T: Type) -> Type
 
+// literals should be interchangeable with calls
+function insert(n: Nat(), T: Type, item: T, vec: Vector(n, T)) -> Vector({predecessor = n}, T)
+{
+    {head = item, tail = vec}
+}
+
 function insert(n: Nat(), T: Type, item: T, vec: #Vector(n, T)) -> #Vector(succ(n), T)
 {
     {head = item, tail = vec}

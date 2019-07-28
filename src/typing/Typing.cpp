@@ -295,21 +295,11 @@ void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
 
 void LazyExpression::infer(TypeChecker& tc, Register result)
 {
-    expression->generateForTypeChecking(tc, result);
+    generateForTypeChecking(tc, result);
 }
 
 void TupleExpression::infer(TypeChecker& tc, Register result)
 {
-    tc.generator().newTupleType(result, items.size());
-    Register itemsTypes = tc.generator().newLocal();
-    tc.generator().getField(itemsTypes, result, TypeTuple::itemsTypesField);
-    Register tmp = tc.generator().newLocal();
-    for (uint32_t i = 0; i < items.size(); i++) {
-        items[i]->infer(tc, tmp);
-        tc.generator().getTypeForValue(tmp, tmp);
-        tc.generator().setArrayIndex(itemsTypes, i, tmp);
-    }
-
     generateForTypeChecking(tc, result);
 }
 
@@ -424,17 +414,6 @@ void ObjectLiteralExpression::infer(TypeChecker& tc, Register result)
 
 void ArrayLiteralExpression::infer(TypeChecker& tc, Register result)
 {
-    // TODO: this should be a union of the types of all members
-    if (items.size()) {
-        items[0]->infer(tc, result);
-        tc.generator().getTypeForValue(result, result);
-    } else
-        tc.generator().move(result, tc.bottomType());
-
-    for (uint32_t i = 1; i < items.size(); i++)
-        items[i]->check(tc, result);
-
-    tc.generator().newArrayType(result, result);
     generateForTypeChecking(tc, result);
 }
 
