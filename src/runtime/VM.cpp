@@ -2,7 +2,9 @@
 
 #include "Environment.h"
 #include "Function.h"
+#include "Interpreter.h"
 #include "Type.h"
+#include "UnificationScope.h"
 #include <iostream>
 #include <sstream>
 
@@ -94,4 +96,23 @@ bool VM::reportTypeErrors()
         std::cerr << typeError.locationInfo << ": " << typeError.message << std::endl;
     m_typeErrors.clear();
     return true;
+}
+
+void VM::visit(const Visitor& visitor) const
+{
+    visitor.visit(stringType);
+    visitor.visit(typeType);
+    visitor.visit(topType);
+    visitor.visit(bottomType);
+    visitor.visit(unitType);
+    visitor.visit(boolType);
+    visitor.visit(numberType);
+    visitor.visit(globalEnvironment);
+
+    if (currentInterpreter)
+        currentInterpreter->visit(visitor);
+    if (globalBlock)
+        globalBlock->visit(visitor);
+    if (unificationScope)
+        unificationScope->visit(visitor);
 }

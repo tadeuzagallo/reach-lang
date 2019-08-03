@@ -19,7 +19,7 @@ public:
     static Value check(VM& vm, BytecodeBlock&, Environment*);
     static Value run(VM& vm, BytecodeBlock&, Environment* = nullptr, const Values& = {}, const Callback& = {});
 
-    void visit(const std::function<void(Value)>&) const;
+    void visit(const Visitor&) const;
 
     Environment* environment() const { return m_environment; }
 

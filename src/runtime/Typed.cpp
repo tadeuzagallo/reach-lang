@@ -13,7 +13,7 @@ Type* Typed::type() const
     return m_type;
 }
 
-void Typed::visit(std::function<void(Value)> visitor) const
+void Typed::visit(const Visitor& visitor) const
 {
-    visitor(m_type);
+    visitor.visit(m_type);
 }

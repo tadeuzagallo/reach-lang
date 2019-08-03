@@ -15,9 +15,6 @@ class BytecodeBlock;
 class BytecodeGenerator;
 class Type;
 
-using Types = std::vector<Value>;
-using Fields = std::unordered_map<std::string, Value>;
-
 class Type : public Object {
     friend class JIT;
 
@@ -189,7 +186,7 @@ public:
     bool isEqual(const TypeRecord*) const;
 
 private:
-    TypeRecord(const Fields&);
+    TypeRecord(Object*);
     TypeRecord(const BytecodeBlock&, uint32_t, const Value*, const Value*);
 };
 

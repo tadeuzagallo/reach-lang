@@ -1,11 +1,11 @@
 #include "Function.h"
 #include "Interpreter.h"
 
-void Function::visit(std::function<void(Value)> visitor) const
+void Function::visit(const Visitor& visitor) const
 {
     Typed::visit(visitor);
-    visitor(m_block);
-    visitor(m_parentEnvironment);
+    visitor.visit(m_block);
+    visitor.visit(m_parentEnvironment);
 }
 
 Value Function::call(VM& vm, std::vector<Value> args)

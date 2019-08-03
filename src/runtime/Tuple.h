@@ -28,8 +28,10 @@ public:
 
     Tuple* substitute(VM&, const Substitutions&) const;
 
-    void visit(std::function<void(Value)>) const override;
     void dump(std::ostream& out) const override;
+
+protected:
+    void visit(const Visitor&) const override;
 
 private:
     Tuple(Type* type, uint32_t initialSize)

@@ -2,7 +2,7 @@
 
 function A() -> Void {
     match ({x = 1, y = 2}) {
-        case {x = _, y = y, z = z}: z // CHECK-L: 5:14: Unification failure: expected `{x: ⊤, y: T, z: T}` but found `{x: Number, y: Number}`
+        case {x = _, y = y, z = z}: z // CHECK-L: 5:14: Unification failure: expected `{y: T, z: T, x: ⊤}` but found `{x: Number, y: Number}`
     }
 }
 

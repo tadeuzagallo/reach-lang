@@ -2,12 +2,54 @@
 
 #include "BytecodeBlock.h"
 #include "Cell.h"
-#include "Environment.h"
-#include "Interpreter.h"
 #include "VM.h"
+
+void Visitor::visit(Value value) const
+{
+    if (Cell* cell = getCell(value))
+        visitCell(cell);
+}
+
+void Visitor::visitConservatively(Value value) const
+{
+    if (Cell* cell = getCell(value)) {
+        bool isValid = false;
+        Allocator::each([&](Allocator& allocator) {
+            if (allocator.contains(cell)) {
+                isValid = true;
+                return IterationResult::Stop;
+            }
+            return IterationResult::Continue;
+        });
+
+        if (!isValid)
+            return;
+        uint32_t kind = static_cast<uint32_t>(cell->m_kind);
+        if (kind && (kind & Cell::KindMask) == kind)
+            visitCell(cell);
+    }
+}
+
+Cell* Visitor::getCell(Value value) const
+{
+    if (value.isCrash() || (!value.isCell() && !value.isAbstractValue()))
+        return nullptr;
+
+    return value.getCell();
+}
+
+void Visitor::visitCell(Cell* cell) const
+{
+    if (m_heap.isMarked(cell))
+        return;
+
+    m_heap.setMarked(cell);
+    m_heap.m_worklist.push(cell);
+}
 
 Heap::Heap(VM* vm)
     : m_vm(vm)
+    , m_visitor(*this)
 {
 }
 
@@ -34,66 +76,35 @@ void Heap::collect()
 
 void Heap::markFromRoots()
 {
-    auto markRoot = [&](Value root) {
-        if (root.isCrash() || (!root.isCell() && !root.isAbstractValue()))
-            return;
-
-        Cell* cell = root.getCell();
-        if (isMarked(cell))
-            return;
-
-        setMarked(cell);
-        m_worklist.push(cell);
-        mark();
-    };
-
-    markRoot(m_vm->stringType);
-    markRoot(m_vm->typeType);
-    markRoot(m_vm->topType);
-    markRoot(m_vm->bottomType);
-    markRoot(m_vm->unitType);
-    markRoot(m_vm->boolType);
-    markRoot(m_vm->numberType);
-    markRoot(m_vm->globalEnvironment);
     for (Cell* root : m_roots)
         markRoot(root);
-    if (m_vm->currentInterpreter)
-        m_vm->currentInterpreter->visit(markRoot);
-    if (m_vm->globalBlock)
-        m_vm->globalBlock->visit(markRoot);
 
-    markNativeStack(markRoot);
-    markInterpreterStack(markRoot);
+    m_vm->visit(m_visitor);
+    markNativeStack();
+    mark();
+    markInterpreterStack();
 }
 
-void Heap::markNativeStack(const std::function<void(Value)>& visitor)
+void Heap::markRoot(Value root)
+{
+    m_visitor.visit(root);
+    mark();
+}
+
+void Heap::markNativeStack()
 {
     volatile void** rsp;
     asm("movq %%rsp, %0" : "=r"(rsp));
     pthread_t self = pthread_self();
     Value* stackBottom = reinterpret_cast<Value*>(pthread_get_stackaddr_np(self));
-    for (Value* root = reinterpret_cast<Value*>(rsp); root != stackBottom; ++root)  {
-        if (root->isCrash() || (!root->isCell() && !root->isAbstractValue()))
-            continue;
-
-        Cell* cell = root->getCell();
-        bool isValid = false;
-        Allocator::each([&](Allocator& allocator) {
-            if (isValid)
-                return;
-            if (allocator.contains(cell))
-                isValid = true;
-        });
-
-        if (isValid && cell->m_kind < Cell::Kind::InvalidCell)
-            visitor(*root);
-    }
+    for (Value* root = reinterpret_cast<Value*>(rsp); root != stackBottom; ++root)
+        m_visitor.visitConservatively(*root);
 }
 
-void Heap::markInterpreterStack(const std::function<void(Value)>& visitor)
+void Heap::markInterpreterStack()
 {
     for (auto value : m_vm->stack)
-        visitor(value);
+        markRoot(value);
 }
 
 void Heap::sweep()
@@ -108,6 +119,7 @@ void Heap::sweep()
             cell->~Cell();
             allocator.free(cell);
         });
+        return IterationResult::Continue;
     });
 }
 
@@ -117,17 +129,7 @@ void Heap::mark()
         Cell* cell = m_worklist.front();
         m_worklist.pop();
 
-        cell->visit([&](Value value) {
-            if (value.isCrash() || (!value.isCell() && !value.isAbstractValue()))
-                return;
-
-            Cell* cell = value.getCell();
-            if (isMarked(cell))
-                return;
-
-            setMarked(cell);
-            m_worklist.push(cell);
-        });
+        cell->visit(m_visitor);
     }
 }
 

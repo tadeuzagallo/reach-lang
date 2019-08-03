@@ -18,7 +18,6 @@ std::ostream& operator<<(std::ostream& out, Cell::Kind kind)
     CASE(Hole)
     CASE(Environment)
     CASE(BytecodeBlock)
-    CASE(InvalidCell)
     }
 
 #undef CASE

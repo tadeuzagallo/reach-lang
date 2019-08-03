@@ -24,6 +24,8 @@ public:
     bool hasTypeErrors() const;
     bool reportTypeErrors();
 
+    void visit(const Visitor&) const;
+
     Environment* globalEnvironment;
     Interpreter* currentInterpreter { nullptr };
     BytecodeBlock* globalBlock;

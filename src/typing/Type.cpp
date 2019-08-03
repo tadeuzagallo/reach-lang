@@ -70,8 +70,8 @@ TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Val
     set_params(Array::create(vm(), nullptr, parameterCount, parameters));
     set_returnType(returnType);
 
-    Types implicitParams;
-    Types explicitParams;
+    std::vector<Value> implicitParams;
+    std::vector<Value> explicitParams;
     for (uint32_t i = 0; i < parameterCount; i++) {
         Value param = parameters[i];
         if (inferredParameters & (1 << i))
@@ -170,11 +170,10 @@ void TypeTuple::dump(std::ostream& out) const
     out << ">";
 }
 
-TypeRecord::TypeRecord(const Fields& fields)
+TypeRecord::TypeRecord(Object* fields)
     : Type(Type::Class::Record)
 {
-    for (const auto& it : fields)
-        set(it.first, it.second);
+    *static_cast<Object*>(this) = *fields;
 }
 
 TypeRecord::TypeRecord(const BytecodeBlock& block, uint32_t fieldCount, const Value* keys, const Value* types)
@@ -261,12 +260,13 @@ Type* TypeUnion::collapse(VM& vm)
     if (!rhs)
         return nullptr;
 
-    Fields fields;
+    // GC bug
+    Object* fields = Object::create(vm, nullptr, 0);
     for (const auto& lhsField : *lhs) {
         if (auto rhsValue = rhs->tryGet(lhsField.first))
-            fields.emplace(lhsField.first, TypeUnion::create(vm, lhsField.second, *rhsValue));
+            fields->set(lhsField.first, TypeUnion::create(vm, lhsField.second, *rhsValue));
     }
-    return TypeRecord::create(vm, std::move(fields));
+    return TypeRecord::create(vm, fields);
 }
 
 void TypeUnion::dump(std::ostream& out) const

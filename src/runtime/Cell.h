@@ -28,12 +28,14 @@
     CELL_TYPE(__type) \
     CELL_CREATE(__type) \
 
-class Value;
 class VM;
+class Value;
+class Visitor;
 
 class Cell {
     friend class Heap;
     friend class JIT;
+    friend class Visitor;
 
 public:
     enum class Kind : uint32_t {
@@ -47,8 +49,20 @@ public:
         Hole        = 0x80 | Type,
         Environment = 0x100,
         BytecodeBlock = 0x200,
-        InvalidCell = BytecodeBlock + 1,
     };
+
+    static constexpr uint32_t KindMask
+        = static_cast<uint32_t>(Kind::Typed)
+        | static_cast<uint32_t>(Kind::Object)
+        | static_cast<uint32_t>(Kind::String)
+        | static_cast<uint32_t>(Kind::Array)
+        | static_cast<uint32_t>(Kind::Function)
+        | static_cast<uint32_t>(Kind::Tuple)
+        | static_cast<uint32_t>(Kind::Type)
+        | static_cast<uint32_t>(Kind::Hole)
+        | static_cast<uint32_t>(Kind::Environment)
+        | static_cast<uint32_t>(Kind::BytecodeBlock)
+        ;
 
     Kind kind() const { return m_kind; }
 
@@ -74,12 +88,13 @@ public:
 
     virtual ~Cell() = default;
 
-    virtual void visit(std::function<void(Value)>) const = 0;
     virtual void dump(std::ostream& out) const = 0;
 
 protected:
+    virtual void visit(const Visitor&) const = 0;
+
     bool m_isMarked;
-    Kind m_kind { Kind::InvalidCell };
+    Kind m_kind { 0 };
 };
 
 std::ostream& operator<<(std::ostream&, Cell::Kind);

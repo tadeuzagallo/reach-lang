@@ -17,8 +17,6 @@ public:
         m_parentEnvironment = parentEnvironment;
     }
 
-    void visit(std::function<void(Value)>) const override;
-
     std::string name() const
     {
         if (m_block)
@@ -36,6 +34,9 @@ public:
     }
 
     Value call(VM&, std::vector<Value>);
+
+protected:
+    void visit(const Visitor&) const override;
 
 private:
     Function(BytecodeBlock& block, Environment* parentEnvironment, Type* type)

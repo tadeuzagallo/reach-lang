@@ -1,10 +1,10 @@
 #include "Array.h"
 
-void Array::visit(std::function<void(Value)> visitor) const
+void Array::visit(const Visitor& visitor) const
 {
     Typed::visit(visitor);
     for (auto item : m_items)
-        visitor(item);
+        visitor.visit(item);
 }
 
 void Array::dump(std::ostream& out) const

@@ -38,13 +38,13 @@ Environment* Environment::parent() const
     return m_parent;
 }
 
-void Environment::visit(std::function<void(Value)> visitor) const
+void Environment::visit(const Visitor& visitor) const
 {
-    visitor(m_parent);
+    visitor.visit(m_parent);
     for (const auto& pair : m_map)
-        visitor(pair.second);
+        visitor.visit(pair.second);
     for (const auto& pair : m_typeMap)
-        visitor(pair.second);
+        visitor.visit(pair.second);
 }
 
 void Environment::dump(std::ostream& out) const

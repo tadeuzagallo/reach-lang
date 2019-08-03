@@ -17,7 +17,7 @@ class BytecodeBlock : public Cell {
 public:
     CELL(BytecodeBlock)
 
-    void visit(std::function<void(Value)>) const;
+    void visit(const Visitor&) const;
     void dump(std::ostream&) const;
 
     const std::string& name() const { return m_name; }

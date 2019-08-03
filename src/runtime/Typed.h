@@ -10,10 +10,10 @@ public:
 
     Type* type() const;
 
-    void visit(std::function<void(Value)>) const override;
-
 protected:
     Typed(Type*);
+
+    void visit(const Visitor&) const override;
 
 private:
     Type* m_type;

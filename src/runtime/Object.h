@@ -75,7 +75,6 @@ public:
     bool operator==(const Object&) const;
     Object* substitute(VM&, const Substitutions&) const;
 
-    void visit(std::function<void(Value)>) const override;
     void dump(std::ostream& out) const override;
 
 protected:
@@ -93,6 +92,8 @@ protected:
     }
 
     Object(Type*, const BytecodeBlock&, uint32_t, const Value*, const Value*);
+
+    void visit(const Visitor&) const override;
 
 private:
     std::unordered_map<std::string, Value> m_fields;

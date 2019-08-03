@@ -54,11 +54,11 @@ Interpreter::~Interpreter()
     m_vm.currentInterpreter = m_lastInterpreter;
 }
 
-void Interpreter::visit(const std::function<void(Value)>& visitor) const
+void Interpreter::visit(const Visitor& visitor) const
 {
-    visitor(&m_block);
-    visitor(m_environment);
-    visitor(m_lastInterpreter);
+    visitor.visit(&m_block);
+    visitor.visit(m_environment);
+    visitor.visit(m_lastInterpreter);
     if (m_lastInterpreter)
         m_lastInterpreter->visit(visitor);
 }

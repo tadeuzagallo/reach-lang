@@ -32,13 +32,15 @@ Allocator& Allocator::forSize(VM* vm, size_t size)
     return *allocator;
 }
 
-void Allocator::each(std::function<void(Allocator&)> functor)
+void Allocator::each(const std::function<IterationResult(Allocator&)>& functor)
 {
-    for (auto& pair : s_allocators)
-        functor(*pair.second);
+    for (auto& pair : s_allocators) {
+        if (functor(*pair.second) == IterationResult::Stop)
+            break;
+    }
 }
 
-void Allocator::each(std::function<void(Cell*)> functor)
+void Allocator::each(const std::function<void(Cell*)>& functor)
 {
     for (uint8_t* cell = m_start; cell != m_current; cell += m_cellSize) {
         if (*cell == s_freeMarker)

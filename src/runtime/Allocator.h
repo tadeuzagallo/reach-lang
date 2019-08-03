@@ -7,19 +7,24 @@
 class Cell;
 class VM;
 
+enum class IterationResult {
+    Stop,
+    Continue,
+};
+
 class Allocator {
     friend class Cell;
 
 public:
     static Allocator& forSize(VM*, size_t);
-    static void each(std::function<void(Allocator&)>);
+    static void each(const std::function<IterationResult(Allocator&)>&);
 
     ~Allocator();
 
     Cell* cell();
     void free(Cell*);
     bool contains(const Cell*);
-    void each(std::function<void(Cell*)>);
+    void each(const std::function<void(Cell*)>&);
 
 private:
     struct Header {

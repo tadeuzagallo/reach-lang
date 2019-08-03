@@ -37,7 +37,7 @@ inspect(f([{x = "", y = 42}])) // CHECK-L: [{y = 42, x = ""}] : {:}[]
 // FUNCTION
 function f(x: ({x: String, y: Number}) -> {x: String}) -> ({x: String, y: Number, z: Bool}) -> {:} { x }
 function g(x: {x: String}) -> {x: String, y: Number}  { {x = x.x, y = 1 } }
-inspect(f(g)) // CHECK-L: <function g> : ({z: Bool, y: Number, x: String}) -> {:}
+inspect(f(g)) // CHECK-L: <function g> : ({x: String, y: Number, z: Bool}) -> {:}
 
 // LET
 let x : {x: Number} = {x = 1, y = 2}

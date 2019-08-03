@@ -110,9 +110,9 @@ Type* TypeTuple::substitute(VM& vm, const Substitutions& subst) const
 
 Type* TypeRecord::substitute(VM& vm, const Substitutions& subst) const
 {
-    Fields fields;
+    Object* fields = Object::create(vm, nullptr, 0);
     for (auto& field : *this) {
-        fields.emplace(field.first, field.second.substitute(vm, subst));
+        fields->set(field.first, field.second.substitute(vm, subst));
     }
     return TypeRecord::create(vm, fields);
 }

@@ -11,11 +11,11 @@ Object::Object(Type* type, const BytecodeBlock& block, uint32_t fieldCount, cons
     }
 }
 
-void Object::visit(std::function<void(Value)> visitor) const
+void Object::visit(const Visitor& visitor) const
 {
     Typed::visit(visitor);
     for (auto field : m_fields)
-        visitor(field.second);
+        visitor.visit(field.second);
 }
 
 void Object::dump(std::ostream& out) const

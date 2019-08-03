@@ -53,16 +53,16 @@ void BytecodeBlock::setFunction(uint32_t index, Function* function)
     m_functions[index] = function;
 }
 
-void BytecodeBlock::visit(std::function<void(Value)> visitor) const
+void BytecodeBlock::visit(const Visitor& visitor) const
 {
     for (auto value : m_constants)
-        visitor(value);
+        visitor.visit(value);
 
     for (auto& block : m_functionBlocks)
-        visitor(block);
+        visitor.visit(block);
 
     for (auto* function : m_functions)
-        visitor(function);
+        visitor.visit(function);
 }
 
 void BytecodeBlock::dump(std::ostream& out) const

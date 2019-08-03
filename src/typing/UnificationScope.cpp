@@ -27,13 +27,13 @@ UnificationScope::~UnificationScope()
 
 void UnificationScope::visit(const Visitor& visitor) const
 {
-    visitor(m_environment);
+    visitor.visit(m_environment);
     for (const auto& constraint : m_constraints) {
-        visitor(constraint.lhs);
-        visitor(constraint.rhs);
+        visitor.visit(constraint.lhs);
+        visitor.visit(constraint.rhs);
     }
     for (const auto& pair : m_substitutions)
-        visitor(pair.second);
+        visitor.visit(pair.second);
     if (m_parentScope)
         m_parentScope->visit(visitor);
 }

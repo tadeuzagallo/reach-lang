@@ -146,9 +146,9 @@ TypeArray* TypeArray::partiallyEvaluate(VM& vm, Environment* env) const
 
 TypeRecord* TypeRecord::partiallyEvaluate(VM& vm, Environment* env) const
 {
-    Fields fields;
+    Object* fields = Object::create(vm, nullptr, 0);
     for (auto& field : *this) {
-        fields.emplace(field.first, ::partiallyEvaluate(field.second, vm, env));
+        fields->set(field.first, ::partiallyEvaluate(field.second, vm, env));
     }
     return TypeRecord::create(vm, fields);
 }

@@ -1,10 +1,10 @@
 #include "Tuple.h"
 
-void Tuple::visit(std::function<void(Value)> visitor) const
+void Tuple::visit(const Visitor& visitor) const
 {
     Typed::visit(visitor);
     for (auto item : m_items)
-        visitor(item);
+        visitor.visit(item);
 }
 
 void Tuple::dump(std::ostream& out) const

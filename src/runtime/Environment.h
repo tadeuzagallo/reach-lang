@@ -19,7 +19,9 @@ public:
 
     Environment* parent() const;
     void dump(std::ostream&) const override;
-    void visit(std::function<void(Value)>) const override;
+
+protected:
+    void visit(const Visitor&) const override;
 
 private:
     Environment(Environment*);

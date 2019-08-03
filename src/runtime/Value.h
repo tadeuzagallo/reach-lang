@@ -9,9 +9,9 @@ class Type;
 using Substitutions = std::unordered_map<uint32_t, Type*>;
 
 class Value {
-    friend class Heap;
     friend class JIT;
     friend class SafeDump;
+    friend class Visitor;
 
 public:
     static Value crash();
