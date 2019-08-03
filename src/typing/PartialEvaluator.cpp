@@ -134,13 +134,13 @@ Value HoleMember::partiallyEvaluate(VM& vm, Environment* env)
 TypeFunction* TypeFunction::partiallyEvaluate(VM& vm, Environment* env) const
 {
     Array* params = ::partiallyEvaluate(this->params(), vm, env);
-    Value returnType = ::partiallyEvaluate(this->returnType(), vm, env);
+    Type* returnType = ::partiallyEvaluate(this->returnType(), vm, env);
     return TypeFunction::create(vm, params->size(), &*params->begin(), returnType, m_inferredParameters);
 }
 
 TypeArray* TypeArray::partiallyEvaluate(VM& vm, Environment* env) const
 {
-    Value itemType = ::partiallyEvaluate(this->itemType(), vm, env);
+    Type* itemType = ::partiallyEvaluate(this->itemType(), vm, env);
     return TypeArray::create(vm, itemType);
 }
 
@@ -168,8 +168,8 @@ TypeTuple* TypeTuple::partiallyEvaluate(VM& vm, Environment* env) const
 
 TypeUnion* TypeUnion::partiallyEvaluate(VM& vm, Environment* env) const
 {
-    Value lhs = ::partiallyEvaluate(this->lhs(), vm, env);
-    Value rhs = ::partiallyEvaluate(this->rhs(), vm, env);
+    Type* lhs = ::partiallyEvaluate(this->lhs(), vm, env);
+    Type* rhs = ::partiallyEvaluate(this->rhs(), vm, env);
     return TypeUnion::create(vm, lhs, rhs);
 }
 

@@ -228,8 +228,8 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
         // T <: σ
         // ---------------------------------------- T-Union-L
         // ∀σ, S | T <: σ
-        unifies(bytecodeOffset, AbstractValue { unionType->lhs().asType() }, rhs);
-        unifies(bytecodeOffset, AbstractValue { unionType->rhs().asType() }, rhs);
+        unifies(bytecodeOffset, AbstractValue { unionType->lhs() }, rhs);
+        unifies(bytecodeOffset, AbstractValue { unionType->rhs() }, rhs);
         return;
     }
 
@@ -282,7 +282,7 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
         case Type::Class::Array: {
             TypeArray* lhs = lhsType->as<TypeArray>();
             TypeArray* rhs = rhsType->as<TypeArray>();
-            unifies(bytecodeOffset, AbstractValue { lhs->itemType().asType()}, rhs->itemType());
+            unifies(bytecodeOffset, AbstractValue { lhs->itemType() }, rhs->itemType());
             return;
         }
         case Type::Class::Function: {
@@ -292,7 +292,7 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
                 break;
             for (uint32_t i = 0; i < lhs->params()->size(); i++)
                 unifies(bytecodeOffset, rhs->param(i), lhs->param(i));
-            unifies(bytecodeOffset, AbstractValue { lhs->returnType().asType() }, rhs->returnType());
+            unifies(bytecodeOffset, AbstractValue { lhs->returnType() }, rhs->returnType());
             return;
         }
         case Type::Class::Hole: {
@@ -369,12 +369,12 @@ void UnificationScope::matches(InstructionStream::Offset bytecodeOffset, Value s
             // Γ ⊢ S `matches` P
             // ---------------------------------------- M-Union-L
             // Γ ⊢ S | T `matches` P
-            matches(bytecodeOffset, AbstractValue { scrutineeUnion->lhs().asType() }, pattern);
+            matches(bytecodeOffset, AbstractValue { scrutineeUnion->lhs() }, pattern);
         }, [&] {
             // Γ ⊢ T `matches` P
             // ---------------------------------------- M-Union-R
             // Γ ⊢ S | T `matches` P
-            matches(bytecodeOffset, AbstractValue { scrutineeUnion->rhs().asType() }, pattern);
+            matches(bytecodeOffset, AbstractValue { scrutineeUnion->rhs() }, pattern);
         });
         return;
     }

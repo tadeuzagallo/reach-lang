@@ -131,12 +131,13 @@ public:
     CELL_FIELD(Array, parameterNames);
     CELL_FIELD(Array, implicitParams);
     CELL_FIELD(Array, explicitParams);
+    CELL_FIELD(Type, returnType);
+
     VALUE_FIELD(uint32_t, implicitParamCount, .asNumber());
     VALUE_FIELD(uint32_t, explicitParamCount, .asNumber());
-    VALUE_FIELD(Value, returnType);
 
 private:
-    TypeFunction(uint32_t, const Value*, Value, uint32_t);
+    TypeFunction(uint32_t, const Value*, Type*, uint32_t);
 
     uint32_t m_inferredParameters;
 };
@@ -151,10 +152,10 @@ public:
     void dump(std::ostream&) const override;
     bool isEqual(const TypeArray*) const;
 
-    VALUE_FIELD(Value, itemType);
+    CELL_FIELD(Type, itemType);
 
 private:
-    TypeArray(Value);
+    TypeArray(Type*);
 };
 
 class TypeTuple : public Type {
@@ -225,11 +226,11 @@ public:
     void dump(std::ostream&) const override;
     bool isEqual(const TypeUnion*) const;
 
-    VALUE_FIELD(Value, lhs);
-    VALUE_FIELD(Value, rhs);
+    CELL_FIELD(Type, lhs);
+    CELL_FIELD(Type, rhs);
 
 private:
-    TypeUnion(Value, Value);
+    TypeUnion(Type*, Type*);
 };
 
 class TypeBinding : public Type {
@@ -278,10 +279,10 @@ extern "C" {
 // JIT helpers
 TypeVar* createTypeVar(VM&, const std::string&, bool, bool);
 TypeName* createTypeName(VM&, const std::string&);
-TypeArray* createTypeArray(VM&, Value);
+TypeArray* createTypeArray(VM&, Type*);
 TypeRecord* createTypeRecord(VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*);
 TypeTuple* createTypeTuple(VM&, uint32_t);
-TypeFunction* createTypeFunction(VM&, uint32_t, const Value*, Value, uint32_t);
-TypeUnion* createTypeUnion(VM&, Value, Value);
+TypeFunction* createTypeFunction(VM&, uint32_t, const Value*, Type*, uint32_t);
+TypeUnion* createTypeUnion(VM&, Type*, Type*);
 TypeBinding* createTypeBinding(VM&, const std::string&, Type*);
 };

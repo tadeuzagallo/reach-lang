@@ -487,7 +487,7 @@ OP(NewNameType)
 OP(NewArrayType)
 {
     Value itemType = m_cfr[ip.itemType];
-    m_cfr[ip.dst] = TypeArray::create(m_vm, itemType);
+    m_cfr[ip.dst] = TypeArray::create(m_vm, itemType.asType());
     DISPATCH();
 }
 
@@ -509,13 +509,13 @@ OP(NewFunctionType)
 {
     Value* params = &m_cfr[Register::forLocal(-ip.firstParam.offset() + ip.paramCount - 1)];
     Value returnType = m_cfr[ip.returnType];
-    m_cfr[ip.dst] = TypeFunction::create(m_vm, ip.paramCount, params, returnType, ip.inferredParameters);
+    m_cfr[ip.dst] = TypeFunction::create(m_vm, ip.paramCount, params, returnType.asType(), ip.inferredParameters);
     DISPATCH();
 }
 
 OP(NewUnionType)
 {
-    auto* unionType = TypeUnion::create(m_vm, m_cfr[ip.lhs], m_cfr[ip.rhs]);
+    auto* unionType = TypeUnion::create(m_vm, m_cfr[ip.lhs].asType(), m_cfr[ip.rhs].asType());
     m_cfr[ip.dst] = unionType;
     DISPATCH();
 }

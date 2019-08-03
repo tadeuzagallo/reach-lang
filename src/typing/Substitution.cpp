@@ -85,13 +85,13 @@ Type* TypeName::substitute(VM&, const Substitutions&) const
 Type* TypeFunction::substitute(VM& vm, const Substitutions& subst) const
 {
     Array* params = this->params()->substitute(vm, subst);
-    Value returnType = this->returnType().substitute(vm, subst);
+    Type* returnType = this->returnType()->substitute(vm, subst);
     return TypeFunction::create(vm, params->size(), &*params->begin(), returnType, m_inferredParameters);
 }
 
 Type* TypeArray::substitute(VM& vm, const Substitutions& subst) const
 {
-    Value itemType = this->itemType().substitute(vm, subst);
+    Type* itemType = this->itemType()->substitute(vm, subst);
     return TypeArray::create(vm, itemType);
 }
 
@@ -127,8 +127,8 @@ Type* TypeVar::substitute(VM&, const Substitutions& subst) const
 
 Type* TypeUnion::substitute(VM& vm, const Substitutions& subst) const
 {
-    Value lhs = this->lhs().substitute(vm, subst);
-    Value rhs = this->rhs().substitute(vm, subst);
+    Type* lhs = this->lhs()->substitute(vm, subst);
+    Type* rhs = this->rhs()->substitute(vm, subst);
     return TypeUnion::create(vm, lhs, rhs);
 }
 

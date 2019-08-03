@@ -63,7 +63,7 @@ void TypeName::dump(std::ostream& out) const
     out << name()->str();
 }
 
-TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Value returnType, uint32_t inferredParameters)
+TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Type* returnType, uint32_t inferredParameters)
     : Type(Type::Class::Function)
     , m_inferredParameters(inferredParameters)
 {
@@ -137,10 +137,10 @@ void TypeFunction::dump(std::ostream& out) const
         }
         out << param;
     }
-    out << ") -> " << returnType();
+    out << ") -> " << *returnType();
 }
 
-TypeArray::TypeArray(Value itemType)
+TypeArray::TypeArray(Type* itemType)
     : Type(Type::Class::Array)
 {
     set_itemType(itemType);
@@ -148,7 +148,7 @@ TypeArray::TypeArray(Value itemType)
 
 void TypeArray::dump(std::ostream& out) const
 {
-    out << itemType() << "[]";
+    out << *itemType() << "[]";
 }
 
 TypeTuple::TypeTuple(uint32_t itemCount)
@@ -230,7 +230,7 @@ void TypeVar::dump(std::ostream& out) const
     out << name()->str();
 }
 
-TypeUnion::TypeUnion(Value lhs, Value rhs)
+TypeUnion::TypeUnion(Type* lhs, Type* rhs)
     : Type(Type::Class::Union)
 {
     set_lhs(lhs);
@@ -260,18 +260,17 @@ Type* TypeUnion::collapse(VM& vm)
     if (!rhs)
         return nullptr;
 
-    // GC bug
     Object* fields = Object::create(vm, nullptr, 0);
     for (const auto& lhsField : *lhs) {
         if (auto rhsValue = rhs->tryGet(lhsField.first))
-            fields->set(lhsField.first, TypeUnion::create(vm, lhsField.second, *rhsValue));
+            fields->set(lhsField.first, TypeUnion::create(vm, lhsField.second.asType(), rhsValue->asType()));
     }
     return TypeRecord::create(vm, fields);
 }
 
 void TypeUnion::dump(std::ostream& out) const
 {
-    out << lhs() << " | " << rhs();
+    out << *lhs() << " | " << *rhs();
 }
 
 TypeBinding::TypeBinding(String* name, Type* type)
@@ -356,7 +355,7 @@ TypeName* createTypeName(VM& vm, const std::string& name)
     return TypeName::create(vm, name);
 }
 
-TypeArray* createTypeArray(VM& vm, Value itemType)
+TypeArray* createTypeArray(VM& vm, Type* itemType)
 {
     return TypeArray::create(vm, itemType);
 }
@@ -371,12 +370,12 @@ TypeRecord* createTypeRecord(VM& vm, const BytecodeBlock& block, uint32_t fieldC
     return TypeRecord::create(vm, block, fieldCount, keys, types);
 }
 
-TypeFunction* createTypeFunction(VM& vm, uint32_t paramCount, const Value* params, Value returnType, uint32_t inferredParameters)
+TypeFunction* createTypeFunction(VM& vm, uint32_t paramCount, const Value* params, Type* returnType, uint32_t inferredParameters)
 {
     return TypeFunction::create(vm, paramCount, params, returnType, inferredParameters);
 }
 
-TypeUnion* createTypeUnion(VM& vm, Value lhs, Value rhs)
+TypeUnion* createTypeUnion(VM& vm, Type* lhs, Type* rhs)
 {
     return TypeUnion::create(vm, lhs, rhs);
 }
