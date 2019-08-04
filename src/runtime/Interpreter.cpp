@@ -452,7 +452,7 @@ OP(TypeError)
 
 OP(InferImplicitParameters)
 {
-    TypeFunction* function = m_cfr[ip.function].asCell<TypeFunction>();
+    TypeFunction* function = m_cfr[ip.function].asCell<Type>()->as<TypeFunction>();
     uint32_t firstParameterOffset = -ip.firstParameter.offset();
     for (uint32_t i = 0; i < ip.parameterCount; i++) {
         Type* type = function->implicitParam(i);

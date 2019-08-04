@@ -3,8 +3,26 @@
 #include "Allocator.h"
 #include <iostream>
 
+class CellCastAllowed;
+
+template<typename T>
+T cell_cast_allowed_class(CellCastAllowed(T::*)());
+
+template<typename T>
+struct is_cell_cast_allowed : std::bool_constant<
+                      std::is_base_of_v<Cell, T> &&
+                      std::is_same_v<decltype(cell_cast_allowed_class(&T::cellCastAllowed)), T>
+                      > { };
+
+template<typename T>
+static constexpr bool is_cell_cast_allowed_v = is_cell_cast_allowed<T>::value;
+
+#define ALLOW_CELL_CAST() \
+    CellCastAllowed cellCastAllowed()
+
 #define CELL_TYPE(__kind) \
-    static constexpr Cell::Kind kind() { return Cell::Kind::__kind; }
+    static constexpr Cell::Kind kind() { return Cell::Kind::__kind; } \
+    ALLOW_CELL_CAST();
 
 #define CELL_CREATE(__type) \
     template<typename... Args> \
@@ -66,13 +84,13 @@ public:
 
     Kind kind() const { return m_kind; }
 
-    template<typename T>
+    template<typename T, typename = std::enable_if_t<is_cell_cast_allowed_v<T>>>
     bool is()
     {
         return (static_cast<uint8_t>(m_kind) & static_cast<uint8_t>(T::kind())) == static_cast<uint8_t>(T::kind());
     }
 
-    template<typename T>
+    template<typename T, typename = std::enable_if_t<is_cell_cast_allowed_v<T>>>
     T* cast()
     {
         ASSERT(is<T>(), "Invalid cast");

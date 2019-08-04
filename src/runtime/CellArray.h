@@ -4,6 +4,7 @@ template<typename T, typename = std::enable_if_t<std::is_base_of_v<Cell, T>>>
 class CellArray : public Array { 
 public:
     CELL_CREATE(CellArray);
+    ALLOW_CELL_CAST();
 
     T* getIndex(uint32_t index)
     {

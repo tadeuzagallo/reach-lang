@@ -44,10 +44,10 @@ public:
     bool hasHole() const;
     Value substitute(VM&, const Substitutions&) const;
 
-    template<typename T>
+    template<typename T, typename = std::enable_if_t<is_cell_cast_allowed_v<T>>>
     T* asCell() const { return asCell()->cast<T>(); }
 
-    template<typename T>
+    template<typename T, typename = std::enable_if_t<is_cell_cast_allowed_v<T>>>
     bool isCell() const { return isCell() && asCell()->is<T>(); }
 
     bool operator!=(const Value&) const;
