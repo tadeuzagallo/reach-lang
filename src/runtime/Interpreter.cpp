@@ -455,9 +455,7 @@ OP(InferImplicitParameters)
     TypeFunction* function = m_cfr[ip.function].asCell<TypeFunction>();
     uint32_t firstParameterOffset = -ip.firstParameter.offset();
     for (uint32_t i = 0; i < ip.parameterCount; i++) {
-        Value param = function->implicitParam(i);
-        ASSERT(param.isType(), "OOPS");
-        Type* type = param.asType();
+        Type* type = function->implicitParam(i);
         ASSERT(type->is<TypeBinding>(), "OOPS");
         type = type->as<TypeBinding>()->type();
         ASSERT(type->is<TypeVar>(), "OOPS");

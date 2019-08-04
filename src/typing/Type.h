@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Array.h"
+#include "CellArray.h"
 #include "Object.h"
 #include "Register.h"
 #include "RhString.h"
@@ -117,7 +117,7 @@ public:
 
     size_t paramCount() const;
     Type* param(uint32_t) const;
-    TypeVar* implicitParam(uint32_t) const;
+    Type* implicitParam(uint32_t) const;
 
     Type* instantiate(VM&) override;
 
@@ -127,10 +127,9 @@ public:
     void dump(std::ostream&) const override;
     bool isEqual(const TypeFunction*) const;
 
-    CELL_FIELD(Array, params);
-    CELL_FIELD(Array, parameterNames);
-    CELL_FIELD(Array, implicitParams);
-    CELL_FIELD(Array, explicitParams);
+    CELL_FIELD(CellArray<Type>, params);
+    CELL_FIELD(CellArray<Type>, implicitParams);
+    CELL_FIELD(CellArray<Type>, explicitParams);
     CELL_FIELD(Type, returnType);
 
     VALUE_FIELD(uint32_t, implicitParamCount, .asNumber());
@@ -168,7 +167,7 @@ public:
     void dump(std::ostream&) const override;
     bool isEqual(const TypeTuple*) const;
 
-    CELL_FIELD(Array, itemsTypes);
+    CELL_FIELD(CellArray<Type>, itemsTypes);
 
 private:
     TypeTuple(uint32_t);

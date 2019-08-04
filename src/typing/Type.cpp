@@ -67,22 +67,32 @@ TypeFunction::TypeFunction(uint32_t parameterCount, const Value* parameters, Typ
     : Type(Type::Class::Function)
     , m_inferredParameters(inferredParameters)
 {
-    set_params(Array::create(vm(), nullptr, parameterCount, parameters));
+    CellArray<Type>* params = CellArray<Type>::create(vm(), parameterCount, parameters);
+    set_params(params);
     set_returnType(returnType);
 
-    std::vector<Value> implicitParams;
-    std::vector<Value> explicitParams;
+    uint32_t implicitParamCount = 0;
+    uint32_t explicitParamCount = 0;
     for (uint32_t i = 0; i < parameterCount; i++) {
-        Value param = parameters[i];
         if (inferredParameters & (1 << i))
-            implicitParams.emplace_back(param);
+            ++implicitParamCount;
         else
-            explicitParams.emplace_back(param);
+            ++explicitParamCount;
     }
-    set_explicitParamCount(explicitParams.size());
-    set_implicitParamCount(implicitParams.size());
-    set_explicitParams(Array::create(vm(), nullptr, explicitParams));
-    set_implicitParams(Array::create(vm(), nullptr, implicitParams));
+    set_explicitParamCount(explicitParamCount);
+    set_implicitParamCount(implicitParamCount);
+
+    CellArray<Type>* implicitParams = CellArray<Type>::create(vm(), implicitParamCount);
+    CellArray<Type>* explicitParams = CellArray<Type>::create(vm(), explicitParamCount);
+    while (parameterCount--) {
+        Type* param = params->getIndex(parameterCount);
+        if (inferredParameters & (1 << parameterCount))
+            implicitParams->setIndex(--implicitParamCount, param);
+        else
+            explicitParams->setIndex(--explicitParamCount, param);
+    }
+    set_explicitParams(explicitParams);
+    set_implicitParams(implicitParams);
 }
 
 size_t TypeFunction::paramCount() const
@@ -93,29 +103,23 @@ size_t TypeFunction::paramCount() const
 Type* TypeFunction::param(uint32_t index) const
 {
     ASSERT(index < paramCount(), "Out of bounds access to TypeFunction::param");
-    return params()->getIndex(index).asCell<Type>();
+    return params()->getIndex(index);
 }
 
-TypeVar* TypeFunction::implicitParam(uint32_t index) const
+Type* TypeFunction::implicitParam(uint32_t index) const
 {
     ASSERT(index < implicitParamCount(), "Out of bounds access to TypeFunction::implicitParam");
-    return implicitParams()->getIndex(index).asCell<TypeVar>();
+    return implicitParams()->getIndex(index);
 }
 
 Type* TypeFunction::instantiate(VM& vm)
 {
     Substitutions subst;
-    for (Value v : *params()) {
-        if (v.isType()) {
-            Type* type = v.asType();
-            if (type->is<TypeVar>())
-                type->as<TypeVar>()->fresh(vm, subst);
-            if (type->is<TypeBinding>()) {
-                type = type->as<TypeBinding>()->type();
-                if (type->is<TypeVar>())
-                    type->as<TypeVar>()->fresh(vm, subst);
-            }
-        }
+    for (Type* type : *params()) {
+        if (type->is<TypeBinding>())
+            type = type->as<TypeBinding>()->type();
+        if (type->is<TypeVar>())
+            type->as<TypeVar>()->fresh(vm, subst);
     }
     return substitute(vm, subst);
 }
@@ -124,18 +128,14 @@ void TypeFunction::dump(std::ostream& out) const
 {
     out << "(";
     bool isFirst = true;
-    for (Value param : *params()) {
+    for (Type* param : *params()) {
         if (!isFirst)
             out << ", ";
         isFirst = false;
-        if (param.isCell<Type>()) {
-            Type* type = param.asCell<Type>();
-            if (type->is<TypeBinding>()) {
-                type->as<TypeBinding>()->fullDump(out);
-                continue;
-            }
-        }
-        out << param;
+        if (param->is<TypeBinding>())
+            param->as<TypeBinding>()->fullDump(out);
+        else
+            out << *param;
     }
     out << ") -> " << *returnType();
 }
@@ -154,7 +154,7 @@ void TypeArray::dump(std::ostream& out) const
 TypeTuple::TypeTuple(uint32_t itemCount)
     : Type(Type::Class::Tuple)
 {
-    set_itemsTypes(Array::create(vm(), nullptr, itemCount));
+    set_itemsTypes(CellArray<Type>::create(vm(), itemCount));
 }
 
 void TypeTuple::dump(std::ostream& out) const
@@ -165,7 +165,7 @@ void TypeTuple::dump(std::ostream& out) const
         if (!first)
             out << ", ";
         first = false;
-        out << type;
+        out << *type;
     }
     out << ">";
 }

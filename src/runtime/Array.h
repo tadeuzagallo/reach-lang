@@ -39,7 +39,6 @@ public:
 protected:
     void visit(const Visitor&) const override;
 
-private:
     Array(Type* type, uint32_t initialSize)
         : Typed(type)
         , m_items(initialSize)
@@ -53,6 +52,7 @@ private:
     {
     }
 
+private:
     Array(Type* type, uint32_t itemCount, const Value* items)
         : Typed(type)
         , m_items(items, items + itemCount)
