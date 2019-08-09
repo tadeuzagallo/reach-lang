@@ -65,6 +65,7 @@ public:
       PIPE,
       OR,
       ARROW,
+      LESS_COLON,
   };
 
   std::string lexeme() const

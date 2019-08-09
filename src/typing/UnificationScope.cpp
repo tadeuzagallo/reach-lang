@@ -120,6 +120,8 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
     if (lhsType == rhsType)
         return;
 
+    LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " <: " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(bytecodeOffset));
+
     // Γ ⊢ σ <: τ
     // ---------------------------------------- T-Binding-L
     // Γ ⊢ x : σ <: τ
@@ -140,8 +142,6 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
         return;
     }
 
-    LOG(ConstraintSolving, "Solving constraint: " << *lhsType << " <: " << *rhsType << " @ " << m_vm.currentBlock->locationInfo(bytecodeOffset));
-
     if (rhsType->is<TypeVar>()) {
         // isInferred(T)
         // !isRigid(T)
@@ -149,7 +149,7 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
         // x <: T => [T/σ]
         TypeVar* var = rhsType->as<TypeVar>();
         if (var->inferred() && !var->isRigid()) {
-            bind(var, lhsType);
+            bind(bytecodeOffset, var, lhsType);
             return;
         }
 
@@ -157,12 +157,11 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
         // !isRigid(T)
         // ---------------------------------------- T-Type-Var
         // σ <: T => [T/σ]
-        if (lhsType->is<TypeType>()) {
-            ASSERT(lhs.isType(), "OOPS");
+        if (lhsType->is<TypeType>() && lhs.isType()) {
             TypeVar* var = rhsType->as<TypeVar>();
             if (!var->isRigid()) {
                 lhsType = lhs.asType()->substitute(m_vm, m_substitutions);
-                bind(var, lhsType);
+                bind(bytecodeOffset, var, lhsType);
             }
             return;
         }
@@ -180,14 +179,14 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
     if (lhsType->is<TypeVar>()) {
         TypeVar* var = lhsType->as<TypeVar>();
         if (var->inferred() && !var->isRigid()) {
-            bind(var, rhsType->substitute(m_vm, m_substitutions));
+            bind(bytecodeOffset, var, rhsType->substitute(m_vm, m_substitutions));
             return;
         }
     }
 
     // NOTE: There's no T-Var-Type.
-    // T-Type-Var is meant for type type arguments being passed explicit to
-    // functions, so it's converse does not make sense.
+    // T-Type-Var is meant for type type arguments being passed explicitly to
+    // functions, so its opposite does not make sense.
 
     // Apply T-Binding-L again, since we're now looking at lhs.asType() rather than lhs.type(),
     // but don't wrap lhs in an AbstractValue, since it was already a type
@@ -327,6 +326,17 @@ void UnificationScope::unifies(InstructionStream::Offset bytecodeOffset, Value l
         return;
     }
 
+    // Γ ⊢ σ <: τ
+    // ---------------------------------------- T-BoundVar-L
+    // Γ ⊢  (x <: σ) <: τ
+    if (lhsType->is<TypeVar>()) {
+        TypeVar* var = lhsType->as<TypeVar>();
+        if (var->bounds() != m_vm.typeType) {
+            unifies(bytecodeOffset, AbstractValue { var->bounds() }, rhs);
+            return;
+        }
+    }
+
     if (rhsType->is<TypeVar>() && !rhsType->as<TypeVar>()->isRigid())
         rhsType = m_vm.typeType;
 
@@ -363,6 +373,15 @@ void UnificationScope::matches(InstructionStream::Offset bytecodeOffset, Value s
         return;
     }
 
+    // Γ ⊢ T `matches` P
+    // ---------------------------------------- M-Var
+    // Γ ⊢ (S <: T) `matches` P
+    if (scrutineeType->is<TypeVar>()) {
+        TypeVar* var = scrutineeType->as<TypeVar>();
+        matches(bytecodeOffset, AbstractValue { var->bounds() }, pattern);
+        return;
+    }
+
     if (scrutineeType->is<TypeUnion>()) {
         TypeUnion* scrutineeUnion = scrutineeType->as<TypeUnion>();
         unificationOr([&] {
@@ -396,9 +415,10 @@ Type* UnificationScope::eval(Value hole)
     return result.asType()->substitute(m_vm, m_substitutions);
 }
 
-void UnificationScope::bind(TypeVar* var, Type* type)
+void UnificationScope::bind(InstructionStream::Offset bytecodeOffset, TypeVar* var, Type* type)
 {
-    LOG(ConstraintSolving, "Binding type `" << *var << "` to `" << *type << "`");
+    LOG(ConstraintSolving, "Binding type `" << *var << "` to `" << *type << "`" << " @ " << m_vm.currentBlock->locationInfo(bytecodeOffset));
+    unifies(bytecodeOffset, type, var->bounds());
     m_substitutions.emplace(var->uid(), type);
 }
 

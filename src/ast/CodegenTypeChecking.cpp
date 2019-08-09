@@ -91,7 +91,6 @@ void CallExpression::generateForTypeChecking(TypeChecker& tc, Register dst)
 {
     Register calleeReg = tc.generator().newLocal();
     callee->generateForTypeChecking(tc, calleeReg);
-    //tc.generator().getTypeForValue(calleeReg, calleeReg);
     std::vector<Register> args;
     for (size_t i = 0; i < arguments.size(); i++)
         args.push_back(tc.generator().newLocal());

@@ -38,7 +38,7 @@ private:
     void unifies(const Constraint&);
     void unifies(InstructionStream::Offset, Value, Value);
     void matches(InstructionStream::Offset, Value, Value);
-    void bind(TypeVar*, Type*);
+    void bind(InstructionStream::Offset, TypeVar*, Type*);
     void unificationOr(const std::function<void()>&, const std::function<void()>&);
     Type* eval(Value);
 

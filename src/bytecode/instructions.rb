@@ -161,7 +161,8 @@ instruction :NewVarType,
    dst: :Register,
    nameIndex: :uint32_t,
    isInferred: :uint32_t,
-   isRigid: :uint32_t
+   isRigid: :uint32_t,
+   bounds: :Register
 
 instruction :NewNameType,
     dst: :Register,

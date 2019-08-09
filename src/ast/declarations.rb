@@ -29,6 +29,7 @@ ast_node :TypedIdentifier < :Node,
         name: "std::unique_ptr<Identifier>",
         type: "std::unique_ptr<InferredExpression>",
         inferred: "bool",
+        isSubtype: "bool",
     },
     extra_methods: [
         "virtual void infer(TypeChecker&, Register)",

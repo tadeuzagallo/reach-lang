@@ -284,10 +284,10 @@ void BytecodeGenerator::endTypeChecking(Register type)
 }
 
 // Types
-void BytecodeGenerator::newVarType(Register result, const std::string& name, bool inferred, bool rigid)
+void BytecodeGenerator::newVarType(Register result, const std::string& name, bool inferred, bool rigid, Register bounds)
 {
     uint32_t nameIndex = uniqueIdentifier(name);
-    emit<NewVarType>(result, nameIndex, inferred, rigid);
+    emit<NewVarType>(result, nameIndex, inferred, rigid, bounds);
 }
 
 void BytecodeGenerator::newNameType(Register result, const std::string& name)

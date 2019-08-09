@@ -459,7 +459,10 @@ OP(InferImplicitParameters)
         ASSERT(type->is<TypeBinding>(), "OOPS");
         type = type->as<TypeBinding>()->type();
         ASSERT(type->is<TypeVar>(), "OOPS");
-        Type* result = m_vm.unificationScope->infer(m_ip.offset(), type->as<TypeVar>());
+        // This might call a nested interpreter, which might resize the underlying stack storage
+        Value result = preserveStack([&] {
+            return m_vm.unificationScope->infer(m_ip.offset(), type->as<TypeVar>());
+        });
         m_cfr[Register::forLocal(firstParameterOffset + i)] = result;
     }
     DISPATCH();
@@ -470,7 +473,8 @@ OP(InferImplicitParameters)
 OP(NewVarType)
 {
     const std::string& name = m_block.identifier(ip.nameIndex);
-    TypeVar* var = TypeVar::create(m_vm, name, ip.isInferred, ip.isRigid);
+    Type* bounds = m_cfr[ip.bounds].asCell<Type>();
+    TypeVar* var = TypeVar::create(m_vm, name, ip.isInferred, ip.isRigid, bounds);
     m_cfr[ip.dst] = var;
     DISPATCH();
 }

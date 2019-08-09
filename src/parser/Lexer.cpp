@@ -171,7 +171,6 @@ Token::Type Lexer::nextTokenType()
         SIMPLE_CASE('}', R_BRACE);
         SIMPLE_CASE('[', L_SQUARE);
         SIMPLE_CASE(']', R_SQUARE);
-        SIMPLE_CASE('<', L_ANGLE);
         SIMPLE_CASE('>', R_ANGLE);
 
         default:
@@ -248,6 +247,7 @@ Token::Type Lexer::nextTokenType()
         TOKEN2("->", ARROW, MINUS);
         TOKEN2("&&", AND, AMPERSAND);
         TOKEN2("||", OR, PIPE);
+        TOKEN2("<:", LESS_COLON, L_ANGLE);
 
 #undef TOKEN2
 

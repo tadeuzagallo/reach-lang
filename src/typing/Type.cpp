@@ -210,18 +210,19 @@ void TypeRecord::dump(std::ostream& out) const
 
 uint32_t TypeVar::s_uid = 0;
 
-TypeVar::TypeVar(const std::string& name, bool inferred, bool rigid)
+TypeVar::TypeVar(const std::string& name, bool inferred, bool rigid, Type* bounds)
     : Type(Type::Class::Var)
     , m_isRigid(rigid)
 {
     set_uid(++s_uid);
     set_inferred(inferred);
     set_name(String::create(vm(), name));
+    set_bounds(bounds);
 }
 
 void TypeVar::fresh(VM& vm, Substitutions& subst) const
 {
-    TypeVar* newVar = TypeVar::create(vm, name()->str(), inferred(), false);
+    TypeVar* newVar = TypeVar::create(vm, name()->str(), inferred(), false, bounds());
     subst.emplace(uid(), newVar);
 }
 
@@ -345,9 +346,9 @@ std::ostream& operator<<(std::ostream& out, Type::Class tc)
 }
 
 // JIT helpers
-TypeVar* createTypeVar(VM& vm, const std::string& name, bool isInferred, bool isRigid)
+TypeVar* createTypeVar(VM& vm, const std::string& name, bool isInferred, bool isRigid, Type* bounds)
 {
-    return TypeVar::create(vm, name, isInferred, isRigid);
+    return TypeVar::create(vm, name, isInferred, isRigid, bounds);
 }
 
 TypeName* createTypeName(VM& vm, const std::string& name)

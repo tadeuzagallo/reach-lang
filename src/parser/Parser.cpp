@@ -612,7 +612,11 @@ std::unique_ptr<TypedIdentifier> Parser::parseTypedIdentifier(const Token& t)
         typedIdentifier->inferred = false;
         typedIdentifier->name = parseIdentifier(t);
     }
-    CONSUME(Token::COLON);
+    if (m_lexer.peek().type == Token::LESS_COLON) {
+        CONSUME(Token::LESS_COLON);
+        typedIdentifier->isSubtype = true;
+    } else
+        CONSUME(Token::COLON);
     typedIdentifier->type = parseInferredExpression(m_lexer.next());
     return typedIdentifier;
 }

@@ -1,0 +1,20 @@
+// RUN: %not %reach | %check
+
+function Nat() -> Type {
+    { predecessor: #Nat() } | {:}
+}
+
+let Nil = {:}
+function Succ(T <: #Nat()) -> Type {
+    { predecessor: T }
+}
+
+let nil : #Nat() = {}
+function succ(%T <: #Nat(), x: T) -> Succ(T)
+{
+    { predecessor = x }
+}
+
+Succ(Number) // CHECK-L: :18:6: Unification failure: expected `{:}` but found `Number`
+
+succ(succ(2)) // CHECK: :20:11: Unification failure: expected `{:}` but found `Number`

@@ -205,9 +205,10 @@ public:
     VALUE_FIELD(uint32_t, uid, .asNumber());
     VALUE_FIELD(bool, inferred, .asBool());
     CELL_FIELD(String, name);
+    CELL_FIELD(Type, bounds);
 
 private:
-    TypeVar(const std::string&, bool, bool);
+    TypeVar(const std::string&, bool, bool, Type*);
 
     static uint32_t s_uid;
     bool m_isRigid;
@@ -276,7 +277,7 @@ std::ostream& operator<<(std::ostream&, Type::Class);
 
 extern "C" {
 // JIT helpers
-TypeVar* createTypeVar(VM&, const std::string&, bool, bool);
+TypeVar* createTypeVar(VM&, const std::string&, bool, bool, Type*);
 TypeName* createTypeName(VM&, const std::string&);
 TypeArray* createTypeArray(VM&, Type*);
 TypeRecord* createTypeRecord(VM&, const BytecodeBlock&, uint32_t, const Value*, const Value*);

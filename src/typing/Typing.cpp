@@ -295,7 +295,7 @@ void ParenthesizedExpression::infer(TypeChecker& tc, Register result)
 
 void LazyExpression::infer(TypeChecker& tc, Register result)
 {
-    generateForTypeChecking(tc, result);
+    expression->infer(tc, result);
 }
 
 void TupleExpression::infer(TypeChecker& tc, Register result)
@@ -389,7 +389,7 @@ void SubscriptExpression::infer(TypeChecker& tc, Register result)
     index->check(tc, tc.numberType());
 
     Register tmp = tc.generator().newLocal();
-    tc.generator().newVarType(tmp, "T", /* inferred */ true, /* rigid */ false);
+    tc.generator().newVarType(tmp, "T", /* inferred */ true, /* rigid */ false, tc.typeType());
     tc.generator().newArrayType(result, tmp);
     target->check(tc, result);
     scope.resolve(result, tmp);
@@ -400,7 +400,7 @@ void MemberExpression::infer(TypeChecker& tc, Register result)
 {
     TypeChecker::UnificationScope scope(tc);
     Register tmp = tc.generator().newLocal();
-    tc.generator().newVarType(tmp, "T", /* inferred */ true, /* rigid */ false);
+    tc.generator().newVarType(tmp, "T", /* inferred */ true, /* rigid */ false, tc.typeType());
     tc.generator().newRecordType(result, { { property->name, tmp } });
     object->check(tc, result);
     scope.resolve(result, tmp);
@@ -425,12 +425,19 @@ void LiteralExpression::infer(TypeChecker& tc, Register result)
 // Types
 void TypedIdentifier::infer(TypeChecker& tc, Register result)
 {
-    if (dynamic_cast<TypeTypeExpression*>(type.get())) {
-        tc.generator().newVarType(result, name->name, inferred, /* rigid */ true);
+    if (isSubtype || dynamic_cast<TypeTypeExpression*>(type.get())) {
+        Register type = tc.typeType();
+        if (isSubtype) {
+            type = result;
+            tc.inferAsType(this->type, result);
+        }
+        tc.generator().newVarType(result, name->name, inferred, /* rigid */ true, type);
         tc.generator().newBindingType(result, name->name, result);
         tc.insert(name->name, result);
         return;
-    } else if (inferred)
+    }
+
+    if (inferred)
         tc.generator().typeError(location, "Only type arguments can be inferred");
 
     tc.inferAsType(type, result);
@@ -489,7 +496,7 @@ void UnionTypeExpression::infer(TypeChecker& tc, Register result)
 
 void IdentifierPattern::infer(TypeChecker& tc, Register result)
 {
-    tc.generator().newVarType(result, "T", /* inferred */ true, /* rigid */ false);
+    tc.generator().newVarType(result, "T", /* inferred */ true, /* rigid */ false, tc.typeType());
     tc.generator().newValue(result, result);
     tc.insert(name->name, result);
 }

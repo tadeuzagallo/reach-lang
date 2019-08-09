@@ -71,7 +71,7 @@ public:
     void endTypeChecking(Register);
 
     // Types
-    void newVarType(Register, const std::string&, bool, bool);
+    void newVarType(Register, const std::string&, bool, bool, Register);
     void newNameType(Register, const std::string&);
     void newArrayType(Register, Register);
     void newTupleType(Register, unsigned);
